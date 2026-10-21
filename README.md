@@ -1,44 +1,39 @@
 # World Game
 
-Find countries on a borderless, satellite-style 3D globe. The game names a country, you drop a pin
-where you think it is, and the real country lights up with your distance and score.
+A geography game built with React and Three.js. Find a named country on a
+borderless 3D globe, drop a pin, and see the country's outline, your distance,
+and your score.
 
-See [docs/design.md](docs/design.md) for the game design.
+## Run locally
 
-## Running it
+Use Node.js 22.12+ and npm. From the project root:
 
 ```bash
-npm install
+npm ci
 npm run dev
 ```
 
-Then open the URL Vite prints (port 5174 by default).
+Open the URL Vite prints. It starts on port 5174 and tries the next available
+port if occupied.
 
-## Scripts
+## Useful commands
 
-| Command                 | What it does                                              |
-| ----------------------- | --------------------------------------------------------- |
-| `npm run dev`           | Start the dev server                                      |
-| `npm test`              | Run the unit tests (Vitest)                               |
-| `npm run build`         | Type-check and build for production                       |
-| `npm run lint`          | Lint with oxlint                                          |
-| `npm run format`        | Format with Prettier                                      |
-| `npm run build:data`    | Rebuild `public/data/countries.json` from Natural Earth   |
-| `npm run build:texture` | Rebuild `public/textures/earth.jpg` from NASA Blue Marble |
+- `npm test`: run unit tests.
+- `npm run build`: type-check and build into `dist/`.
+- `npm run lint`: lint the code.
+- `npm run format:check`: check formatting.
 
-The generated data and texture live in `public/` and belong in the repo, so the build scripts are
-only needed to change them.
-Their raw downloads are cached in `.cache/`.
+## How it works
 
-## Layout
+- `src/geo/`: coordinates, country lookup, distance, and scoring.
+- `src/game/`: game state, target selection, saved stats, and settings.
+- `src/globe/` and `src/screens/`: globe rendering, pins, camera, and game screens.
+- `data/places.json`: playable countries and regions.
 
-- `src/geo/`: coordinates, country lookup, distances and scoring (pure, unit-tested)
-- `src/game/`: game state, target selection, stats and settings storage
-- `src/globe/`: the Three.js globe (react-three-fiber), reveal overlay, pins and camera flights
-- `src/screens/`: start, playing, summary, stats and loading screens
-- `data/places.json`: the 197 playable places, with display names, status tags and regions
-- `scripts/`: data and texture build scripts
+Country data and globe imagery are committed in `public/`. Rebuild them only
+when changing assets: `npm run build:data` and `npm run build:texture`.
+Downloads are cached in `.cache/`.
 
-## Credits
-
-Imagery: NASA Blue Marble Next Generation. Borders: Natural Earth. Both are public domain.
+See the [game design](docs/design.md) for rules and design details.
+Imagery: NASA Blue Marble Next Generation. Borders: Natural Earth. Both are
+public domain.
