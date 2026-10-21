@@ -1,0 +1,987 @@
+{
+  "AFG": {
+    "name": "Afghanistan",
+    "status": "un-member",
+    "region": "Asia"
+  },
+  "ALB": {
+    "name": "Albania",
+    "status": "un-member",
+    "region": "Europe"
+  },
+  "DZA": {
+    "name": "Algeria",
+    "status": "un-member",
+    "region": "Africa"
+  },
+  "AND": {
+    "name": "Andorra",
+    "status": "un-member",
+    "region": "Europe"
+  },
+  "AGO": {
+    "name": "Angola",
+    "status": "un-member",
+    "region": "Africa"
+  },
+  "ATG": {
+    "name": "Antigua and Barbuda",
+    "status": "un-member",
+    "region": "North America"
+  },
+  "ARG": {
+    "name": "Argentina",
+    "status": "un-member",
+    "region": "South America"
+  },
+  "ARM": {
+    "name": "Armenia",
+    "status": "un-member",
+    "region": "Asia"
+  },
+  "AUS": {
+    "name": "Australia",
+    "status": "un-member",
+    "region": "Oceania"
+  },
+  "AUT": {
+    "name": "Austria",
+    "status": "un-member",
+    "region": "Europe"
+  },
+  "AZE": {
+    "name": "Azerbaijan",
+    "status": "un-member",
+    "region": "Asia"
+  },
+  "BHS": {
+    "name": "Bahamas",
+    "status": "un-member",
+    "region": "North America"
+  },
+  "BHR": {
+    "name": "Bahrain",
+    "status": "un-member",
+    "region": "Asia"
+  },
+  "BGD": {
+    "name": "Bangladesh",
+    "status": "un-member",
+    "region": "Asia"
+  },
+  "BRB": {
+    "name": "Barbados",
+    "status": "un-member",
+    "region": "North America"
+  },
+  "BLR": {
+    "name": "Belarus",
+    "status": "un-member",
+    "region": "Europe"
+  },
+  "BEL": {
+    "name": "Belgium",
+    "status": "un-member",
+    "region": "Europe"
+  },
+  "BLZ": {
+    "name": "Belize",
+    "status": "un-member",
+    "region": "North America"
+  },
+  "BEN": {
+    "name": "Benin",
+    "status": "un-member",
+    "region": "Africa"
+  },
+  "BTN": {
+    "name": "Bhutan",
+    "status": "un-member",
+    "region": "Asia"
+  },
+  "BOL": {
+    "name": "Bolivia",
+    "status": "un-member",
+    "region": "South America"
+  },
+  "BIH": {
+    "name": "Bosnia and Herzegovina",
+    "status": "un-member",
+    "region": "Europe"
+  },
+  "BWA": {
+    "name": "Botswana",
+    "status": "un-member",
+    "region": "Africa"
+  },
+  "BRA": {
+    "name": "Brazil",
+    "status": "un-member",
+    "region": "South America"
+  },
+  "BRN": {
+    "name": "Brunei",
+    "status": "un-member",
+    "region": "Asia"
+  },
+  "BGR": {
+    "name": "Bulgaria",
+    "status": "un-member",
+    "region": "Europe"
+  },
+  "BFA": {
+    "name": "Burkina Faso",
+    "status": "un-member",
+    "region": "Africa"
+  },
+  "BDI": {
+    "name": "Burundi",
+    "status": "un-member",
+    "region": "Africa"
+  },
+  "CPV": {
+    "name": "Cabo Verde",
+    "status": "un-member",
+    "region": "Africa"
+  },
+  "KHM": {
+    "name": "Cambodia",
+    "status": "un-member",
+    "region": "Asia"
+  },
+  "CMR": {
+    "name": "Cameroon",
+    "status": "un-member",
+    "region": "Africa"
+  },
+  "CAN": {
+    "name": "Canada",
+    "status": "un-member",
+    "region": "North America"
+  },
+  "CAF": {
+    "name": "Central African Republic",
+    "status": "un-member",
+    "region": "Africa"
+  },
+  "TCD": {
+    "name": "Chad",
+    "status": "un-member",
+    "region": "Africa"
+  },
+  "CHL": {
+    "name": "Chile",
+    "status": "un-member",
+    "region": "South America"
+  },
+  "CHN": {
+    "name": "China",
+    "status": "un-member",
+    "region": "Asia"
+  },
+  "COL": {
+    "name": "Colombia",
+    "status": "un-member",
+    "region": "South America"
+  },
+  "COM": {
+    "name": "Comoros",
+    "status": "un-member",
+    "region": "Africa"
+  },
+  "CRI": {
+    "name": "Costa Rica",
+    "status": "un-member",
+    "region": "North America"
+  },
+  "CIV": {
+    "name": "Côte d’Ivoire",
+    "status": "un-member",
+    "region": "Africa"
+  },
+  "HRV": {
+    "name": "Croatia",
+    "status": "un-member",
+    "region": "Europe"
+  },
+  "CUB": {
+    "name": "Cuba",
+    "status": "un-member",
+    "region": "North America"
+  },
+  "CYP": {
+    "name": "Cyprus",
+    "status": "un-member",
+    "region": "Asia"
+  },
+  "CZE": {
+    "name": "Czechia",
+    "status": "un-member",
+    "region": "Europe"
+  },
+  "COD": {
+    "name": "Democratic Republic of the Congo",
+    "status": "un-member",
+    "region": "Africa"
+  },
+  "DNK": {
+    "name": "Denmark",
+    "status": "un-member",
+    "region": "Europe"
+  },
+  "DJI": {
+    "name": "Djibouti",
+    "status": "un-member",
+    "region": "Africa"
+  },
+  "DMA": {
+    "name": "Dominica",
+    "status": "un-member",
+    "region": "North America"
+  },
+  "DOM": {
+    "name": "Dominican Republic",
+    "status": "un-member",
+    "region": "North America"
+  },
+  "ECU": {
+    "name": "Ecuador",
+    "status": "un-member",
+    "region": "South America"
+  },
+  "EGY": {
+    "name": "Egypt",
+    "status": "un-member",
+    "region": "Africa"
+  },
+  "SLV": {
+    "name": "El Salvador",
+    "status": "un-member",
+    "region": "North America"
+  },
+  "GNQ": {
+    "name": "Equatorial Guinea",
+    "status": "un-member",
+    "region": "Africa"
+  },
+  "ERI": {
+    "name": "Eritrea",
+    "status": "un-member",
+    "region": "Africa"
+  },
+  "EST": {
+    "name": "Estonia",
+    "status": "un-member",
+    "region": "Europe"
+  },
+  "SWZ": {
+    "name": "Eswatini",
+    "status": "un-member",
+    "region": "Africa"
+  },
+  "ETH": {
+    "name": "Ethiopia",
+    "status": "un-member",
+    "region": "Africa"
+  },
+  "FJI": {
+    "name": "Fiji",
+    "status": "un-member",
+    "region": "Oceania"
+  },
+  "FIN": {
+    "name": "Finland",
+    "status": "un-member",
+    "region": "Europe"
+  },
+  "FRA": {
+    "name": "France",
+    "status": "un-member",
+    "region": "Europe"
+  },
+  "GAB": {
+    "name": "Gabon",
+    "status": "un-member",
+    "region": "Africa"
+  },
+  "GMB": {
+    "name": "Gambia",
+    "status": "un-member",
+    "region": "Africa"
+  },
+  "GEO": {
+    "name": "Georgia",
+    "status": "un-member",
+    "region": "Asia"
+  },
+  "DEU": {
+    "name": "Germany",
+    "status": "un-member",
+    "region": "Europe"
+  },
+  "GHA": {
+    "name": "Ghana",
+    "status": "un-member",
+    "region": "Africa"
+  },
+  "GRC": {
+    "name": "Greece",
+    "status": "un-member",
+    "region": "Europe"
+  },
+  "GRD": {
+    "name": "Grenada",
+    "status": "un-member",
+    "region": "North America"
+  },
+  "GTM": {
+    "name": "Guatemala",
+    "status": "un-member",
+    "region": "North America"
+  },
+  "GIN": {
+    "name": "Guinea",
+    "status": "un-member",
+    "region": "Africa"
+  },
+  "GNB": {
+    "name": "Guinea-Bissau",
+    "status": "un-member",
+    "region": "Africa"
+  },
+  "GUY": {
+    "name": "Guyana",
+    "status": "un-member",
+    "region": "South America"
+  },
+  "HTI": {
+    "name": "Haiti",
+    "status": "un-member",
+    "region": "North America"
+  },
+  "HND": {
+    "name": "Honduras",
+    "status": "un-member",
+    "region": "North America"
+  },
+  "HUN": {
+    "name": "Hungary",
+    "status": "un-member",
+    "region": "Europe"
+  },
+  "ISL": {
+    "name": "Iceland",
+    "status": "un-member",
+    "region": "Europe"
+  },
+  "IND": {
+    "name": "India",
+    "status": "un-member",
+    "region": "Asia"
+  },
+  "IDN": {
+    "name": "Indonesia",
+    "status": "un-member",
+    "region": "Asia"
+  },
+  "IRN": {
+    "name": "Iran",
+    "status": "un-member",
+    "region": "Asia"
+  },
+  "IRQ": {
+    "name": "Iraq",
+    "status": "un-member",
+    "region": "Asia"
+  },
+  "IRL": {
+    "name": "Ireland",
+    "status": "un-member",
+    "region": "Europe"
+  },
+  "ISR": {
+    "name": "Israel",
+    "status": "un-member",
+    "region": "Asia"
+  },
+  "ITA": {
+    "name": "Italy",
+    "status": "un-member",
+    "region": "Europe"
+  },
+  "JAM": {
+    "name": "Jamaica",
+    "status": "un-member",
+    "region": "North America"
+  },
+  "JPN": {
+    "name": "Japan",
+    "status": "un-member",
+    "region": "Asia"
+  },
+  "JOR": {
+    "name": "Jordan",
+    "status": "un-member",
+    "region": "Asia"
+  },
+  "KAZ": {
+    "name": "Kazakhstan",
+    "status": "un-member",
+    "region": "Asia"
+  },
+  "KEN": {
+    "name": "Kenya",
+    "status": "un-member",
+    "region": "Africa"
+  },
+  "KIR": {
+    "name": "Kiribati",
+    "status": "un-member",
+    "region": "Oceania"
+  },
+  "KOS": {
+    "name": "Kosovo",
+    "status": "partially-recognized",
+    "region": "Europe"
+  },
+  "KWT": {
+    "name": "Kuwait",
+    "status": "un-member",
+    "region": "Asia"
+  },
+  "KGZ": {
+    "name": "Kyrgyzstan",
+    "status": "un-member",
+    "region": "Asia"
+  },
+  "LAO": {
+    "name": "Laos",
+    "status": "un-member",
+    "region": "Asia"
+  },
+  "LVA": {
+    "name": "Latvia",
+    "status": "un-member",
+    "region": "Europe"
+  },
+  "LBN": {
+    "name": "Lebanon",
+    "status": "un-member",
+    "region": "Asia"
+  },
+  "LSO": {
+    "name": "Lesotho",
+    "status": "un-member",
+    "region": "Africa"
+  },
+  "LBR": {
+    "name": "Liberia",
+    "status": "un-member",
+    "region": "Africa"
+  },
+  "LBY": {
+    "name": "Libya",
+    "status": "un-member",
+    "region": "Africa"
+  },
+  "LIE": {
+    "name": "Liechtenstein",
+    "status": "un-member",
+    "region": "Europe"
+  },
+  "LTU": {
+    "name": "Lithuania",
+    "status": "un-member",
+    "region": "Europe"
+  },
+  "LUX": {
+    "name": "Luxembourg",
+    "status": "un-member",
+    "region": "Europe"
+  },
+  "MDG": {
+    "name": "Madagascar",
+    "status": "un-member",
+    "region": "Africa"
+  },
+  "MWI": {
+    "name": "Malawi",
+    "status": "un-member",
+    "region": "Africa"
+  },
+  "MYS": {
+    "name": "Malaysia",
+    "status": "un-member",
+    "region": "Asia"
+  },
+  "MDV": {
+    "name": "Maldives",
+    "status": "un-member",
+    "region": "Asia"
+  },
+  "MLI": {
+    "name": "Mali",
+    "status": "un-member",
+    "region": "Africa"
+  },
+  "MLT": {
+    "name": "Malta",
+    "status": "un-member",
+    "region": "Europe"
+  },
+  "MHL": {
+    "name": "Marshall Islands",
+    "status": "un-member",
+    "region": "Oceania"
+  },
+  "MRT": {
+    "name": "Mauritania",
+    "status": "un-member",
+    "region": "Africa"
+  },
+  "MUS": {
+    "name": "Mauritius",
+    "status": "un-member",
+    "region": "Africa"
+  },
+  "MEX": {
+    "name": "Mexico",
+    "status": "un-member",
+    "region": "North America"
+  },
+  "FSM": {
+    "name": "Micronesia",
+    "status": "un-member",
+    "region": "Oceania"
+  },
+  "MDA": {
+    "name": "Moldova",
+    "status": "un-member",
+    "region": "Europe"
+  },
+  "MCO": {
+    "name": "Monaco",
+    "status": "un-member",
+    "region": "Europe"
+  },
+  "MNG": {
+    "name": "Mongolia",
+    "status": "un-member",
+    "region": "Asia"
+  },
+  "MNE": {
+    "name": "Montenegro",
+    "status": "un-member",
+    "region": "Europe"
+  },
+  "MAR": {
+    "name": "Morocco",
+    "status": "un-member",
+    "region": "Africa"
+  },
+  "MOZ": {
+    "name": "Mozambique",
+    "status": "un-member",
+    "region": "Africa"
+  },
+  "MMR": {
+    "name": "Myanmar",
+    "status": "un-member",
+    "region": "Asia"
+  },
+  "NAM": {
+    "name": "Namibia",
+    "status": "un-member",
+    "region": "Africa"
+  },
+  "NRU": {
+    "name": "Nauru",
+    "status": "un-member",
+    "region": "Oceania"
+  },
+  "NPL": {
+    "name": "Nepal",
+    "status": "un-member",
+    "region": "Asia"
+  },
+  "NLD": {
+    "name": "Netherlands",
+    "status": "un-member",
+    "region": "Europe"
+  },
+  "NZL": {
+    "name": "New Zealand",
+    "status": "un-member",
+    "region": "Oceania"
+  },
+  "NIC": {
+    "name": "Nicaragua",
+    "status": "un-member",
+    "region": "North America"
+  },
+  "NER": {
+    "name": "Niger",
+    "status": "un-member",
+    "region": "Africa"
+  },
+  "NGA": {
+    "name": "Nigeria",
+    "status": "un-member",
+    "region": "Africa"
+  },
+  "PRK": {
+    "name": "North Korea",
+    "status": "un-member",
+    "region": "Asia"
+  },
+  "MKD": {
+    "name": "North Macedonia",
+    "status": "un-member",
+    "region": "Europe"
+  },
+  "NOR": {
+    "name": "Norway",
+    "status": "un-member",
+    "region": "Europe"
+  },
+  "OMN": {
+    "name": "Oman",
+    "status": "un-member",
+    "region": "Asia"
+  },
+  "PAK": {
+    "name": "Pakistan",
+    "status": "un-member",
+    "region": "Asia"
+  },
+  "PLW": {
+    "name": "Palau",
+    "status": "un-member",
+    "region": "Oceania"
+  },
+  "PSX": {
+    "name": "Palestine",
+    "status": "un-observer",
+    "region": "Asia"
+  },
+  "PAN": {
+    "name": "Panama",
+    "status": "un-member",
+    "region": "North America"
+  },
+  "PNG": {
+    "name": "Papua New Guinea",
+    "status": "un-member",
+    "region": "Oceania"
+  },
+  "PRY": {
+    "name": "Paraguay",
+    "status": "un-member",
+    "region": "South America"
+  },
+  "PER": {
+    "name": "Peru",
+    "status": "un-member",
+    "region": "South America"
+  },
+  "PHL": {
+    "name": "Philippines",
+    "status": "un-member",
+    "region": "Asia"
+  },
+  "POL": {
+    "name": "Poland",
+    "status": "un-member",
+    "region": "Europe"
+  },
+  "PRT": {
+    "name": "Portugal",
+    "status": "un-member",
+    "region": "Europe"
+  },
+  "QAT": {
+    "name": "Qatar",
+    "status": "un-member",
+    "region": "Asia"
+  },
+  "COG": {
+    "name": "Republic of the Congo",
+    "status": "un-member",
+    "region": "Africa"
+  },
+  "ROU": {
+    "name": "Romania",
+    "status": "un-member",
+    "region": "Europe"
+  },
+  "RUS": {
+    "name": "Russia",
+    "status": "un-member",
+    "region": "Europe"
+  },
+  "RWA": {
+    "name": "Rwanda",
+    "status": "un-member",
+    "region": "Africa"
+  },
+  "KNA": {
+    "name": "Saint Kitts and Nevis",
+    "status": "un-member",
+    "region": "North America"
+  },
+  "LCA": {
+    "name": "Saint Lucia",
+    "status": "un-member",
+    "region": "North America"
+  },
+  "VCT": {
+    "name": "Saint Vincent and the Grenadines",
+    "status": "un-member",
+    "region": "North America"
+  },
+  "WSM": {
+    "name": "Samoa",
+    "status": "un-member",
+    "region": "Oceania"
+  },
+  "SMR": {
+    "name": "San Marino",
+    "status": "un-member",
+    "region": "Europe"
+  },
+  "STP": {
+    "name": "São Tomé and Príncipe",
+    "status": "un-member",
+    "region": "Africa"
+  },
+  "SAU": {
+    "name": "Saudi Arabia",
+    "status": "un-member",
+    "region": "Asia"
+  },
+  "SEN": {
+    "name": "Senegal",
+    "status": "un-member",
+    "region": "Africa"
+  },
+  "SRB": {
+    "name": "Serbia",
+    "status": "un-member",
+    "region": "Europe"
+  },
+  "SYC": {
+    "name": "Seychelles",
+    "status": "un-member",
+    "region": "Africa"
+  },
+  "SLE": {
+    "name": "Sierra Leone",
+    "status": "un-member",
+    "region": "Africa"
+  },
+  "SGP": {
+    "name": "Singapore",
+    "status": "un-member",
+    "region": "Asia"
+  },
+  "SVK": {
+    "name": "Slovakia",
+    "status": "un-member",
+    "region": "Europe"
+  },
+  "SVN": {
+    "name": "Slovenia",
+    "status": "un-member",
+    "region": "Europe"
+  },
+  "SLB": {
+    "name": "Solomon Islands",
+    "status": "un-member",
+    "region": "Oceania"
+  },
+  "SOM": {
+    "name": "Somalia",
+    "status": "un-member",
+    "region": "Africa"
+  },
+  "ZAF": {
+    "name": "South Africa",
+    "status": "un-member",
+    "region": "Africa"
+  },
+  "KOR": {
+    "name": "South Korea",
+    "status": "un-member",
+    "region": "Asia"
+  },
+  "SDS": {
+    "name": "South Sudan",
+    "status": "un-member",
+    "region": "Africa"
+  },
+  "ESP": {
+    "name": "Spain",
+    "status": "un-member",
+    "region": "Europe"
+  },
+  "LKA": {
+    "name": "Sri Lanka",
+    "status": "un-member",
+    "region": "Asia"
+  },
+  "SDN": {
+    "name": "Sudan",
+    "status": "un-member",
+    "region": "Africa"
+  },
+  "SUR": {
+    "name": "Suriname",
+    "status": "un-member",
+    "region": "South America"
+  },
+  "SWE": {
+    "name": "Sweden",
+    "status": "un-member",
+    "region": "Europe"
+  },
+  "CHE": {
+    "name": "Switzerland",
+    "status": "un-member",
+    "region": "Europe"
+  },
+  "SYR": {
+    "name": "Syria",
+    "status": "un-member",
+    "region": "Asia"
+  },
+  "TWN": {
+    "name": "Taiwan",
+    "status": "partially-recognized",
+    "region": "Asia"
+  },
+  "TJK": {
+    "name": "Tajikistan",
+    "status": "un-member",
+    "region": "Asia"
+  },
+  "TZA": {
+    "name": "Tanzania",
+    "status": "un-member",
+    "region": "Africa"
+  },
+  "THA": {
+    "name": "Thailand",
+    "status": "un-member",
+    "region": "Asia"
+  },
+  "TLS": {
+    "name": "Timor-Leste",
+    "status": "un-member",
+    "region": "Asia"
+  },
+  "TGO": {
+    "name": "Togo",
+    "status": "un-member",
+    "region": "Africa"
+  },
+  "TON": {
+    "name": "Tonga",
+    "status": "un-member",
+    "region": "Oceania"
+  },
+  "TTO": {
+    "name": "Trinidad and Tobago",
+    "status": "un-member",
+    "region": "North America"
+  },
+  "TUN": {
+    "name": "Tunisia",
+    "status": "un-member",
+    "region": "Africa"
+  },
+  "TUR": {
+    "name": "Turkey",
+    "status": "un-member",
+    "region": "Asia"
+  },
+  "TKM": {
+    "name": "Turkmenistan",
+    "status": "un-member",
+    "region": "Asia"
+  },
+  "TUV": {
+    "name": "Tuvalu",
+    "status": "un-member",
+    "region": "Oceania"
+  },
+  "UGA": {
+    "name": "Uganda",
+    "status": "un-member",
+    "region": "Africa"
+  },
+  "UKR": {
+    "name": "Ukraine",
+    "status": "un-member",
+    "region": "Europe"
+  },
+  "ARE": {
+    "name": "United Arab Emirates",
+    "status": "un-member",
+    "region": "Asia"
+  },
+  "GBR": {
+    "name": "United Kingdom",
+    "status": "un-member",
+    "region": "Europe"
+  },
+  "USA": {
+    "name": "United States",
+    "status": "un-member",
+    "region": "North America"
+  },
+  "URY": {
+    "name": "Uruguay",
+    "status": "un-member",
+    "region": "South America"
+  },
+  "UZB": {
+    "name": "Uzbekistan",
+    "status": "un-member",
+    "region": "Asia"
+  },
+  "VUT": {
+    "name": "Vanuatu",
+    "status": "un-member",
+    "region": "Oceania"
+  },
+  "VAT": {
+    "name": "Vatican City",
+    "status": "un-observer",
+    "region": "Europe"
+  },
+  "VEN": {
+    "name": "Venezuela",
+    "status": "un-member",
+    "region": "South America"
+  },
+  "VNM": {
+    "name": "Vietnam",
+    "status": "un-member",
+    "region": "Asia"
+  },
+  "YEM": {
+    "name": "Yemen",
+    "status": "un-member",
+    "region": "Asia"
+  },
+  "ZMB": {
+    "name": "Zambia",
+    "status": "un-member",
+    "region": "Africa"
+  },
+  "ZWE": {
+    "name": "Zimbabwe",
+    "status": "un-member",
+    "region": "Africa"
+  }
+}
