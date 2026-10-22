@@ -1,26 +1,32 @@
 import { useState, type ComponentType } from 'react'
-import { loadPinpointConfig } from '../game/profile/settings'
+import { EXPEDITIONS } from '../game/modes/expeditions'
+import { loadPinpointConfig, sanitizePinpointConfig } from '../game/profile/settings'
+import { formatNumber } from '../screens/format'
+import { Sheet } from '../ui/Sheet'
 import { HomeScreen } from '../screens/HomeScreen'
 import { SettingsScreen } from '../screens/SettingsScreen'
 import { PassportScreen } from '../screens/passport/PassportScreen'
 import { useApp } from './AppContext'
+import { decodeChallenge, GameContext } from './challenge'
 import { DailyPlay } from './daily/DailyPlay'
 import { DailyScreen } from './daily/DailyScreen'
 import { todayKey } from './today'
 import { PinpointGame } from './pinpoint/PinpointGame'
+import { describeConfig } from './pinpoint/describe'
 import { PinpointSetup } from './pinpoint/PinpointSetup'
+import { modeInfo } from './modes'
 import type { DailyPuzzle } from '../game/core/types'
 import type { ModeKey, Route } from './router'
-import { loadJourneyConfig } from './journey/config'
+import { loadJourneyConfig, sanitizeJourneyConfig } from './journey/config'
 import { JourneyGame } from './journey/JourneyGame'
 import { JourneySetup } from './journey/JourneySetup'
-import { loadMysteryConfig } from './mystery/config'
+import { loadMysteryConfig, sanitizeMysteryConfig } from './mystery/config'
 import { MysteryGame } from './mystery/MysteryGame'
 import { MysterySetup } from './mystery/MysterySetup'
-import { loadRareEarthConfig } from './rareEarth/config'
+import { loadRareEarthConfig, sanitizeRareEarthConfig } from './rareEarth/config'
 import { RareEarthGame } from './rareEarth/RareEarthGame'
 import { RareEarthSetup } from './rareEarth/RareEarthSetup'
-import { loadRushConfig } from './rush/config'
+import { loadRushConfig, sanitizeRushConfig } from './rush/config'
 import { RushGame } from './rush/RushGame'
 import { RushSetup } from './rush/RushSetup'
 
@@ -34,15 +40,59 @@ interface GameProps {
   onHome: () => void
 }
 
+interface ModeScreens<Config> {
+  Setup: ComponentType<SetupProps>
+  Game: ComponentType<GameProps & { config: Config; seed?: string }>
+  load: () => Config
+  /** Cleans a setup that arrived in a link. */
+  sanitize: (raw: Partial<Config>) => Config
+  describe: (config: Config) => string
+}
+
+function screens<Config>(definition: ModeScreens<Config>) {
+  return definition as unknown as ModeScreens<unknown>
+}
+
 /** Each mode's setup sheet and game screen. Games read the setup saved by the sheet. */
-const SCREENS: Partial<
-  Record<ModeKey, { Setup: ComponentType<SetupProps>; Game: ComponentType<GameProps> }>
-> = {
-  pinpoint: { Setup: PinpointSetup, Game: withConfig(PinpointGame, loadPinpointConfig) },
-  rush: { Setup: RushSetup, Game: withConfig(RushGame, loadRushConfig) },
-  'rare-earth': { Setup: RareEarthSetup, Game: withConfig(RareEarthGame, loadRareEarthConfig) },
-  mystery: { Setup: MysterySetup, Game: withConfig(MysteryGame, loadMysteryConfig) },
-  journey: { Setup: JourneySetup, Game: withConfig(JourneyGame, loadJourneyConfig) },
+const SCREENS: Record<ModeKey, ModeScreens<unknown>> = {
+  pinpoint: screens({
+    Setup: PinpointSetup,
+    Game: PinpointGame,
+    load: loadPinpointConfig,
+    sanitize: sanitizePinpointConfig,
+    describe: describeConfig,
+  }),
+  rush: screens({
+    Setup: RushSetup,
+    Game: RushGame,
+    load: loadRushConfig,
+    sanitize: sanitizeRushConfig,
+    describe: (c) => [c.region, c.suddenDeath ? 'Sudden death' : '60 seconds'].join(' · '),
+  }),
+  'rare-earth': screens({
+    Setup: RareEarthSetup,
+    Game: RareEarthGame,
+    load: loadRareEarthConfig,
+    sanitize: sanitizeRareEarthConfig,
+    describe: (c) => (c.difficulty === 'hard' ? 'Hard' : 'Normal'),
+  }),
+  mystery: screens({
+    Setup: MysterySetup,
+    Game: MysteryGame,
+    load: loadMysteryConfig,
+    sanitize: sanitizeMysteryConfig,
+    describe: (c) => (c.difficulty === 'hard' ? 'Hard' : 'Normal'),
+  }),
+  journey: screens({
+    Setup: JourneySetup,
+    Game: JourneyGame,
+    load: loadJourneyConfig,
+    sanitize: sanitizeJourneyConfig,
+    describe: (c) =>
+      c.kind === 'quick'
+        ? `Quick journey · ${c.region}`
+        : (EXPEDITIONS.find((e) => e.id === c.expeditionId)?.title ?? 'Expedition'),
+  }),
 }
 
 export function Routes({ route }: { route: Route }) {
@@ -53,30 +103,25 @@ export function Routes({ route }: { route: Route }) {
     case 'home':
       return <HomeScreen />
     case 'setup': {
-      const screens = SCREENS[route.mode]
+      const { Setup } = SCREENS[route.mode]
       return (
         <>
           <HomeScreen />
-          {screens && (
-            <screens.Setup
-              onClose={home}
-              onPlay={() => navigate({ name: 'play', mode: route.mode })}
-            />
-          )}
+          <Setup onClose={home} onPlay={() => navigate({ name: 'play', mode: route.mode })} />
         </>
       )
     }
-    case 'play': {
-      const screens = SCREENS[route.mode]
-      if (!screens) return <HomeScreen />
+    case 'play':
       return (
-        <screens.Game
+        <PlayMode
           key={route.mode}
+          mode={route.mode}
           onChangeSetup={() => navigate({ name: 'setup', mode: route.mode }, { replace: true })}
           onHome={home}
         />
       )
-    }
+    case 'challenge':
+      return <ChallengeRoute token={route.token} onHome={home} />
     case 'daily':
       return (
         <DailyScreen onPlay={(puzzle) => navigate({ name: 'daily-play', puzzle })} onClose={home} />
@@ -103,15 +148,61 @@ export function Routes({ route }: { route: Route }) {
   }
 }
 
-/** Reads the saved setup once, so reloading mid-game starts afresh with the same choices. */
-function withConfig<Config>(
-  Game: ComponentType<GameProps & { config: Config }>,
-  load: () => Config,
-): ComponentType<GameProps> {
-  return function GameWithConfig(props: GameProps) {
-    const [config] = useState(load)
-    return <Game config={config} {...props} />
+/** Plays a mode with its saved setup, read once so a reload starts afresh with the same choices. */
+function PlayMode({ mode, ...props }: GameProps & { mode: ModeKey }) {
+  const { Game, load } = SCREENS[mode]
+  const [config] = useState(load)
+  return (
+    <GameContext.Provider value={{ mode, config, rival: null }}>
+      <Game config={config} {...props} />
+    </GameContext.Provider>
+  )
+}
+
+/** Someone shared a game: show what it is and the score to beat, then play the same one. */
+function ChallengeRoute({ token, onHome }: { token: string; onHome: () => void }) {
+  const [accepted, setAccepted] = useState(false)
+  const link = decodeChallenge(token)
+  const mode = link && link.mode in SCREENS ? SCREENS[link.mode] : null
+  if (!link || !mode) {
+    return (
+      <>
+        <HomeScreen />
+        <Sheet title="This challenge link is broken" onClose={onHome}>
+          <p>It may have been cut short when it was copied. Ask for the link again.</p>
+        </Sheet>
+      </>
+    )
   }
+  const config = mode.sanitize(link.config as Partial<unknown>)
+  if (accepted) {
+    return (
+      <GameContext.Provider value={{ mode: link.mode, config, rival: link.score }}>
+        <mode.Game config={config} seed={link.seed} onChangeSetup={onHome} onHome={onHome} />
+      </GameContext.Provider>
+    )
+  }
+  return (
+    <>
+      <HomeScreen />
+      <Sheet
+        eyebrow="You've been challenged"
+        title={`Beat ${formatNumber(link.score)} in ${modeInfo(link.mode).title}`}
+        onClose={onHome}
+        footer={
+          <button
+            type="button"
+            className="button button--primary button--large"
+            onClick={() => setAccepted(true)}
+          >
+            Accept the challenge
+          </button>
+        }
+      >
+        <p>{mode.describe(config)}. You'll get exactly the same game, so it is a fair contest.</p>
+      </Sheet>
+    </>
+  )
 }
 
 /**

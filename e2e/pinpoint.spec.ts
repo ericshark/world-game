@@ -53,6 +53,8 @@ test('plays a full game from the home screen and records stats', async ({ page }
 })
 
 test('names countries: multiple choice on easy, typed with aliases on normal', async ({ page }) => {
+  // Two games in one test.
+  test.setTimeout(120_000)
   await openGame(page)
   await startPinpoint(page, ['Name it', 'Easy'])
   await expect(page.locator('.choice-grid button')).toHaveCount(4)

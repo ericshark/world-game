@@ -21,6 +21,7 @@ import { Icon } from '../../ui/Icon'
 import { ResultsScreen } from '../../ui/ResultsScreen'
 import { TimerBar } from '../../ui/TimerBar'
 import { useApp } from '../AppContext'
+import { useChallenge } from '../challenge'
 import { celebrates } from '../celebrate'
 import { useStagePicking, useStageScene } from '../globeStage'
 import { modeInfo } from '../modes'
@@ -47,11 +48,13 @@ const OUTCOME_TONE: Record<RushAnswer['outcome'], Tone> = {
 
 interface RushGameProps {
   config: RushConfig
+  /** A fixed seed, for challenge links. */
+  seed?: string
   onChangeSetup: () => void
   onHome: () => void
 }
 
-export function RushGame({ config, onChangeSetup, onHome }: RushGameProps) {
+export function RushGame({ config, seed, onChangeSetup, onHome }: RushGameProps) {
   const app = useApp()
   const { geo, preferences } = app
   const stage = useGameStage()
@@ -71,12 +74,12 @@ export function RushGame({ config, onChangeSetup, onHome }: RushGameProps) {
       },
     },
     // The clock should not run while the first-time intro is being read.
-    intro.open ? undefined : { config },
+    intro.open ? undefined : { config, seed },
   )
   const state = session.state
   const closeIntro = () => {
     intro.close()
-    if (!session.state) session.start(config)
+    if (!session.state) session.start(config, { seed })
   }
 
   // Start zoomed out somewhere random; after that the camera is yours.
@@ -146,6 +149,8 @@ export function RushGame({ config, onChangeSetup, onHome }: RushGameProps) {
     return () => window.removeEventListener('keydown', onKeyDown)
   })
 
+  const challenge = useChallenge(state?.seed, state?.score ?? 0)
+
   useTestHook({
     snapshot: () => ({
       view: 'game',
@@ -176,6 +181,7 @@ export function RushGame({ config, onChangeSetup, onHome }: RushGameProps) {
         maxScore={null}
         recorded={recorded}
         nameOf={nameOf}
+        challenge={challenge}
         tiles={[
           { label: 'Found', value: String(found) },
           { label: 'Best streak', value: String(state.bestStreak) },

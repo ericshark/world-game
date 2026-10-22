@@ -24,6 +24,7 @@ import { ResultsScreen } from '../../ui/ResultsScreen'
 import { TimerBar } from '../../ui/TimerBar'
 import { useApp } from '../AppContext'
 import { celebrates } from '../celebrate'
+import { useChallenge } from '../challenge'
 import { useStagePicking, useStageScene } from '../globeStage'
 import { trailingHits } from '../streaks'
 import { useTestHook } from '../testHook'
@@ -240,6 +241,9 @@ export function RoundGame<Config, State extends RoundModeState>(
     return () => window.removeEventListener('keydown', onKeyDown)
   })
 
+  const score = results.reduce((sum, r) => sum + r.points, 0)
+  const rematch = useChallenge(state?.seed, score)
+
   useTestHook({
     snapshot: () => ({
       view: 'game',
@@ -261,7 +265,6 @@ export function RoundGame<Config, State extends RoundModeState>(
 
   if (!state || !rounds) return null
   const units = preferences.units
-  const score = results.reduce((sum, r) => sum + r.points, 0)
 
   if (rounds.phase === 'finished' && recorded) {
     return (
@@ -272,6 +275,7 @@ export function RoundGame<Config, State extends RoundModeState>(
         maxScore={rounds.challenges.length * 1000}
         recorded={recorded}
         nameOf={(id) => geo.nameOf(id)}
+        challenge={rematch}
         tiles={props.tiles(results, units)}
         rows={rounds.challenges.map((c, index) => ({
           key: `${index}`,

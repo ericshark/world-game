@@ -13,6 +13,7 @@ describe('router', () => {
     ['#/daily', { name: 'daily' }],
     ['#/daily/mystery', { name: 'daily-play', puzzle: 'mystery' }],
     ['#/daily/nope', { name: 'daily' }],
+    ['#/challenge/abc_-1', { name: 'challenge', token: 'abc_-1' }],
     ['#/play/unknown', { name: 'home' }],
     ['#/nonsense', { name: 'home' }],
   ])('parses %s', (hash, route) => {

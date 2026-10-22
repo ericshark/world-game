@@ -5,6 +5,7 @@ import { levelForXp, xpForLevel } from '../game/profile/xp'
 import { formatNumber } from '../screens/format'
 import type { Tone } from './grades'
 import { Icon } from './Icon'
+import { ShareButton } from './ShareButton'
 import { useCountUp } from './useCountUp'
 
 export interface ResultRow {
@@ -23,6 +24,8 @@ interface ResultsScreenProps {
   recorded: RecordedSession
   /** Names countries mastered during the game. */
   nameOf?: (id: string) => string
+  /** Offer a link to the same game, and compare with the score being challenged. */
+  challenge?: { link: string; rival: number | null }
   tiles: { label: string; value: string }[]
   rows: ResultRow[]
   /** Left out when the game cannot be replayed (daily puzzles). */
@@ -40,6 +43,7 @@ export function ResultsScreen({
   maxScore,
   recorded,
   nameOf,
+  challenge,
   tiles,
   rows,
   onPlayAgain,
@@ -81,6 +85,16 @@ export function ResultsScreen({
           ))}
         </div>
 
+        {challenge?.rival !== null && challenge?.rival !== undefined && (
+          <p className={`results__rival${score > challenge.rival ? ' is-win' : ''}`}>
+            {score > challenge.rival
+              ? `You beat the challenge: ${formatNumber(score)} to ${formatNumber(challenge.rival)}!`
+              : score === challenge.rival
+                ? `A draw at ${formatNumber(score)}!`
+                : `Not this time: they scored ${formatNumber(challenge.rival)}.`}
+          </p>
+        )}
+
         <Rewards recorded={recorded} nameOf={nameOf} />
 
         {children}
@@ -111,6 +125,12 @@ export function ResultsScreen({
                 Change setup
               </button>
             </>
+          )}
+          {challenge && (
+            <ShareButton
+              text={`Can you beat my ${formatNumber(score)} in World Game? ${challenge.link}`}
+              label="Challenge a friend"
+            />
           )}
           <button
             type="button"

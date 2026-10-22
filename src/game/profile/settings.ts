@@ -37,7 +37,11 @@ export const DEFAULT_PREFERENCES: Preferences = {
 
 /** The last Pinpoint setup, so the setup screen remembers your choices. */
 export function loadPinpointConfig(storage?: JsonStorage): PinpointConfig {
-  const saved = readJson<Partial<PinpointConfig>>(PINPOINT_KEY, {}, storage)
+  return sanitizePinpointConfig(readJson<Partial<PinpointConfig>>(PINPOINT_KEY, {}, storage))
+}
+
+/** A valid Pinpoint setup from saved or shared values, with defaults for anything invalid. */
+export function sanitizePinpointConfig(saved: Partial<PinpointConfig>): PinpointConfig {
   const d = DEFAULT_PINPOINT_CONFIG
   return {
     region: isRegion(saved.region) ? saved.region : d.region,

@@ -24,6 +24,7 @@ import { Hud } from '../../ui/Hud'
 import { ResultCard } from '../../ui/ResultCard'
 import { ResultsScreen } from '../../ui/ResultsScreen'
 import { useApp } from '../AppContext'
+import { useChallenge } from '../challenge'
 import type { DailyGame } from '../daily/dailyGame'
 import { celebrates } from '../celebrate'
 import { useStagePicking, useStageScene } from '../globeStage'
@@ -128,6 +129,8 @@ export function MysteryGame({ config, seed, daily, onChangeSetup, onHome }: Myst
       : { paints: [], pins: [], arcs: [] },
   )
 
+  const challenge = useChallenge(daily ? undefined : state?.seed, state ? mysteryScore(state) : 0)
+
   useTestHook({
     snapshot: () => ({
       view: 'game',
@@ -156,6 +159,7 @@ export function MysteryGame({ config, seed, daily, onChangeSetup, onHome }: Myst
         maxScore={MYSTERY_MAX_POINTS}
         recorded={recorded}
         nameOf={nameOf}
+        challenge={challenge}
         tiles={[
           { label: 'Guesses', value: String(state.guesses.length) },
           { label: 'Hint', value: state.hintUsed ? 'Used' : 'No' },

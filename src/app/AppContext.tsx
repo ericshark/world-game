@@ -22,6 +22,8 @@ export interface AppServices {
   /** Records a finished game; returns how it compares with the player's best. */
   finishSession(summary: SessionSummary): RecordedSession
   resetProfile(): void
+  /** Replaces progress and settings, e.g. from a backup file. */
+  restore(profile: Profile, preferences: Preferences): void
   setCosmetics(update: Partial<Cosmetics>): void
   preferences: Preferences
   setPreferences(update: Partial<Preferences>): void
@@ -71,6 +73,12 @@ export function useStoredState(geo: GeoData | null) {
           ...profileRef.current,
           cosmetics: { ...profileRef.current.cosmetics, ...update },
         }),
+      restore: (restoredProfile: Profile, restoredPreferences: Preferences) => {
+        commitProfile(restoredProfile)
+        preferencesRef.current = restoredPreferences
+        setPreferencesState(restoredPreferences)
+        savePreferences(restoredPreferences)
+      },
       resetProfile: () => {
         clearProfile()
         commitProfile(emptyProfile())

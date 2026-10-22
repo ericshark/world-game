@@ -1,10 +1,39 @@
+import { useState, type ChangeEvent } from 'react'
 import { useApp } from '../app/AppContext'
+import { createBackup, readBackup } from '../game/profile/backup'
 import { play } from '../audio/sound'
 import { Choice, Switch } from '../ui/controls'
 import { Sheet } from '../ui/Sheet'
 
 export function SettingsScreen({ onClose }: { onClose: () => void }) {
-  const { preferences, setPreferences, resetProfile } = useApp()
+  const { preferences, setPreferences, resetProfile, profile, restore } = useApp()
+  const [restoreMessage, setRestoreMessage] = useState<string | null>(null)
+
+  const exportBackup = () => {
+    const url = URL.createObjectURL(
+      new Blob([createBackup(profile, preferences)], { type: 'application/json' }),
+    )
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `world-game-backup-${new Date().toISOString().slice(0, 10)}.json`
+    link.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const importBackup = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file) return
+    const backup = readBackup(await file.text())
+    if (!backup) {
+      setRestoreMessage('That file is not a World Game backup.')
+      return
+    }
+    if (window.confirm('Replace your current progress with this backup?')) {
+      restore(backup.profile, backup.preferences)
+      setRestoreMessage('Backup restored.')
+    }
+  }
 
   const reset = () => {
     if (window.confirm('Delete all your stats and personal bests? This cannot be undone.')) {
@@ -79,6 +108,20 @@ export function SettingsScreen({ onClose }: { onClose: () => void }) {
           checked={preferences.showGrid}
           onChange={(showGrid) => setPreferences({ showGrid })}
         />
+      </div>
+
+      <div className="field">
+        <p className="field__label">Your progress lives in this browser</p>
+        <div className="settings__actions">
+          <button type="button" className="button button--ghost" onClick={exportBackup}>
+            Download a backup
+          </button>
+          <label className="button button--ghost">
+            Restore a backup
+            <input type="file" accept="application/json,.json" hidden onChange={importBackup} />
+          </label>
+        </div>
+        {restoreMessage && <p className="field__hint">{restoreMessage}</p>}
       </div>
 
       <div className="settings__actions">

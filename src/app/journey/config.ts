@@ -3,14 +3,18 @@ import { DEFAULT_JOURNEY_CONFIG, type JourneyConfig } from '../../game/modes/jou
 import { loadSetup, sanitizeRegion } from '../../game/profile/settings'
 
 export function loadJourneyConfig(): JourneyConfig {
-  return loadSetup<JourneyConfig>('journey', (saved) => {
-    const expedition = EXPEDITIONS.find(
-      (e) => saved.kind === 'expedition' && e.id === saved.expeditionId,
-    )
-    if (expedition) return { kind: 'expedition', expeditionId: expedition.id }
-    const region = sanitizeRegion((saved as { region?: unknown }).region, 'World')
-    return region === 'Oceania' ? DEFAULT_JOURNEY_CONFIG : { kind: 'quick', region }
-  })
+  return loadSetup<JourneyConfig>('journey', sanitizeJourneyConfig)
+}
+
+/** A valid setup from saved or shared values, with defaults for anything invalid. */
+export function sanitizeJourneyConfig(saved: Partial<JourneyConfig>): JourneyConfig {
+  const expedition = EXPEDITIONS.find(
+    (e) => saved.kind === 'expedition' && e.id === saved.expeditionId,
+  )
+  if (expedition) return { kind: 'expedition', expeditionId: expedition.id }
+  const region = sanitizeRegion((saved as { region?: unknown }).region, 'World')
+  // Oceania's island nations are too far apart to travel between.
+  return region === 'Oceania' ? DEFAULT_JOURNEY_CONFIG : { kind: 'quick', region }
 }
 
 /** Stars earned on an expedition, from its best score (see journeyScore). */

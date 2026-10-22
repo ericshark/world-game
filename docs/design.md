@@ -9,8 +9,8 @@ highlighted, how far off they were, and their score.
 - **Purpose:** personal hobby project, built for fun. May later become a free public site.
 - **Players:** geography enthusiasts and people who want to get better at geography.
 - **Platform:** desktop and mobile web browsers. Runs locally; no hosting yet.
-- **Modes:** Pinpoint, GeoRush, Rare Earth, Mystery Country and World Journey. Daily World and
-  World Battle are planned.
+- **Modes:** Pinpoint, GeoRush, Rare Earth, Mystery Country, World Journey and Daily World.
+  World Battle is planned.
 
 ## Core game: "Find X"
 
@@ -155,6 +155,33 @@ show in the HUD, and personal bests are kept per setup.
   within par + 2, and 1 for finishing.
 - Quick journeys pick a pair with par 5–9. The 8 expeditions add rules: countries to avoid,
   coastal-only routes, and waypoints to visit.
+
+## Daily World
+
+- Every puzzle is generated from the local date alone, so everyone sees the same one:
+  `daily:<puzzle>:<number>:v1`. Puzzle #1 was 2026-10-01. Changing the generator means bumping
+  the version, and a golden test guards it.
+- **Daily Five** (the main daily, which drives the streak): find a tier 1–2 country, name a tier
+  2–3 country, a Rare Earth category, a tier 2–4 capital, and a tier 4–5 finale. Saturdays are
+  played at night, and Sundays end on a micro-state. One attempt, scored out of 5,000.
+- **Bonus dailies:** a Mystery Country (Normal) and a World Route (a quick journey, World).
+- **Hub:** the streak (a day without the Daily Five breaks it; yesterday still counts until
+  today's puzzle is played), a countdown, a four-week calendar and a score distribution.
+- **Sharing** uses spoiler-free emoji text.
+
+## Progression
+
+- **Mastery** per country, across all skills: Seen, Found (right at least once), or Mastered
+  (3 of the last 4 right in one skill, or right in two skills).
+- **Explorer ranks**, by mastered countries: Newcomer, Wanderer (10), Traveller (30),
+  Explorer (60), Navigator (100), Cartographer (150), Atlas (197).
+- **XP per game:** 60 + 140 × performance + 20 per newly mastered country + 50 per achievement
+  - 50 for a daily. Level L needs 100 × L × (L − 1) XP in total.
+- **Cosmetics** (pin colours and atmosphere glows) unlock by level and are purely visual.
+- **Achievements:** 34 pure checks over the profile and the finished game.
+- **Challenge links** encode the mode, setup, seed and score in the URL hash, so a friend plays
+  the same game against your score.
+- **Backup:** progress can be downloaded and restored from Settings.
 
 ## Platform
 
