@@ -42,6 +42,35 @@ export const MODES: ModeInfo[] = [
       },
     ],
   },
+  {
+    key: 'rush',
+    title: 'GeoRush',
+    tagline: 'As many countries as you can find against the clock.',
+    icon: 'bolt',
+    accent: '#ff9a4a',
+    howTo: [
+      {
+        icon: 'bolt',
+        title: 'One tap answers',
+        text: 'No confirming: tap the country and the next one appears straight away.',
+      },
+      {
+        icon: 'calendar',
+        title: 'Beat the clock',
+        text: 'You start with 60 seconds. Hits add 2 s, misses cost 3 s, skips cost 2 s.',
+      },
+      {
+        icon: 'flame',
+        title: 'Build a streak',
+        text: 'Consecutive hits multiply your points: ×2 at 3, ×3 at 6, up to ×5 at 15. Near misses keep the streak.',
+      },
+      {
+        icon: 'globe',
+        title: 'It gets harder',
+        text: 'Famous countries first; every 5 hits the countries get more obscure.',
+      },
+    ],
+  },
 ]
 
 export function modeInfo(key: ModeKey): ModeInfo {

@@ -9,8 +9,13 @@ export async function openGame(page: Page, path = '/') {
 }
 
 /** From the home screen: opens Pinpoint's setup, applies choices, and starts the game. */
-export async function startPinpoint(page: Page, choices: string[] = []) {
-  await page.getByRole('button', { name: /Pinpoint/ }).click()
+export function startPinpoint(page: Page, choices: string[] = []) {
+  return startMode(page, 'Pinpoint', choices)
+}
+
+/** From the home screen: opens a mode's setup, applies choices, and starts the game. */
+export async function startMode(page: Page, mode: string, choices: string[] = []) {
+  await page.getByRole('button', { name: new RegExp(`^${mode}`) }).click()
   const setup = page.getByRole('dialog')
   for (const choice of choices)
     await setup.getByRole('radio', { name: choice, exact: true }).click()

@@ -1382,3 +1382,52 @@ input {
     display: none;
   }
 }
+
+/* GeoRush */
+
+.hud__multiplier {
+  margin-right: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgb(255 154 74 / 0.2);
+  color: #ff9a4a;
+  font-weight: 800;
+  animation: pop 0.3s ease-out;
+}
+
+.rush-feedback {
+  margin: 6px 0 0;
+  font-weight: 700;
+  animation: float-up 1.2s ease-out forwards;
+}
+
+.rush-feedback--hit {
+  color: var(--tone-perfect);
+}
+
+.rush-feedback--near {
+  color: var(--tone-close);
+}
+
+.rush-feedback--miss,
+.rush-feedback--skip {
+  color: var(--tone-miss);
+}
+
+@keyframes float-up {
+  0% {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  15% {
+    opacity: 1;
+    transform: none;
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}

@@ -1,12 +1,33 @@
-import { useState } from 'react'
+import { useState, type ComponentType } from 'react'
 import { loadPinpointConfig } from '../game/profile/settings'
 import { HomeScreen } from '../screens/HomeScreen'
-import { PinpointSetup } from '../screens/PinpointSetup'
 import { SettingsScreen } from '../screens/SettingsScreen'
 import { StatsScreen } from '../screens/StatsScreen'
 import { useApp } from './AppContext'
 import { PinpointGame } from './pinpoint/PinpointGame'
-import type { Route } from './router'
+import { PinpointSetup } from './pinpoint/PinpointSetup'
+import type { ModeKey, Route } from './router'
+import { loadRushConfig } from './rush/config'
+import { RushGame } from './rush/RushGame'
+import { RushSetup } from './rush/RushSetup'
+
+interface SetupProps {
+  onClose: () => void
+  onPlay: () => void
+}
+
+interface GameProps {
+  onChangeSetup: () => void
+  onHome: () => void
+}
+
+/** Each mode's setup sheet and game screen. Games read the setup saved by the sheet. */
+const SCREENS: Partial<
+  Record<ModeKey, { Setup: ComponentType<SetupProps>; Game: ComponentType<GameProps> }>
+> = {
+  pinpoint: { Setup: PinpointSetup, Game: withConfig(PinpointGame, loadPinpointConfig) },
+  rush: { Setup: RushSetup, Game: withConfig(RushGame, loadRushConfig) },
+}
 
 export function Routes({ route }: { route: Route }) {
   const { navigate } = useApp()
@@ -15,23 +36,31 @@ export function Routes({ route }: { route: Route }) {
   switch (route.name) {
     case 'home':
       return <HomeScreen />
-    case 'setup':
+    case 'setup': {
+      const screens = SCREENS[route.mode]
       return (
         <>
           <HomeScreen />
-          <PinpointSetup
-            onClose={home}
-            onPlay={() => navigate({ name: 'play', mode: 'pinpoint' })}
-          />
+          {screens && (
+            <screens.Setup
+              onClose={home}
+              onPlay={() => navigate({ name: 'play', mode: route.mode })}
+            />
+          )}
         </>
       )
-    case 'play':
+    }
+    case 'play': {
+      const screens = SCREENS[route.mode]
+      if (!screens) return <HomeScreen />
       return (
-        <PlayPinpoint
-          onChangeSetup={() => navigate({ name: 'setup', mode: 'pinpoint' }, { replace: true })}
+        <screens.Game
+          key={route.mode}
+          onChangeSetup={() => navigate({ name: 'setup', mode: route.mode }, { replace: true })}
           onHome={home}
         />
       )
+    }
     case 'stats':
       return (
         <>
@@ -49,8 +78,13 @@ export function Routes({ route }: { route: Route }) {
   }
 }
 
-/** Plays with the saved setup, so reloading mid-game starts a fresh game with the same choices. */
-function PlayPinpoint(props: { onChangeSetup: () => void; onHome: () => void }) {
-  const [config] = useState(loadPinpointConfig)
-  return <PinpointGame config={config} {...props} />
+/** Reads the saved setup once, so reloading mid-game starts afresh with the same choices. */
+function withConfig<Config>(
+  Game: ComponentType<GameProps & { config: Config }>,
+  load: () => Config,
+): ComponentType<GameProps> {
+  return function GameWithConfig(props: GameProps) {
+    const [config] = useState(load)
+    return <Game config={config} {...props} />
+  }
 }

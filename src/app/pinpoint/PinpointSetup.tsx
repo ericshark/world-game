@@ -1,25 +1,20 @@
 import { useState } from 'react'
-import { useApp } from '../app/AppContext'
-import { REGIONS } from '../geo/countries'
-import type { ScoringRegion } from '../geo/scoring'
-import { targetPool, weightByDifficulty } from '../game/core/targets'
+import { targetPool, weightByDifficulty } from '../../game/core/targets'
 import {
   pinpointBestKey,
   pinpointSkill,
   ROUNDS_PER_GAME,
   type PinpointConfig,
-} from '../game/modes/pinpoint'
-import { skillStats } from '../game/profile/profile'
-import { loadPinpointConfig, savePinpointConfig } from '../game/profile/settings'
-import { Choice, Switch } from '../ui/controls'
-import { Sheet } from '../ui/Sheet'
-import { formatNumber } from './format'
-
-const REGION_OPTIONS: ScoringRegion[] = ['World', ...REGIONS]
+} from '../../game/modes/pinpoint'
+import { skillStats } from '../../game/profile/profile'
+import { loadPinpointConfig, savePinpointConfig } from '../../game/profile/settings'
+import { Choice, Switch } from '../../ui/controls'
+import { RegionChoice, SetupSheet } from '../../ui/SetupSheet'
+import { useApp } from '../AppContext'
 
 interface PinpointSetupProps {
   onClose: () => void
-  onPlay: (config: PinpointConfig) => void
+  onPlay: () => void
 }
 
 export function PinpointSetup({ onClose, onPlay }: PinpointSetupProps) {
@@ -31,34 +26,18 @@ export function PinpointSetup({ onClose, onPlay }: PinpointSetupProps) {
   const poolSize = weightByDifficulty(pool, config.difficulty, geo).length
   const rounds = Math.min(ROUNDS_PER_GAME, poolSize)
   const hasStats = Object.keys(skillStats(profile, pinpointSkill(config))).length > 0
-  const best = profile.bests[pinpointBestKey(config)]
-
-  const play = () => {
-    savePinpointConfig(config)
-    onPlay(config)
-  }
 
   return (
-    <Sheet
-      eyebrow="Pinpoint"
-      title="Set up your game"
+    <SetupSheet
+      mode="Pinpoint"
+      note={`${poolSize} countries in the pool · ${rounds} rounds`}
+      best={profile.bests[pinpointBestKey(config)]?.score}
+      canPlay={rounds > 0}
       onClose={onClose}
-      footer={
-        <>
-          <p className="sheet__note">
-            {poolSize} countries in the pool · {rounds} rounds
-            {best && ` · Best ${formatNumber(best.score)}`}
-          </p>
-          <button
-            type="button"
-            className="button button--primary button--large"
-            disabled={rounds === 0}
-            onClick={play}
-          >
-            Play
-          </button>
-        </>
-      }
+      onPlay={() => {
+        savePinpointConfig(config)
+        onPlay()
+      }}
     >
       <Choice
         label="Mode"
@@ -80,13 +59,7 @@ export function PinpointSetup({ onClose, onPlay }: PinpointSetupProps) {
           ]}
         />
       )}
-      <Choice
-        label="Region"
-        layout="chips"
-        value={config.region}
-        onChange={(region) => update({ region })}
-        options={REGION_OPTIONS.map((region) => ({ value: region, label: region }))}
-      />
+      <RegionChoice value={config.region} onChange={(region) => update({ region })} />
       <Choice
         label="Difficulty"
         value={config.difficulty}
@@ -132,6 +105,6 @@ export function PinpointSetup({ onClose, onPlay }: PinpointSetupProps) {
           onChange={(practiceWeak) => update({ practiceWeak })}
         />
       </div>
-    </Sheet>
+    </SetupSheet>
   )
 }

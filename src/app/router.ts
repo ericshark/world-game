@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 
-export type ModeKey = 'pinpoint'
+export type ModeKey = 'pinpoint' | 'rush' | 'rare-earth' | 'mystery' | 'journey'
 
 export type Route =
   | { name: 'home' }
@@ -9,7 +9,7 @@ export type Route =
   | { name: 'stats' }
   | { name: 'settings' }
 
-const MODE_KEYS: readonly ModeKey[] = ['pinpoint']
+const MODE_KEYS: readonly ModeKey[] = ['pinpoint', 'rush', 'rare-earth', 'mystery', 'journey']
 
 /** Routes live in the URL hash, so the back button works and links can open a screen. */
 export function parseRoute(hash: string): Route {

@@ -82,10 +82,10 @@ export interface MissedResult {
 
 export type RoundResult = LocateResult | CapitalResult | IdentifyResult | MissedResult
 
-export type ModeId = 'pinpoint'
+export type ModeId = 'pinpoint' | 'rush' | 'rare-earth' | 'mystery' | 'journey' | 'daily' | 'battle'
 
 /** Skills tracked per country across all modes. */
-export type Skill = 'locate' | 'capital' | 'name'
+export type Skill = 'locate' | 'capital' | 'name' | 'recall' | 'visit'
 
 export interface CountryOutcome {
   countryId: string

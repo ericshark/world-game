@@ -54,6 +54,30 @@ export function savePinpointConfig(config: PinpointConfig, storage?: JsonStorage
   writeJson(PINPOINT_KEY, config, storage)
 }
 
+/**
+ * The last setup of a mode, cleaned by `sanitize` so old or tampered values fall back to
+ * defaults.
+ */
+export function loadSetup<T>(
+  mode: string,
+  sanitize: (saved: Partial<T>) => T,
+  storage?: JsonStorage,
+): T {
+  return sanitize(readJson<Partial<T>>(setupKey(mode), {}, storage))
+}
+
+export function saveSetup<T>(mode: string, setup: T, storage?: JsonStorage): void {
+  writeJson(setupKey(mode), setup, storage)
+}
+
+function setupKey(mode: string) {
+  return `world-game:setup:${mode}:v1`
+}
+
+export function sanitizeRegion(value: unknown, fallback: ScoringRegion): ScoringRegion {
+  return isRegion(value) ? value : fallback
+}
+
 export function loadPreferences(storage?: JsonStorage): Preferences {
   const saved = readJson<Partial<Preferences>>(PREFERENCES_KEY, {}, storage)
   const d = DEFAULT_PREFERENCES

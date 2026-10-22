@@ -11,10 +11,10 @@ interface SessionCallbacks {
   onFinish?: (summary: SessionSummary) => void
 }
 
-export interface LocalSession<Config, State> {
+export interface LocalSession<Config, State, Event> {
   state: State | null
   start(config: Config, options?: StartOptions): State
-  send(event: SessionEvent): State | null
+  send(event: Event): State | null
   end(): void
 }
 
@@ -27,13 +27,13 @@ interface StartOptions {
  * Hosts a game in this browser: runs the mode's rules for the local player, feeds them the clock
  * (events and timer ticks) and reports outcomes. A server will host multiplayer games the same way.
  */
-export function useLocalSession<Config, State>(
-  rules: ModeRules<Config, State>,
+export function useLocalSession<Config, State, Event extends { type: string } = SessionEvent>(
+  rules: ModeRules<Config, State, Event>,
   geo: GeoData | null,
   callbacks: SessionCallbacks,
   /** Starts a game straight away with this setup. */
   initial?: { config: Config } & StartOptions,
-): LocalSession<Config, State> {
+): LocalSession<Config, State, Event> {
   const [state, setState] = useState<State | null>(() =>
     initial && geo ? startGame(rules, geo, initial.config, initial) : null,
   )
@@ -59,7 +59,7 @@ export function useLocalSession<Config, State>(
   )
 
   const send = useCallback(
-    (event: SessionEvent) => {
+    (event: Event) => {
       const previous = stateRef.current
       if (!previous || !geo) return previous
       const next = rules.reduce(previous, event, geo)
@@ -83,7 +83,8 @@ export function useLocalSession<Config, State>(
   useEffect(() => {
     if (deadline === null) return
     const timeout = window.setTimeout(
-      () => send({ type: 'tick', at: Date.now() }),
+      // Every mode's events include SessionEvent's tick.
+      () => send({ type: 'tick', at: Date.now() } as SessionEvent as unknown as Event),
       Math.max(0, deadline - Date.now()),
     )
     return () => window.clearTimeout(timeout)
@@ -92,8 +93,8 @@ export function useLocalSession<Config, State>(
   return { state, start, send, end }
 }
 
-function startGame<Config, State>(
-  rules: ModeRules<Config, State>,
+function startGame<Config, State, Event>(
+  rules: ModeRules<Config, State, Event>,
   geo: GeoData,
   config: Config,
   { seed = randomSeed(), stats }: StartOptions,

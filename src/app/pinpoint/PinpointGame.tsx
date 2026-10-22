@@ -25,11 +25,12 @@ import { ResultCard } from '../../ui/ResultCard'
 import { ResultsScreen } from '../../ui/ResultsScreen'
 import { TimerBar } from '../../ui/TimerBar'
 import { useApp } from '../AppContext'
-import { useGlobeStage, useStagePicking, useStageScene } from '../globeStage'
+import { useStagePicking, useStageScene } from '../globeStage'
 import { modeInfo } from '../modes'
 import { bestStreak, trailingHits } from '../streaks'
 import { useTestHook } from '../testHook'
-import { useGlobeShift } from '../useLayoutShift'
+import { useGameStage } from '../useGameStage'
+import { useIntro } from '../useIntro'
 import { useLocalSession } from '../useLocalSession'
 import { describeConfig } from './describe'
 import { pinpointScene } from './scene'
@@ -46,15 +47,13 @@ interface PinpointGameProps {
 export function PinpointGame({ config, onChangeSetup, onHome }: PinpointGameProps) {
   const app = useApp()
   const { geo, preferences } = app
-  const stage = useGlobeStage()
+  const stage = useGameStage({ night: config.night })
   const [draftPin, setDraftPin] = useState<LonLat | null>(null)
   const draftRef = useRef<LonLat | null>(null)
   const [hintUsed, setHintUsed] = useState(false)
   const [recorded, setRecorded] = useState<RecordedSession | null>(null)
-  const [showHelp, setShowHelp] = useState(() => !preferences.seenIntros.includes('pinpoint'))
+  const intro = useIntro('pinpoint')
   const [firstGame] = useState(() => app.profile.history.length === 0)
-  // On phones the bottom panel is tall; lift the globe a little so targets stay in view.
-  useGlobeShift({ x: 0, y: 0 }, { x: 0, y: 0.06 })
   const stats = () => skillStats(app.profile, pinpointSkill(config))
 
   const session = useLocalSession(
@@ -112,16 +111,6 @@ export function PinpointGame({ config, onChangeSetup, onHome }: PinpointGameProp
       }
     }
   })
-
-  // The globe stops its idle spin during play and switches to night if asked.
-  useEffect(() => {
-    stage.setAutoRotate(false)
-    stage.setSurface(config.night ? 'night' : 'day')
-    return () => {
-      stage.setAutoRotate(true)
-      stage.setSurface('day')
-    }
-  }, [stage, config.night])
 
   const submit = (fields: { pin?: LonLat; answerId?: string }, at = Date.now()) => {
     const next = session.send({
@@ -218,13 +207,6 @@ export function PinpointGame({ config, onChangeSetup, onHome }: PinpointGameProp
     },
   })
 
-  const closeHelp = () => {
-    setShowHelp(false)
-    if (!preferences.seenIntros.includes('pinpoint')) {
-      app.setPreferences({ seenIntros: [...preferences.seenIntros, 'pinpoint'] })
-    }
-  }
-
   if (!state || !rounds) return null
   const nameOf = (id: string) => geo.nameOf(id)
   const units = preferences.units
@@ -276,7 +258,7 @@ export function PinpointGame({ config, onChangeSetup, onHome }: PinpointGameProp
         progress={`Round ${rounds.round + 1} / ${rounds.challenges.length}`}
         score={results.reduce((sum, r) => sum + r.points, 0)}
         streak={streak}
-        onHelp={() => setShowHelp(true)}
+        onHelp={intro.show}
         onQuit={onHome}
       />
 
@@ -394,8 +376,8 @@ export function PinpointGame({ config, onChangeSetup, onHome }: PinpointGameProp
         )}
       </div>
 
-      {showHelp && (
-        <HowToPlay mode="Pinpoint" steps={modeInfo('pinpoint').howTo} onClose={closeHelp} />
+      {intro.open && (
+        <HowToPlay mode="Pinpoint" steps={modeInfo('pinpoint').howTo} onClose={intro.close} />
       )}
     </div>
   )
