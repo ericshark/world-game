@@ -7,6 +7,9 @@ import { HomeScreen } from '../screens/HomeScreen'
 import { SettingsScreen } from '../screens/SettingsScreen'
 import { PassportScreen } from '../screens/passport/PassportScreen'
 import { useApp } from './AppContext'
+import { BattleSetup } from './battle/BattleSetup'
+import { LocalBattle } from './battle/LocalBattle'
+import { FORMAT_LABELS, loadBattleSetup, sanitizeBattleSetup } from './battle/setup'
 import { decodeChallenge, GameContext } from './challenge'
 import { DailyPlay } from './daily/DailyPlay'
 import { DailyScreen } from './daily/DailyScreen'
@@ -82,6 +85,13 @@ const SCREENS: Record<ModeKey, ModeScreens<unknown>> = {
     load: loadMysteryConfig,
     sanitize: sanitizeMysteryConfig,
     describe: (c) => (c.difficulty === 'hard' ? 'Hard' : 'Normal'),
+  }),
+  battle: screens({
+    Setup: BattleSetup,
+    Game: LocalBattle,
+    load: loadBattleSetup,
+    sanitize: sanitizeBattleSetup,
+    describe: (c) => `${FORMAT_LABELS[c.format]} against ${c.skill} bots`,
   }),
   journey: screens({
     Setup: JourneySetup,

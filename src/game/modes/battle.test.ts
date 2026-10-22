@@ -211,6 +211,22 @@ describe('battle', () => {
     )
   })
 
+  it('makes bots hurry when someone answers first', () => {
+    let state = start({
+      format: 'duel',
+      content: 'pinpoint',
+      roster: [human('me'), { id: 'bot', name: 'Bot', color: '#0f0', bot: 'novice' }],
+    })
+    state = battle.reduce(
+      state,
+      { type: 'submit', playerId: 'me', submission: { pin: [0, 0], at: 500 } },
+      geo,
+    )
+    state = battle.reduce(state, { type: 'tick', at: battle.deadline(state)! }, geo)
+    expect(state.rounds.phase).toBe('revealed')
+    expect(state.rounds.results[0].bot.kind).not.toBe('missed')
+  })
+
   it('skilled bots find more countries than novices', () => {
     const hits = (skill: 'novice' | 'cartographer') =>
       geo.playableIds.slice(0, 60).filter((id) => {

@@ -23,6 +23,8 @@ export interface Preferences {
   showGrid: boolean
   /** Modes whose "how to play" card the player has already seen. */
   seenIntros: string[]
+  /** Shown to other players in battles. */
+  playerName: string
 }
 
 export const DEFAULT_PREFERENCES: Preferences = {
@@ -33,6 +35,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
   placement: 'tap',
   showGrid: false,
   seenIntros: [],
+  playerName: '',
 }
 
 /** The last Pinpoint setup, so the setup screen remembers your choices. */
@@ -94,6 +97,7 @@ export function loadPreferences(storage?: JsonStorage): Preferences {
     units: oneOf(saved.units, ['km', 'mi'], d.units),
     placement: oneOf(saved.placement, ['tap', 'crosshair'], d.placement),
     showGrid: saved.showGrid === true,
+    playerName: typeof saved.playerName === 'string' ? saved.playerName.slice(0, 20) : '',
     seenIntros: Array.isArray(saved.seenIntros)
       ? saved.seenIntros.filter((id) => typeof id === 'string')
       : d.seenIntros,

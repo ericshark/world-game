@@ -23,10 +23,13 @@ export async function startMode(page: Page, mode: string, choices: string[] = []
   for (const choice of choices)
     await setup.getByRole('radio', { name: choice, exact: true }).click()
   await setup.getByRole('button', { name: 'Play' }).click()
-  await page.waitForFunction(() => window.__worldGame !== undefined)
-  // First-time "How to play" card.
+  // The first-time "How to play" card may come before or over the game.
   const gotIt = page.getByRole('button', { name: 'Got it' })
+  await page.waitForFunction(
+    () => window.__worldGame !== undefined || document.body.innerText.includes('Got it'),
+  )
   if (await gotIt.isVisible()) await gotIt.click()
+  await page.waitForFunction(() => window.__worldGame !== undefined)
 }
 
 export function snapshot(page: Page): Promise<Snapshot> {

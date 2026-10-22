@@ -84,7 +84,7 @@ export function damageMultiplier(round: number): number {
   return round < 2 ? 1 : 1 + 0.5 * (round - 1)
 }
 
-export function battleBestKey(config: BattleConfig): string {
+export function battleBestKey(config: Pick<BattleConfig, 'format'>): string {
   return `battle:${config.format}`
 }
 
@@ -317,8 +317,12 @@ function botSeed(state: BattleState, bot: BattlePlayer) {
   return `${state.seed}:${state.rounds.round}:${bot.id}`
 }
 
+/** Bots, like people, rush to answer when the clock is cut short. */
+const BOT_RUSH_MARGIN_MS = 800
+
 function plannedAt(state: BattleState, bot: BattlePlayer): number {
-  return botAnswerTime(bot.bot!, botSeed(state, bot), state.rounds.openedAt)
+  const relaxed = botAnswerTime(bot.bot!, botSeed(state, bot), state.rounds.openedAt)
+  return Math.min(relaxed, (state.rounds.deadline ?? Infinity) - BOT_RUSH_MARGIN_MS)
 }
 
 /** Bots whose thinking time is up, with their answers, earliest first. */
@@ -328,13 +332,10 @@ function dueBotAnswers(state: BattleState, geo: GeoData, now: number) {
     .filter((bot) => plannedAt(state, bot) <= now)
     .map((bot) => ({
       playerId: bot.id,
-      submission: botSubmission(
-        geo,
-        challenge,
-        bot.bot!,
-        botSeed(state, bot),
-        state.rounds.openedAt,
-      ),
+      submission: {
+        ...botSubmission(geo, challenge, bot.bot!, botSeed(state, bot), state.rounds.openedAt),
+        at: plannedAt(state, bot),
+      },
     }))
     .sort((a, b) => a.submission.at - b.submission.at)
 }

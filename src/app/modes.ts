@@ -148,6 +148,35 @@ export const MODES: ModeInfo[] = [
       },
     ],
   },
+  {
+    key: 'battle',
+    title: 'World Battle',
+    tagline: 'Same questions, secret answers, one winner.',
+    icon: 'swords',
+    accent: '#ff6b6b',
+    howTo: [
+      {
+        icon: 'swords',
+        title: 'Same challenge for everyone',
+        text: 'Every player gets the same question at the same time. Answers stay secret until everyone has answered.',
+      },
+      {
+        icon: 'calendar',
+        title: 'Beat the clock',
+        text: 'You have 25 seconds; once someone answers, everyone else has at most 10 more.',
+      },
+      {
+        icon: 'trophy',
+        title: 'Formats',
+        text: 'Duel: the lower score loses HP equal to the gap (growing each round). Party: most points. Survival: lowest score loses a life. Teams: team averages duel.',
+      },
+      {
+        icon: 'gem',
+        title: 'Rare answers win',
+        text: 'In mixed games, Rare Earth points are split between everyone who gave the same answer.',
+      },
+    ],
+  },
 ]
 
 export function modeInfo(key: ModeKey): ModeInfo {

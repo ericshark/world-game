@@ -13,7 +13,6 @@ import type { RecordedSession } from '../../game/profile/record'
 import type { Units } from '../../game/profile/settings'
 import type { StatsByCountry } from '../../game/profile/stats'
 import { frameCountry, frameMany, framePair, randomOverview } from '../../globe/framing'
-import { AnswerInput } from '../../ui/AnswerInput'
 import { FactCard } from '../../ui/FactCard'
 import { gradeOf } from '../../ui/grades'
 import { HowToPlay, type HowToStep } from '../../ui/HowToPlay'
@@ -31,6 +30,8 @@ import { useTestHook } from '../testHook'
 import { useGameStage } from '../useGameStage'
 import { useIntro } from '../useIntro'
 import { useLocalSession } from '../useLocalSession'
+import { Prompt } from './Prompt'
+import { RoundInput } from './RoundInput'
 import { roundScene } from './scene'
 import { AnswerSpread } from './AnswerSpread'
 import { detailOf, roundRow, verdictOf } from './text'
@@ -355,178 +356,34 @@ export function RoundGame<Config, State extends RoundModeState>(
               <FactCard geo={geo} id={challenge.countryId} units={units} />
             )}
           </ResultCard>
-        ) : challenge.kind === 'identify' ? (
-          <div className="panel answer-panel">
-            {challenge.choices ? (
-              <div className="choice-grid">
-                {challenge.choices.map((id) => (
-                  <button
-                    key={id}
-                    type="button"
-                    className="button button--choice"
-                    onClick={() => submit({ answerId: id })}
-                  >
-                    {geo.nameOf(id)}
-                  </button>
-                ))}
-              </div>
-            ) : (
-              <AnswerInput
-                key={rounds.round}
-                matcher={geo.names}
-                nameOf={(id) => geo.nameOf(id)}
-                suggestions={suggestions}
-                placeholder="Country name"
-                submitLabel="Answer"
-                onSubmit={(id) => submit({ answerId: id })}
-              />
-            )}
-            {!challenge.choices && !hintUsed && (
-              <button
-                type="button"
-                className="button button--link"
-                onClick={() => setHintUsed(true)}
-              >
-                Show first letter (half points)
-              </button>
-            )}
-          </div>
-        ) : challenge.kind === 'category' && !answerId ? (
-          <div className="panel answer-panel">
-            <AnswerInput
-              key={rounds.round}
-              matcher={geo.names}
-              nameOf={(id) => geo.nameOf(id)}
-              suggestions={suggestions}
-              placeholder="Name a country"
-              submitLabel="Next"
-              onSubmit={(id) => {
+        ) : (
+          <RoundInput
+            challenge={challenge}
+            round={rounds.round}
+            answerId={answerId}
+            hasPin={draftPin !== null}
+            hintUsed={hintUsed}
+            suggestions={suggestions}
+            usedAnswers={used}
+            coach={firstGame && rounds.round === 0}
+            onAnswer={(id) => {
+              if (challenge.kind === 'identify') submit({ answerId: id })
+              else {
                 setAnswerId(id)
                 play('pin')
-              }}
-              unavailable={{ ids: used, reason: 'already used this game' }}
-            />
-            <p className="answer-panel__hint">
-              The rarer the answer, the more it is worth. You'll then place it on the globe.
-            </p>
-          </div>
-        ) : (
-          <div className="panel placing">
-            <p className="placing__hint">
-              {placingHint({
-                coach: firstGame && rounds.round === 0,
-                hasPin: draftPin !== null,
-                crosshair: preferences.placement === 'crosshair',
-                answerName: challenge.kind === 'category' && answerId ? geo.nameOf(answerId) : null,
-              })}
-            </p>
-            <div className="placing__actions">
-              {challenge.kind === 'category' && (
-                <button type="button" className="button" onClick={() => resetRound()}>
-                  Change answer
-                </button>
-              )}
-              {preferences.placement === 'crosshair' && (
-                <button type="button" className="button" onClick={dropAtCenter}>
-                  <Icon name="crosshair" size={18} /> Drop pin
-                </button>
-              )}
-              <button
-                type="button"
-                className="button button--primary"
-                disabled={!draftPin}
-                onClick={confirmPin}
-              >
-                Confirm
-              </button>
-            </div>
-          </div>
+              }
+            }}
+            onHint={() => setHintUsed(true)}
+            onChangeAnswer={resetRound}
+            onDropAtCenter={dropAtCenter}
+            onConfirm={confirmPin}
+          />
         )}
       </div>
 
       {intro.open && <HowToPlay mode={mode} steps={props.howTo} onClose={intro.close} />}
     </div>
   )
-}
-
-interface PromptProps {
-  challenge: Challenge
-  answerName: string | null
-  hintLetter: string | null
-  showCapitalCountry: boolean
-  nameOf: (id: string) => string
-  capitalOf: (id: string) => string
-  open: boolean
-}
-
-function Prompt({
-  challenge,
-  answerName,
-  hintLetter,
-  showCapitalCountry,
-  nameOf,
-  capitalOf,
-  open,
-}: PromptProps) {
-  switch (challenge.kind) {
-    case 'identify':
-      return (
-        <>
-          <h1 className="prompt__text">Name this country</h1>
-          {hintLetter && <p className="prompt__sub">Starts with “{hintLetter}”</p>}
-        </>
-      )
-    case 'category':
-      return (
-        <>
-          <p className="prompt__eyebrow">
-            <Icon name="gem" size={16} /> Think rare
-          </p>
-          <h1 className="prompt__text prompt__text--small">{challenge.category.prompt}</h1>
-          {open && answerName && (
-            <p className="prompt__sub">
-              Now find <strong>{answerName}</strong> on the globe
-            </p>
-          )}
-        </>
-      )
-    case 'capital':
-      return (
-        <>
-          <h1 className="prompt__text">
-            Find <strong data-testid="target-name">{capitalOf(challenge.countryId)}</strong>
-          </h1>
-          {showCapitalCountry && (
-            <p className="prompt__sub">capital of {nameOf(challenge.countryId)}</p>
-          )}
-        </>
-      )
-    case 'locate':
-      return (
-        <h1 className="prompt__text">
-          Find <strong data-testid="target-name">{nameOf(challenge.countryId)}</strong>
-        </h1>
-      )
-  }
-}
-
-function placingHint({
-  coach,
-  hasPin,
-  crosshair,
-  answerName,
-}: {
-  coach: boolean
-  hasPin: boolean
-  crosshair: boolean
-  answerName: string | null
-}) {
-  if (answerName) return hasPin ? `Is that ${answerName}?` : `Tap ${answerName} on the globe`
-  if (coach && !hasPin) return 'Drag to spin, scroll or pinch to zoom, then tap to drop your pin'
-  if (hasPin) return 'Happy with your pin? You can still move it.'
-  return crosshair
-    ? 'Turn the globe until the crosshair is on target'
-    : 'Tap the globe to drop your pin'
 }
 
 function announce(result: RoundResult, streak: number) {

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { DailyPuzzle } from '../game/core/types'
 
-export type ModeKey = 'pinpoint' | 'rush' | 'rare-earth' | 'mystery' | 'journey'
+export type ModeKey = 'pinpoint' | 'rush' | 'rare-earth' | 'mystery' | 'journey' | 'battle'
 
 export type Route =
   | { name: 'home' }
@@ -13,7 +13,14 @@ export type Route =
   | { name: 'daily-play'; puzzle: DailyPuzzle }
   | { name: 'settings' }
 
-const MODE_KEYS: readonly ModeKey[] = ['pinpoint', 'rush', 'rare-earth', 'mystery', 'journey']
+const MODE_KEYS: readonly ModeKey[] = [
+  'pinpoint',
+  'rush',
+  'rare-earth',
+  'mystery',
+  'journey',
+  'battle',
+]
 const DAILY_PUZZLES: readonly DailyPuzzle[] = ['five', 'mystery', 'route']
 
 /** Routes live in the URL hash, so the back button works and links can open a screen. */
