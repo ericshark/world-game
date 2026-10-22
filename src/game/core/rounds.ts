@@ -17,6 +17,8 @@ export interface RoundsState<C extends Challenge = Challenge> {
   /** When the open round closes on its own, or null when untimed. */
   deadline: number | null
   roundTimeMs: number | null
+  /** Once someone submits, everyone else has at most this long left (multiplayer tension). */
+  hurryMs: number | null
   /** One entry per opened round; hidden from other players until the reveal. */
   submissions: Record<PlayerId, Submission>[]
   /** One entry per revealed round. */
@@ -34,11 +36,12 @@ interface StartOptions {
   players: PlayerId[]
   now: number
   roundTimeMs?: number | null
+  hurryMs?: number | null
 }
 
 export function startRounds<C extends Challenge>(
   challenges: C[],
-  { players, now, roundTimeMs = null }: StartOptions,
+  { players, now, roundTimeMs = null, hurryMs = null }: StartOptions,
 ): RoundsState<C> {
   if (challenges.length === 0) throw new Error('A game needs at least one round')
   return {
@@ -49,6 +52,7 @@ export function startRounds<C extends Challenge>(
     openedAt: now,
     deadline: roundTimeMs === null ? null : now + roundTimeMs,
     roundTimeMs,
+    hurryMs,
     submissions: [{}],
     results: [],
   }
@@ -71,9 +75,14 @@ export function submitRound<C extends Challenge>(
 
   const submissions = [...state.submissions]
   submissions[state.round] = { ...submissions[state.round], [playerId]: submission }
-  const next = { ...state, submissions }
   const everyone = state.players.every((player) => submissions[state.round][player])
-  return everyone ? reveal(next, evaluate) : next
+  if (everyone) return reveal({ ...state, submissions }, evaluate)
+  const first = Object.keys(submissions[state.round]).length === 1
+  const hurried =
+    first && state.hurryMs !== null
+      ? Math.min(state.deadline ?? Infinity, submission.at + state.hurryMs)
+      : state.deadline
+  return { ...state, submissions, deadline: hurried }
 }
 
 /** Closes the round once its deadline has passed; players who did not submit get nothing. */

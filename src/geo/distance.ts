@@ -110,3 +110,16 @@ const COMPASS = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'] as const
 export function compassPoint(bearing: number): (typeof COMPASS)[number] {
   return COMPASS[Math.round(bearing / 45) % 8]
 }
+
+/** The point reached by travelling `distanceKm` from `from` on an initial compass bearing. */
+export function destinationPoint([lon, lat]: LonLat, bearing: number, distanceKm: number): LonLat {
+  const δ = distanceKm / EARTH_RADIUS_KM
+  const θ = bearing * DEG
+  const φ1 = lat * DEG
+  const λ1 = lon * DEG
+  const φ2 = Math.asin(Math.sin(φ1) * Math.cos(δ) + Math.cos(φ1) * Math.sin(δ) * Math.cos(θ))
+  const λ2 =
+    λ1 +
+    Math.atan2(Math.sin(θ) * Math.sin(δ) * Math.cos(φ1), Math.cos(δ) - Math.sin(φ1) * Math.sin(φ2))
+  return [((((λ2 / DEG + 540) % 360) + 360) % 360) - 180, φ2 / DEG]
+}

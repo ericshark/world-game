@@ -88,6 +88,26 @@ describe('rounds engine', () => {
     expect(state.deadline).toBe(2500)
   })
 
+  it('hurries everyone else once the first player submits', () => {
+    let state = startRounds(challenges, {
+      players: ['ana', 'ben'],
+      now: 0,
+      roundTimeMs: 25_000,
+      hurryMs: 10_000,
+    })
+    state = submitRound(state, 'ana', pin(1, 3_000), evaluate)
+    expect(state.deadline).toBe(13_000)
+    // A late first submission cannot extend the round.
+    let late = startRounds(challenges, {
+      players: ['ana', 'ben'],
+      now: 0,
+      roundTimeMs: 25_000,
+      hurryMs: 10_000,
+    })
+    late = submitRound(late, 'ana', pin(1, 20_000), evaluate)
+    expect(late.deadline).toBe(25_000)
+  })
+
   it('rejects submissions made after the deadline', () => {
     const state = startRounds(challenges, { players: ['ana'], now: 0, roundTimeMs: 100 })
     expect(submitRound(state, 'ana', pin(1, 101), evaluate)).toBe(state)
