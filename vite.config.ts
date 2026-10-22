@@ -9,7 +9,12 @@ export default defineConfig({
     port: 5174,
     // The battle server (npm run server); WG_SERVER_PORT lets tests use their own.
     proxy: {
-      '/ws': { target: `ws://localhost:${process.env.WG_SERVER_PORT ?? 8788}`, ws: true },
+      '/ws': {
+        target: `ws://localhost:${process.env.WG_SERVER_PORT ?? 8788}`,
+        ws: true,
+        // Players drop connections all the time (closed tabs, sleeping phones); not an error.
+        configure: (proxy) => proxy.on('error', () => {}),
+      },
     },
   },
   preview: { port: 4174 },

@@ -7,6 +7,8 @@ import { HomeScreen } from '../screens/HomeScreen'
 import { SettingsScreen } from '../screens/SettingsScreen'
 import { PassportScreen } from '../screens/passport/PassportScreen'
 import { useApp } from './AppContext'
+import { OnlineScreen } from './online/OnlineScreen'
+import { RoomScreen } from './online/RoomScreen'
 import { BattleSetup } from './battle/BattleSetup'
 import { LocalBattle } from './battle/LocalBattle'
 import { FORMAT_LABELS, loadBattleSetup, sanitizeBattleSetup } from './battle/setup'
@@ -132,6 +134,17 @@ export function Routes({ route }: { route: Route }) {
       )
     case 'challenge':
       return <ChallengeRoute token={route.token} onHome={home} />
+    case 'online':
+      return <OnlineScreen onClose={home} />
+    case 'room':
+      return (
+        <RoomScreen
+          // One screen for the whole visit: the address changes from NEW to the room's code.
+          key="room"
+          code={route.code}
+          onHome={home}
+        />
+      )
     case 'daily':
       return (
         <DailyScreen onPlay={(puzzle) => navigate({ name: 'daily-play', puzzle })} onClose={home} />

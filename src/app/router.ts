@@ -10,6 +10,8 @@ export type Route =
   | { name: 'passport' }
   | { name: 'daily' }
   | { name: 'challenge'; token: string }
+  | { name: 'online' }
+  | { name: 'room'; code: string }
   | { name: 'daily-play'; puzzle: DailyPuzzle }
   | { name: 'settings' }
 
@@ -29,6 +31,10 @@ export function parseRoute(hash: string): Route {
   const mode = MODE_KEYS.find((key) => key === second)
   if ((first === 'setup' || first === 'play') && mode) return { name: first, mode }
   if (first === 'challenge' && second) return { name: 'challenge', token: second }
+  if (first === 'online') return { name: 'online' }
+  if (first === 'room' && /^[A-Za-z]{3,4}$/.test(second ?? '')) {
+    return { name: 'room', code: second.toUpperCase() }
+  }
   if (first === 'daily') {
     const puzzle = DAILY_PUZZLES.find((p) => p === second)
     return puzzle ? { name: 'daily-play', puzzle } : { name: 'daily' }
@@ -50,6 +56,8 @@ export function routeHash(route: Route): string {
       return `#/daily/${route.puzzle}`
     case 'challenge':
       return `#/challenge/${route.token}`
+    case 'room':
+      return `#/room/${route.code}`
     default:
       return `#/${route.name}`
   }

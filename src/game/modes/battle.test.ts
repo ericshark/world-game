@@ -107,6 +107,21 @@ describe('battle', () => {
     expect(state.rounds.deadline).toBe(1 + BATTLE_HURRY_MS)
   })
 
+  it('does not reveal later rounds or the answers to an open Rare Earth round', () => {
+    let state = start({ format: 'party', content: 'mixed', roster: [human('ana'), human('ben')] })
+    expect(battleViewFor(state, 'ana').rounds.challenges).toHaveLength(1)
+    while (state.rounds.challenges[state.rounds.round].kind !== 'category') {
+      state = readyAll(playRound(state, { ana: true, ben: true }))
+    }
+    const open = battleViewFor(state, 'ana').rounds.challenges.at(-1)!
+    expect(open.kind === 'category' && open.category.valid).toEqual([])
+    const revealed = battleViewFor(
+      playRound(state, { ana: true, ben: true }),
+      'ana',
+    ).rounds.challenges.at(-1)!
+    expect(revealed.kind === 'category' && revealed.category.valid.length).toBeGreaterThan(0)
+  })
+
   it('moves on after the reveal when everyone is ready, or when time is up', () => {
     let state = start({
       format: 'party',

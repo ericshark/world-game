@@ -14,6 +14,9 @@ describe('router', () => {
     ['#/daily/mystery', { name: 'daily-play', puzzle: 'mystery' }],
     ['#/daily/nope', { name: 'daily' }],
     ['#/challenge/abc_-1', { name: 'challenge', token: 'abc_-1' }],
+    ['#/online', { name: 'online' }],
+    ['#/room/abcd', { name: 'room', code: 'ABCD' }],
+    ['#/room/new', { name: 'room', code: 'NEW' }],
     ['#/play/unknown', { name: 'home' }],
     ['#/nonsense', { name: 'home' }],
   ])('parses %s', (hash, route) => {

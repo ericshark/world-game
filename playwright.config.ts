@@ -1,7 +1,8 @@
 import { defineConfig, devices } from '@playwright/test'
 
-// A port of its own, so tests never reuse (or fight with) a dev server you are running.
+// Ports of their own, so tests never reuse (or fight with) servers you are running.
 const PORT = 5180
+const BATTLE_SERVER_PORT = 8792
 
 export default defineConfig({
   testDir: 'e2e',
@@ -24,10 +25,20 @@ export default defineConfig({
     // A phone: small portrait screen with touch.
     { name: 'phone', use: { ...devices['Pixel 7'] } },
   ],
-  webServer: {
-    command: `npx vite --port ${PORT} --strictPort`,
-    url: `http://localhost:${PORT}`,
-    reuseExistingServer: false,
-    timeout: 60_000,
-  },
+  webServer: [
+    {
+      command: 'npx tsx server/index.ts',
+      env: { PORT: String(BATTLE_SERVER_PORT) },
+      url: `http://localhost:${BATTLE_SERVER_PORT}/health`,
+      reuseExistingServer: false,
+      timeout: 60_000,
+    },
+    {
+      command: `npx vite --port ${PORT} --strictPort`,
+      env: { WG_SERVER_PORT: String(BATTLE_SERVER_PORT) },
+      url: `http://localhost:${PORT}`,
+      reuseExistingServer: false,
+      timeout: 60_000,
+    },
+  ],
 })

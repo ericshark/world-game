@@ -81,6 +81,8 @@ export async function startServer({
     })
 
     socket.on('close', () => room?.disconnect(send))
+    // Dropped connections (closed tabs, sleeping phones) reset sockets; 'close' handles them.
+    socket.on('error', () => {})
   })
 
   // Rooms nobody has used for a while are closed.

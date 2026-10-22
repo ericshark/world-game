@@ -209,11 +209,20 @@ export const battle: ModeRules<BattleConfig, BattleState, BattleEvent> = {
 }
 
 /**
- * What one player may see: everyone else's answers stay hidden until the round is revealed,
- * so nobody can copy a pin. A server sends each player only this.
+ * What one player may see. A server sends each player only this, so nothing in it can be used
+ * to cheat: other players' answers stay hidden until the reveal, later rounds are not sent at
+ * all, and an open Rare Earth round does not carry its list of valid answers.
  */
 export function battleViewFor(state: BattleState, playerId: PlayerId): BattleState {
-  return { ...state, rounds: roundsViewFor(state.rounds, playerId) }
+  const rounds = roundsViewFor(state.rounds, playerId)
+  const challenges = rounds.challenges
+    .slice(0, rounds.round + 1)
+    .map((challenge, index) =>
+      index === rounds.round && rounds.phase === 'open' && challenge.kind === 'category'
+        ? { ...challenge, category: { ...challenge.category, valid: [], lenient: [] } }
+        : challenge,
+    )
+  return { ...state, rounds: { ...rounds, challenges } }
 }
 
 /** Points a player has scored so far (after shared answers were split). */

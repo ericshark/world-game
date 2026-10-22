@@ -2287,3 +2287,83 @@ input {
     display: none;
   }
 }
+
+/* Online rooms */
+
+.sheet__text {
+  margin: 0 0 16px;
+  color: var(--text-muted);
+}
+
+.join-form {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+  margin-top: 18px;
+}
+
+.join-form .text-field {
+  flex: 1;
+  margin: 0;
+}
+
+.join-form input {
+  text-transform: uppercase;
+  letter-spacing: 0.3em;
+}
+
+.online-link {
+  margin: 0 0 18px;
+}
+
+.waiting--column {
+  flex-direction: column;
+  text-align: center;
+}
+
+.lobby {
+  width: min(480px, 100%);
+  max-height: 100%;
+  overflow: auto;
+  padding: 22px;
+}
+
+.lobby__code {
+  margin: 0;
+  font-size: 40px;
+  letter-spacing: 0.2em;
+  color: var(--accent);
+}
+
+.lobby__invite {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  margin: 10px 0 16px;
+}
+
+.lobby__members {
+  display: grid;
+  gap: 6px;
+  margin: 0 0 18px;
+  padding: 0;
+  list-style: none;
+}
+
+.lobby__members li {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgb(255 255 255 / 0.05);
+}
+
+.lobby__members li.is-away {
+  opacity: 0.5;
+}
+
+.lobby__bots {
+  color: var(--text-muted);
+}

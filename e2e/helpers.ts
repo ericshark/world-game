@@ -22,7 +22,7 @@ export async function startMode(page: Page, mode: string, choices: string[] = []
   const setup = page.getByRole('dialog')
   for (const choice of choices)
     await setup.getByRole('radio', { name: choice, exact: true }).click()
-  await setup.getByRole('button', { name: 'Play' }).click()
+  await setup.getByRole('button', { name: 'Play', exact: true }).click()
   // The first-time "How to play" card may come before or over the game.
   const gotIt = page.getByRole('button', { name: 'Got it' })
   await page.waitForFunction(

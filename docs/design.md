@@ -9,8 +9,8 @@ highlighted, how far off they were, and their score.
 - **Purpose:** personal hobby project, built for fun. May later become a free public site.
 - **Players:** geography enthusiasts and people who want to get better at geography.
 - **Platform:** desktop and mobile web browsers. Runs locally; no hosting yet.
-- **Modes:** Pinpoint, GeoRush, Rare Earth, Mystery Country, World Journey and Daily World.
-  World Battle is planned.
+- **Modes:** Pinpoint, GeoRush, Rare Earth, Mystery Country, World Journey, Daily World and
+  World Battle (against bots, or in private online rooms on a local server).
 
 ## Core game: "Find X"
 
@@ -168,6 +168,49 @@ show in the HUD, and personal bests are kept per setup.
 - **Hub:** the streak (a day without the Daily Five breaks it; yesterday still counts until
   today's puzzle is played), a countdown, a four-week calendar and a score distribution.
 - **Sharing** uses spoiler-free emoji text.
+
+## World Battle
+
+- Everyone gets the same seeded challenges. Rounds are either Pinpoint only, or mixed: find,
+  capital, name and Rare Earth.
+- Answers are secret until all players have answered or 25 s have passed. Once someone answers,
+  the others have at most 10 s more. Everyone's answers are revealed together.
+- **Duel:** 6,000 HP each. The lower round score loses HP equal to the gap × a multiplier, which
+  is ×1 for two rounds, then +0.5 a round.
+- **Party:** 10 rounds; the most points wins.
+- **Survival:** 3 lives each. The lowest round score loses a life, but a tie across the whole
+  table spares everyone.
+- **Teams:** team averages fight a Duel.
+- In Rare Earth rounds, players who gave the same valid answer split its points.
+- **Bots** (Novice to Cartographer) are players whose answers the rules compute from a seed. They
+  are right more often on famous countries, and when someone else has answered they hurry to
+  beat the shortened clock.
+- After a reveal the game moves on when everyone is ready, or after 8 s.
+
+## Online rooms
+
+- `server/` is a Node WebSocket server that runs the battle rules authoritatively. Rooms have
+  four-letter codes, a lobby and host settings (format, round content, bots), with up to 8
+  players.
+- Clients send only what the player did. The server timestamps it, scores it, keeps the clock,
+  and sends each player a view where unrevealed answers are hidden.
+- Clients reconnect with a per-room token. Disconnected players never hold up a reveal, and the
+  host role passes on if the host leaves. Messages are validated, limited to 4 KB, and
+  rate-limited.
+
+### Still needed for public online play
+
+- Hosting: static files on a CDN, plus a WebSocket service with TLS.
+- Accounts (passkeys or OAuth), so progress follows players between devices.
+- A database for profiles and match history (SQLite or Postgres).
+- Public matchmaking with a queue, and ranked play with Glicko-2 ratings.
+- Global Daily World leaderboards and percentiles, and real answer frequencies to replace
+  estimated rarity.
+- Moderation of display names, and abuse reporting.
+- Several server instances with room routing (for example, sticky sessions), and room state
+  that survives a restart.
+- Stronger anti-cheat: check submission timing against the server clock and flag implausible
+  answers. Views already leave out later rounds and the answers to open rounds.
 
 ## Progression
 

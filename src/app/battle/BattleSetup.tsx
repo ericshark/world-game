@@ -2,12 +2,13 @@ import { useState } from 'react'
 import { battleBestKey } from '../../game/modes/battle'
 import { saveSetup } from '../../game/profile/settings'
 import { Choice } from '../../ui/controls'
+import { Icon } from '../../ui/Icon'
 import { SetupSheet } from '../../ui/SetupSheet'
 import { useApp } from '../AppContext'
 import { loadBattleSetup, type BattleSetupConfig } from './setup'
 
 export function BattleSetup({ onClose, onPlay }: { onClose: () => void; onPlay: () => void }) {
-  const { profile, preferences, setPreferences } = useApp()
+  const { profile, preferences, setPreferences, navigate } = useApp()
   const [setup, setSetup] = useState(loadBattleSetup)
   const update = (patch: Partial<BattleSetupConfig>) => setSetup((s) => ({ ...s, ...patch }))
   const wins = profile.history.filter(
@@ -89,6 +90,13 @@ export function BattleSetup({ onClose, onPlay }: { onClose: () => void; onPlay: 
           ]}
         />
       )}
+      <button
+        type="button"
+        className="button button--block online-link"
+        onClick={() => navigate({ name: 'online' })}
+      >
+        <Icon name="globe" size={18} /> Play with friends online instead
+      </button>
       <Choice
         label="Opponents' skill"
         value={setup.skill}

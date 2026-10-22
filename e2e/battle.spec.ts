@@ -2,7 +2,8 @@ import { expect, test } from '@playwright/test'
 import { openGame, pinTarget, startMode } from './helpers'
 
 test('World Battle: win a duel against a bot', async ({ page }, info) => {
-  test.setTimeout(240_000)
+  // Each round waits for the bot to answer, and a duel can run to 15 rounds.
+  test.setTimeout(360_000)
   await openGame(page)
   await startMode(page, 'World Battle', ['Duel', 'Novice'])
   await expect(page.locator('.scoreboard li')).toHaveCount(2)
