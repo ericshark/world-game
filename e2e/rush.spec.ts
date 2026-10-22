@@ -14,8 +14,9 @@ test('GeoRush: hits build a multiplier, skips cost time', async ({ page }) => {
   await expect(page.locator('.hud__multiplier')).toHaveText('×2')
   await expect(page.getByLabel('Score 400')).toBeVisible()
 
+  const skipped = (await snapshot(page)).targetId
   await page.getByRole('button', { name: /Skip/ }).click()
-  await expect(page.locator('.rush-feedback')).toContainText('Skipped')
+  await expect.poll(async () => (await snapshot(page)).targetId).not.toBe(skipped)
   await expect(page.locator('.hud__multiplier')).toBeHidden()
 })
 

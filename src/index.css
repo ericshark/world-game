@@ -1290,6 +1290,30 @@ input {
     font-size: 30px;
   }
 
+  .mode-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .mode-tile {
+    gap: 10px;
+    padding: 10px;
+  }
+
+  .mode-tile__icon {
+    width: 36px;
+    height: 36px;
+  }
+
+  .mode-tile__title {
+    font-size: 15px;
+  }
+
+  .mode-tile__tagline,
+  .mode-tile > .icon:last-child {
+    display: none;
+  }
+
   .home__tagline {
     margin-bottom: 16px;
   }

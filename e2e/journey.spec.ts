@@ -30,5 +30,10 @@ test('World Journey: moves, missteps and connections on an expedition', async ({
   await page.getByRole('button', { name: /Show connections/ }).click()
   await expect(page.locator('.prompt__sub')).toContainText('Steps 3')
   await page.waitForTimeout(1200)
-  await page.screenshot({ path: '/tmp/claude-1000/-home-eric-GitHub-world-game/0454089f-3b0d-41f0-86e3-1f7579fb7ace/scratchpad/shots/' + info.project.name + '-journey.png' })
+  await page.screenshot({
+    path:
+      '/tmp/claude-1000/-home-eric-GitHub-world-game/0454089f-3b0d-41f0-86e3-1f7579fb7ace/scratchpad/shots/' +
+      info.project.name +
+      '-journey.png',
+  })
 })

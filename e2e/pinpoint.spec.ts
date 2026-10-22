@@ -98,7 +98,7 @@ test('remembers settings and uses miles', async ({ page }) => {
   await page.getByRole('button', { name: /Settings/ }).click()
   await page.getByRole('radio', { name: 'Miles' }).click()
   await page.getByRole('radio', { name: 'Crosshair' }).click()
-  await page.getByRole('button', { name: 'Close' }).click()
+  await page.getByRole('button', { name: 'Close', exact: true }).click()
 
   await page.reload()
   await openGame(page)
