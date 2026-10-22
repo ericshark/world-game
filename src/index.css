@@ -1556,3 +1556,77 @@ input {
   flex-wrap: wrap;
   justify-content: center;
 }
+
+/* World Journey */
+
+.journey-panel {
+  padding: 12px;
+  animation: rise-in 0.2s ease-out;
+}
+
+.journey-panel .placing {
+  padding: 0;
+  border: 0;
+  background: none;
+  box-shadow: none;
+  backdrop-filter: none;
+  animation: none;
+}
+
+.journey-panel__status {
+  margin: 0 0 8px;
+  font-size: 15px;
+}
+
+.journey-panel__status strong {
+  color: #8cc4ff;
+}
+
+.step-note {
+  color: var(--text-muted);
+}
+
+.step-note--misstep {
+  color: var(--danger);
+}
+
+.expeditions {
+  display: grid;
+  gap: 8px;
+}
+
+.expedition {
+  display: grid;
+  gap: 2px;
+  padding: 10px 14px;
+  border: 1px solid rgb(255 255 255 / 0.12);
+  border-radius: 12px;
+  background: rgb(255 255 255 / 0.04);
+  text-align: left;
+  cursor: pointer;
+}
+
+.expedition[aria-checked='true'] {
+  border-color: rgb(255 213 74 / 0.6);
+  background: rgb(255 213 74 / 0.1);
+}
+
+.expedition__title {
+  display: flex;
+  justify-content: space-between;
+  font-weight: 700;
+}
+
+.expedition__stars {
+  color: var(--accent);
+  letter-spacing: 2px;
+}
+
+.expedition__stars span {
+  color: rgb(255 255 255 / 0.2);
+}
+
+.expedition__route {
+  font-size: 13px;
+  color: var(--text-muted);
+}

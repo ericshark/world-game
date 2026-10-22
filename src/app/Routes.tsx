@@ -7,6 +7,9 @@ import { useApp } from './AppContext'
 import { PinpointGame } from './pinpoint/PinpointGame'
 import { PinpointSetup } from './pinpoint/PinpointSetup'
 import type { ModeKey, Route } from './router'
+import { loadJourneyConfig } from './journey/config'
+import { JourneyGame } from './journey/JourneyGame'
+import { JourneySetup } from './journey/JourneySetup'
 import { loadMysteryConfig } from './mystery/config'
 import { MysteryGame } from './mystery/MysteryGame'
 import { MysterySetup } from './mystery/MysterySetup'
@@ -35,6 +38,7 @@ const SCREENS: Partial<
   rush: { Setup: RushSetup, Game: withConfig(RushGame, loadRushConfig) },
   'rare-earth': { Setup: RareEarthSetup, Game: withConfig(RareEarthGame, loadRareEarthConfig) },
   mystery: { Setup: MysterySetup, Game: withConfig(MysteryGame, loadMysteryConfig) },
+  journey: { Setup: JourneySetup, Game: withConfig(JourneyGame, loadJourneyConfig) },
 }
 
 export function Routes({ route }: { route: Route }) {

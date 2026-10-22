@@ -119,6 +119,35 @@ export const MODES: ModeInfo[] = [
       },
     ],
   },
+  {
+    key: 'journey',
+    title: 'World Journey',
+    tagline: 'Cross the world one border at a time.',
+    icon: 'compass',
+    accent: '#5aa9ff',
+    howTo: [
+      {
+        icon: 'compass',
+        title: 'Plan your route',
+        text: 'Travel from the start country to the gold destination through the countries in between.',
+      },
+      {
+        icon: 'pin',
+        title: 'Every move is a find',
+        text: 'Tap the next country on the borderless globe and press Go. Crossing a border costs 1 step; a short sea crossing costs 2.',
+      },
+      {
+        icon: 'close',
+        title: 'Mind the borders',
+        text: 'Tapping a country you are not connected to is a misstep (+1). “Show connections” outlines your options for +1.',
+      },
+      {
+        icon: 'trophy',
+        title: 'Beat par',
+        text: 'Match the best route for 3 stars and 1,000 points. Expeditions add twists like avoiding countries or visiting waypoints.',
+      },
+    ],
+  },
 ]
 
 export function modeInfo(key: ModeKey): ModeInfo {
