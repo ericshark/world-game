@@ -10,6 +10,9 @@ describe('router', () => {
     ['#/passport', { name: 'passport' }],
     ['#/stats', { name: 'passport' }],
     ['#/settings', { name: 'settings' }],
+    ['#/daily', { name: 'daily' }],
+    ['#/daily/mystery', { name: 'daily-play', puzzle: 'mystery' }],
+    ['#/daily/nope', { name: 'daily' }],
     ['#/play/unknown', { name: 'home' }],
     ['#/nonsense', { name: 'home' }],
   ])('parses %s', (hash, route) => {

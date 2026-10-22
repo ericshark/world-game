@@ -24,6 +24,7 @@ import { Hud } from '../../ui/Hud'
 import { ResultCard } from '../../ui/ResultCard'
 import { ResultsScreen } from '../../ui/ResultsScreen'
 import { useApp } from '../AppContext'
+import type { DailyGame } from '../daily/dailyGame'
 import { celebrates } from '../celebrate'
 import { useStagePicking, useStageScene } from '../globeStage'
 import { modeInfo } from '../modes'
@@ -37,11 +38,15 @@ const LIST_SHOWN = 5
 
 interface MysteryGameProps {
   config: MysteryConfig
+  /** A fixed seed: daily puzzles and challenge links. */
+  seed?: string
+  /** Set when this game is one of today's daily puzzles: one attempt, then share. */
+  daily?: DailyGame
   onChangeSetup: () => void
   onHome: () => void
 }
 
-export function MysteryGame({ config, onChangeSetup, onHome }: MysteryGameProps) {
+export function MysteryGame({ config, seed, daily, onChangeSetup, onHome }: MysteryGameProps) {
   const app = useApp()
   const { geo, preferences } = app
   const stage = useGameStage()
@@ -56,12 +61,12 @@ export function MysteryGame({ config, onChangeSetup, onHome }: MysteryGameProps)
     {
       onOutcomes: app.recordOutcomes,
       onFinish: (summary) => {
-        const result = app.finishSession(summary)
+        const result = app.finishSession(daily ? { ...summary, daily: daily.record } : summary)
         setRecorded(result)
         if (celebrates(result)) play('best')
       },
     },
-    { config },
+    { config, seed },
   )
   const state = session.state
   const finished = Boolean(state && state.endedAt !== null)
@@ -166,10 +171,12 @@ export function MysteryGame({ config, onChangeSetup, onHome }: MysteryGameProps)
           points: g.countryId === state.targetId ? score : 0,
           tone: g.countryId === state.targetId ? 'perfect' : index === 0 ? 'miss' : toneOf(g),
         }))}
-        onPlayAgain={playAgain}
+        onPlayAgain={daily ? undefined : playAgain}
         onChangeSetup={onChangeSetup}
         onHome={onHome}
-      />
+      >
+        {daily?.share(recorded)}
+      </ResultsScreen>
     )
   }
 

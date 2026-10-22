@@ -14,7 +14,13 @@ import {
   type Evaluate,
   type RoundsState,
 } from '../core/rounds'
-import type { CategoryChallenge, CountryOutcome, PlayerId, RoundResult } from '../core/types'
+import type {
+  CategoryChallenge,
+  Challenge,
+  CountryOutcome,
+  PlayerId,
+  RoundResult,
+} from '../core/types'
 
 export const RARE_EARTH_ROUNDS = 5
 
@@ -132,7 +138,7 @@ export const rareEarth: ModeRules<RareEarthConfig, RareEarthState> = {
 }
 
 /** Countries a player has already named in earlier rounds. */
-export function usedAnswers(rounds: RoundsState<CategoryChallenge>, playerId: PlayerId): string[] {
+export function usedAnswers(rounds: RoundsState<Challenge>, playerId: PlayerId): string[] {
   return playerResults(rounds, playerId).flatMap((result) =>
     result.kind === 'category' ? [result.answerId] : [],
   )

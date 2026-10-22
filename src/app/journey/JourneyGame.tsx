@@ -21,6 +21,7 @@ import { Hud } from '../../ui/Hud'
 import { ResultCard } from '../../ui/ResultCard'
 import { ResultsScreen } from '../../ui/ResultsScreen'
 import { useApp } from '../AppContext'
+import type { DailyGame } from '../daily/dailyGame'
 import { celebrates } from '../celebrate'
 import { useStagePicking, useStageScene } from '../globeStage'
 import { modeInfo } from '../modes'
@@ -32,11 +33,15 @@ import { journeyScene } from './scene'
 
 interface JourneyGameProps {
   config: JourneyConfig
+  /** A fixed seed: daily puzzles and challenge links. */
+  seed?: string
+  /** Set when this game is one of today's daily puzzles: one attempt, then share. */
+  daily?: DailyGame
   onChangeSetup: () => void
   onHome: () => void
 }
 
-export function JourneyGame({ config, onChangeSetup, onHome }: JourneyGameProps) {
+export function JourneyGame({ config, seed, daily, onChangeSetup, onHome }: JourneyGameProps) {
   const app = useApp()
   const { geo } = app
   const stage = useGameStage()
@@ -52,12 +57,12 @@ export function JourneyGame({ config, onChangeSetup, onHome }: JourneyGameProps)
     {
       onOutcomes: app.recordOutcomes,
       onFinish: (summary) => {
-        const result = app.finishSession(summary)
+        const result = app.finishSession(daily ? { ...summary, daily: daily.record } : summary)
         setRecorded(result)
         play(celebrates(result) ? 'best' : 'finish')
       },
     },
-    { config },
+    { config, seed },
   )
   const state = session.state
   const finished = Boolean(state && state.endedAt !== null)
@@ -180,10 +185,12 @@ export function JourneyGame({ config, onChangeSetup, onHome }: JourneyGameProps)
           points: step.cost,
           tone: step.kind === 'misstep' ? 'miss' : step.kind === 'sea' ? 'good' : 'perfect',
         }))}
-        onPlayAgain={playAgain}
+        onPlayAgain={daily ? undefined : playAgain}
         onChangeSetup={onChangeSetup}
         onHome={onHome}
-      />
+      >
+        {daily?.share(recorded)}
+      </ResultsScreen>
     )
   }
 

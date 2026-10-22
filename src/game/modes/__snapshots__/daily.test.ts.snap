@@ -1,0 +1,11 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`daily five > keeps published puzzles stable 1`] = `
+[
+  "MYS",
+  "PAN",
+  "area-under:10000",
+  "PRY",
+  "KWT",
+]
+`;

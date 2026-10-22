@@ -4,8 +4,12 @@ import { HomeScreen } from '../screens/HomeScreen'
 import { SettingsScreen } from '../screens/SettingsScreen'
 import { PassportScreen } from '../screens/passport/PassportScreen'
 import { useApp } from './AppContext'
+import { DailyPlay } from './daily/DailyPlay'
+import { DailyScreen } from './daily/DailyScreen'
+import { todayKey } from './today'
 import { PinpointGame } from './pinpoint/PinpointGame'
 import { PinpointSetup } from './pinpoint/PinpointSetup'
+import type { DailyPuzzle } from '../game/core/types'
 import type { ModeKey, Route } from './router'
 import { loadJourneyConfig } from './journey/config'
 import { JourneyGame } from './journey/JourneyGame'
@@ -73,6 +77,20 @@ export function Routes({ route }: { route: Route }) {
         />
       )
     }
+    case 'daily':
+      return (
+        <DailyScreen onPlay={(puzzle) => navigate({ name: 'daily-play', puzzle })} onClose={home} />
+      )
+    case 'daily-play':
+      return (
+        <DailyGate
+          key={route.puzzle}
+          puzzle={route.puzzle}
+          onPlay={(puzzle) => navigate({ name: 'daily-play', puzzle })}
+          onDone={() => navigate({ name: 'daily' }, { replace: true })}
+          onHome={home}
+        />
+      )
     case 'passport':
       return <PassportScreen onClose={home} />
     case 'settings':
@@ -94,4 +112,20 @@ function withConfig<Config>(
     const [config] = useState(load)
     return <Game config={config} {...props} />
   }
+}
+
+/**
+ * One go per puzzle per day: a puzzle already played today shows the hub instead. Decided
+ * when the puzzle opens, so finishing it does not swap the results screen away.
+ */
+function DailyGate(props: {
+  puzzle: DailyPuzzle
+  onPlay: (puzzle: DailyPuzzle) => void
+  onDone: () => void
+  onHome: () => void
+}) {
+  const { profile } = useApp()
+  const [alreadyPlayed] = useState(() => Boolean(profile.daily[todayKey()]?.[props.puzzle]))
+  if (alreadyPlayed) return <DailyScreen onPlay={props.onPlay} onClose={props.onHome} />
+  return <DailyPlay puzzle={props.puzzle} onDone={props.onDone} />
 }
