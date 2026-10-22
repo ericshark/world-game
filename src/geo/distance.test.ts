@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { loadTestCountries } from '../test/loadTestCountries'
 import type { LonLat } from './coords'
 import type { CountryFeature } from './countries'
-import { EARTH_RADIUS_KM, nearestPointOnCountry } from './distance'
+import { bearingDegrees, compassPoint, EARTH_RADIUS_KM, nearestPointOnCountry } from './distance'
 
 const countries = loadTestCountries()
 const peru = countries.get('PER')!
@@ -74,5 +74,16 @@ describe('nearestPointOnCountry', () => {
     const russia = countries.get('RUS')!
     const { distanceKm } = nearestPointOnCountry([-170, 64], russia)
     expect(distanceKm).toBeLessThan(150)
+  })
+})
+
+describe('bearingDegrees', () => {
+  it('points the right way', () => {
+    expect(bearingDegrees([0, 0], [0, 10])).toBeCloseTo(0)
+    expect(bearingDegrees([0, 0], [10, 0])).toBeCloseTo(90)
+    expect(bearingDegrees([0, 10], [0, 0])).toBeCloseTo(180)
+    // Paris to Moscow is roughly east-northeast.
+    expect(compassPoint(bearingDegrees([2.35, 48.86], [37.62, 55.75]))).toBe('NE')
+    expect(compassPoint(350)).toBe('N')
   })
 })

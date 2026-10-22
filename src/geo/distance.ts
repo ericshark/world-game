@@ -93,3 +93,20 @@ function scale(u: Vec3, s: number): Vec3 {
 function length(u: Vec3): number {
   return Math.hypot(u[0], u[1], u[2])
 }
+
+/** Initial compass bearing (0° = north, clockwise) of the great circle from one point to another. */
+export function bearingDegrees([lon1, lat1]: LonLat, [lon2, lat2]: LonLat): number {
+  const φ1 = lat1 * DEG
+  const φ2 = lat2 * DEG
+  const Δλ = (lon2 - lon1) * DEG
+  const y = Math.sin(Δλ) * Math.cos(φ2)
+  const x = Math.cos(φ1) * Math.sin(φ2) - Math.sin(φ1) * Math.cos(φ2) * Math.cos(Δλ)
+  return (Math.atan2(y, x) / DEG + 360) % 360
+}
+
+const COMPASS = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'] as const
+
+/** "NE" for 45°. */
+export function compassPoint(bearing: number): (typeof COMPASS)[number] {
+  return COMPASS[Math.round(bearing / 45) % 8]
+}

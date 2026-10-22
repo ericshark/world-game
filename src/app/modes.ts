@@ -95,6 +95,30 @@ export const MODES: ModeInfo[] = [
       },
     ],
   },
+  {
+    key: 'mystery',
+    title: 'Mystery Country',
+    tagline: 'Hot or cold? Close in on a hidden country.',
+    icon: 'search',
+    accent: '#ff6a2b',
+    howTo: [
+      {
+        icon: 'search',
+        title: 'Guess any country',
+        text: 'Type a name or tap a country on the globe. There is one hidden country to find.',
+      },
+      {
+        icon: 'flame',
+        title: 'Follow the heat',
+        text: 'Each guess shows its distance (border to border) and an arrow pointing the way, and lights up from cold blue to burning red.',
+      },
+      {
+        icon: 'trophy',
+        title: 'Fewer guesses, more points',
+        text: 'Find it first time for 1,000; each extra guess costs 100. After 6 guesses you can reveal the continent for 2 guesses.',
+      },
+    ],
+  },
 ]
 
 export function modeInfo(key: ModeKey): ModeInfo {
