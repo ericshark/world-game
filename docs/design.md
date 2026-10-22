@@ -9,8 +9,8 @@ highlighted, how far off they were, and their score.
 - **Purpose:** personal hobby project, built for fun. May later become a free public site.
 - **Players:** geography enthusiasts and people who want to get better at geography.
 - **Platform:** desktop and mobile web browsers. Runs locally; no hosting yet.
-- **Modes:** Pinpoint today; GeoRush, Rare Earth, Mystery Country, World Journey, Daily World and
-  World Battle are planned (see the expansion plan).
+- **Modes:** Pinpoint, GeoRush, Rare Earth, Mystery Country and World Journey. Daily World and
+  World Battle are planned.
 
 ## Core game: "Find X"
 
@@ -114,6 +114,47 @@ Pinpoint's setup combines a few choices:
 
 The score stays out of 10,000 with no streak or speed bonus, so games stay comparable. Streaks
 show in the HUD, and personal bests are kept per setup.
+
+## GeoRush
+
+- The clock starts at 60 s, and one tap answers. Hits add 2 s, misses cost 3 s and skips cost
+  2 s. Banked time is capped at 90 s.
+- Hits score 100 × a streak multiplier: ×2 at 3, ×3 at 6, ×4 at 10 and ×5 at 15. A near miss
+  (within 1/8 of the region's zero-points distance) scores 40 × the multiplier and keeps the
+  streak.
+- Targets come from four difficulty bands, and the band rises every 5 hits.
+- Sudden death has no clock and no skips; the first miss ends the run.
+
+## Rare Earth
+
+- 5 categories from different kinds, each with 4–40 accepted answers.
+- Name a country, then place it. A valid answer scores
+  `(100 + 900 × rarity) × (0.25 + 0.75 × placement)`. Wrong or repeated answers score 0.
+- Rarity is the share of "likely answer" weight held by more familiar answers, using
+  `(0.05 + familiarity)²` weights. It is shown as tiers: Common, Uncommon, Rare, Exotic,
+  Legendary.
+- Lenient answers are accepted: within ±10 % of numeric thresholds, coasts on marginal seas, and
+  islets on the equator.
+- Hard hides suggestions and allows 45 s a round.
+
+## Mystery Country
+
+- Guess any country by typing or tapping. Each guess shows its border-to-border distance and a
+  bearing, and is painted from cold to hot.
+- Score: 1,000 for the first guess, minus 100 per extra guess, with a minimum of 100. After 6
+  guesses the continent can be revealed, which costs 2 guesses.
+- Normal excludes micro-states; Hard includes everything.
+
+## World Journey
+
+- Move by tapping the next country and pressing Go. A land border costs 1 step, and a sea crossing
+  to a coast within 500 km costs 2. Tapping an unconnected or forbidden country is a misstep (+1),
+  and "Show connections" costs +1.
+- Par is the cheapest route, computed with Dijkstra over the travel graph and the expedition's
+  rules. Score: 1,000 at par, minus 150 per step over, with a minimum of 100. Stars: 3 at par, 2
+  within par + 2, and 1 for finishing.
+- Quick journeys pick a pair with par 5–9. The 8 expeditions add rules: countries to avoid,
+  coastal-only routes, and waypoints to visit.
 
 ## Platform
 
