@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { MAX_POINTS, scoreGuess } from './scoring'
+import { MAX_POINTS, scoreCapitalGuess, scoreGuess } from './scoring'
 
 const normal = { isMicro: false }
 const micro = { isMicro: true }
@@ -33,5 +33,31 @@ describe('scoreGuess', () => {
     const score = scoreGuess(25, normal, 'World')
     expect(score.hit).toBe(false)
     expect(score.points).toBeLessThan(MAX_POINTS)
+  })
+})
+
+describe('scoring difficulty', () => {
+  it('is more forgiving on easy and stricter on hard', () => {
+    const normalPoints = scoreGuess(800, normal, 'World').points
+    expect(scoreGuess(800, normal, 'World', 1.4).points).toBeGreaterThan(normalPoints)
+    expect(scoreGuess(800, normal, 'World', 0.75).points).toBeLessThan(normalPoints)
+  })
+})
+
+describe('scoreCapitalGuess', () => {
+  it('counts pins within 25 km as on the capital', () => {
+    expect(scoreCapitalGuess(20, 'World')).toEqual({ points: MAX_POINTS, hit: true })
+    expect(scoreCapitalGuess(30, 'World').hit).toBe(false)
+  })
+
+  it('decays smoothly from the hit radius to zero', () => {
+    expect(scoreCapitalGuess(26, 'World').points).toBeGreaterThan(990)
+    expect(scoreCapitalGuess(300, 'World').points).toBeGreaterThan(
+      scoreCapitalGuess(600, 'World').points,
+    )
+    expect(scoreCapitalGuess(1025, 'World').points).toBe(0)
+    expect(scoreCapitalGuess(400, 'Europe').points).toBeLessThan(
+      scoreCapitalGuess(400, 'World').points,
+    )
   })
 })

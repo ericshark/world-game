@@ -2,9 +2,12 @@ import { useFrame } from '@react-three/fiber'
 import { useEffect, useRef } from 'react'
 import { Quaternion, Vector3 } from 'three'
 import type { LonLat } from '../geo/coords'
+import { useReducedMotion } from '../ui/motion'
 import { lonLatToVector3 } from './coords3d'
 
 const FLIGHT_DURATION_MS = 1100
+/** Even with reduced motion the camera glides briefly, so the jump is not disorienting. */
+const REDUCED_FLIGHT_DURATION_MS = 250
 
 export interface CameraFocus {
   /** Changes whenever a new flight should start, even to the same place. */
@@ -25,6 +28,7 @@ interface Flight {
 export function CameraRig({ focus }: { focus: CameraFocus | null }) {
   const pending = useRef<CameraFocus | null>(null)
   const flight = useRef<Flight | null>(null)
+  const duration = useReducedMotion() ? REDUCED_FLIGHT_DURATION_MS : FLIGHT_DURATION_MS
 
   useEffect(() => {
     pending.current = focus
@@ -50,7 +54,7 @@ export function CameraRig({ focus }: { focus: CameraFocus | null }) {
     const active = flight.current
     if (!active) return
 
-    const t = Math.min(1, (performance.now() - active.startedAt) / FLIGHT_DURATION_MS)
+    const t = Math.min(1, (performance.now() - active.startedAt) / duration)
     const eased = t < 0.5 ? 4 * t ** 3 : 1 - (-2 * t + 2) ** 3 / 2
     const step = new Quaternion().slerp(active.rotation, eased)
     const distance = active.fromDistance + (active.toDistance - active.fromDistance) * eased

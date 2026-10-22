@@ -1,8 +1,9 @@
-import { useThree } from '@react-three/fiber'
+import { useFrame, useThree } from '@react-three/fiber'
 import { geoCentroid, geoCircle, geoEquirectangular, geoPath } from 'd3-geo'
-import { useEffect, useLayoutEffect, useMemo } from 'react'
-import { CanvasTexture, SRGBColorSpace } from 'three'
+import { useEffect, useLayoutEffect, useMemo, useRef } from 'react'
+import { CanvasTexture, MeshBasicMaterial, SRGBColorSpace } from 'three'
 import type { CountryIndex } from '../geo/countries'
+import { easeOutCubic, useReducedMotion } from '../ui/motion'
 import type { CountryPaint } from './scene'
 
 // The overlay is an equirectangular image wrapped on a sphere just above the Earth, so d3 can
@@ -11,6 +12,7 @@ const MAX_OVERLAY_WIDTH = 4096
 const OVERLAY_RADIUS = 1.002
 /** Micro-states are invisible at globe scale, so they also get a ring of this radius. */
 const MICRO_RING_RADIUS_DEG = 1.2
+const FADE_IN_MS = 450
 
 interface CountryPaintLayerProps {
   countries: CountryIndex
@@ -24,12 +26,30 @@ export function CountryPaintLayer({ countries, paints }: CountryPaintLayerProps)
     [maxTextureSize],
   )
   useEffect(() => () => surface.dispose(), [surface])
-  useLayoutEffect(() => surface.paint(countries, paints))
+
+  // New paints fade in, so a reveal lands softly instead of popping.
+  const material = useRef<MeshBasicMaterial>(null)
+  const changedAt = useRef(0)
+  const reducedMotion = useReducedMotion()
+  useLayoutEffect(() => {
+    if (surface.paint(countries, paints)) changedAt.current = performance.now()
+  })
+  useFrame(() => {
+    if (!material.current) return
+    const progress = reducedMotion ? 1 : (performance.now() - changedAt.current) / FADE_IN_MS
+    material.current.opacity = easeOutCubic(Math.min(1, Math.max(0, progress)))
+  })
 
   return (
     <mesh scale={OVERLAY_RADIUS} raycast={() => null} visible={paints.length > 0}>
       <sphereGeometry args={[1, 128, 64]} />
-      <meshBasicMaterial map={surface.texture} transparent depthWrite={false} toneMapped={false} />
+      <meshBasicMaterial
+        ref={material}
+        map={surface.texture}
+        transparent
+        depthWrite={false}
+        toneMapped={false}
+      />
     </mesh>
   )
 }
@@ -54,13 +74,17 @@ class PaintSurface {
     this.texture.anisotropy = 8
   }
 
-  paint(countries: CountryIndex, paints: CountryPaint[]) {
+  /** Redraws if the paints changed; returns whether it did. */
+  paint(countries: CountryIndex, paints: CountryPaint[]): boolean {
     const key = paints.map((p) => `${p.id}/${p.fill}/${p.stroke}/${p.lineWidth}`).join('|')
-    if (key === this.drawnKey && countries === this.drawnCountries) return
+    if (key === this.drawnKey && countries === this.drawnCountries) return false
     this.drawnKey = key
     this.drawnCountries = countries
+    // Nothing to show: the layer is hidden, so skip clearing and re-uploading the texture.
+    if (paints.length === 0) return false
     drawPaints(this.canvas, countries, paints)
     this.texture.needsUpdate = true
+    return true
   }
 
   dispose() {

@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { AdditiveBlending, BackSide, Color } from 'three'
 
 const vertexShader = /* glsl */ `
@@ -38,9 +39,11 @@ const hazeFragmentShader = /* glsl */ `
 
 const HALO_RADIUS = 1.06
 const HAZE_RADIUS = 1.003
-const ATMOSPHERE_COLOR = new Color('#5aa9ff')
+const ATMOSPHERE_COLOR = '#5aa9ff'
 
-export function Atmosphere() {
+/** @param tint overrides the glow colour, e.g. a cooler blue for the night globe. */
+export function Atmosphere({ tint = ATMOSPHERE_COLOR }: { tint?: string }) {
+  const color = useMemo(() => new Color(tint), [tint])
   return (
     <>
       <mesh scale={HALO_RADIUS}>
@@ -48,7 +51,7 @@ export function Atmosphere() {
         <shaderMaterial
           vertexShader={vertexShader}
           fragmentShader={haloFragmentShader}
-          uniforms={{ color: { value: ATMOSPHERE_COLOR } }}
+          uniforms={{ color: { value: color } }}
           side={BackSide}
           blending={AdditiveBlending}
           transparent
@@ -60,7 +63,7 @@ export function Atmosphere() {
         <shaderMaterial
           vertexShader={vertexShader}
           fragmentShader={hazeFragmentShader}
-          uniforms={{ color: { value: ATMOSPHERE_COLOR } }}
+          uniforms={{ color: { value: color } }}
           blending={AdditiveBlending}
           transparent
           depthWrite={false}

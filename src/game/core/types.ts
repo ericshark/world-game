@@ -4,24 +4,42 @@ import type { LonLat } from '../../geo/coords'
 export type PlayerId = string
 export const LOCAL_PLAYER: PlayerId = 'local'
 
+/** Find the country on the globe. */
 export interface LocateChallenge {
   kind: 'locate'
   countryId: string
 }
 
-export type Challenge = LocateChallenge
+/** Find the country's capital city on the globe. */
+export interface CapitalChallenge {
+  kind: 'capital'
+  countryId: string
+}
+
+/** Name the country highlighted on the globe. */
+export interface IdentifyChallenge {
+  kind: 'identify'
+  countryId: string
+  /** Multiple-choice options (easy), or null to type the answer. */
+  choices: string[] | null
+}
+
+export type Challenge = LocateChallenge | CapitalChallenge | IdentifyChallenge
 
 /**
  * What a player sends for a round: only their input, never a score. The host (this browser for
  * now, a server later) evaluates it, so the same rules can run server-side.
  */
 export interface Submission {
-  pin: LonLat
   at: number
+  pin?: LonLat
+  /** A country id, for challenges answered by name. */
+  answerId?: string
+  /** The player revealed a hint before answering. */
+  hintUsed?: boolean
 }
 
-export interface LocateResult {
-  kind: 'locate'
+interface PinResult {
   targetId: string
   guess: LonLat
   /** The place under the pin, or null for ocean. */
@@ -29,6 +47,27 @@ export interface LocateResult {
   distanceKm: number
   /** Closest point of the target to the guess (the guess itself when inside). */
   nearest: LonLat
+  points: number
+  hit: boolean
+}
+
+export interface LocateResult extends PinResult {
+  kind: 'locate'
+}
+
+export interface CapitalResult extends PinResult {
+  kind: 'capital'
+  /** The capital the pin was closest to (some countries have several). */
+  capitalName: string
+}
+
+export interface IdentifyResult {
+  kind: 'identify'
+  targetId: string
+  answerId: string
+  /** "neighbor" earns a little for naming a country next door. */
+  verdict: 'correct' | 'neighbor' | 'wrong'
+  hintUsed: boolean
   points: number
   hit: boolean
 }
@@ -41,12 +80,12 @@ export interface MissedResult {
   hit: false
 }
 
-export type RoundResult = LocateResult | MissedResult
+export type RoundResult = LocateResult | CapitalResult | IdentifyResult | MissedResult
 
 export type ModeId = 'pinpoint'
 
 /** Skills tracked per country across all modes. */
-export type Skill = 'locate'
+export type Skill = 'locate' | 'capital' | 'name'
 
 export interface CountryOutcome {
   countryId: string

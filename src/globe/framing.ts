@@ -1,4 +1,5 @@
-import { geoDistance, geoInterpolate } from 'd3-geo'
+import { geoBounds, geoDistance, geoInterpolate } from 'd3-geo'
+import type { Feature } from 'geojson'
 import type { LonLat } from '../geo/coords'
 import { MAX_CAMERA_DISTANCE, MIN_CAMERA_DISTANCE } from './constants'
 
@@ -22,4 +23,17 @@ export function randomOverview(random: () => number = Math.random): CameraView {
   const lon = random() * 360 - 180
   const lat = random() * 100 - 40
   return { center: [lon, lat], distance: MAX_CAMERA_DISTANCE }
+}
+
+/** Frames a whole country, centred on a point inside it. */
+export function frameCountry(feature: Feature, center: LonLat): CameraView {
+  const [[west, south], [east, north]] = geoBounds(feature)
+  const lonSpan =
+    (east >= west ? east - west : east + 360 - west) * Math.cos((center[1] * Math.PI) / 180)
+  const extentRad = (Math.max(lonSpan, north - south) * Math.PI) / 180
+  const distance = MIN_CAMERA_DISTANCE + 0.15 + extentRad * 2.4
+  return {
+    center,
+    distance: Math.min(MAX_CAMERA_DISTANCE, Math.max(MIN_CAMERA_DISTANCE, distance)),
+  }
 }

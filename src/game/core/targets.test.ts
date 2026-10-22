@@ -1,63 +1,82 @@
 import { describe, expect, it } from 'vitest'
-import { loadTestCountries } from '../../test/loadTestCountries'
+import { loadTestGeoData } from '../../test/loadTestCountries'
 import type { StatsByCountry } from '../profile/stats'
 import { createRandom } from './random'
-import { practiceWeight, selectTargets, targetPool } from './targets'
+import {
+  nameChoices,
+  pickWeighted,
+  practiceWeight,
+  targetPool,
+  weightByDifficulty,
+  weightByPractice,
+} from './targets'
 
-const countries = loadTestCountries()
+const geo = loadTestGeoData()
 const world = { region: 'World' as const, skipMicro: false }
+const ids = (region: 'World' | 'Europe' | 'Oceania' = 'World') =>
+  targetPool(geo.countries.features, { region, skipMicro: false }).map((f) => f.properties.id)
 
 describe('targetPool', () => {
   it('uses every playable place on the World map', () => {
-    expect(targetPool(countries.features, world)).toHaveLength(197)
+    expect(targetPool(geo.countries.features, world)).toHaveLength(197)
   })
 
   it('filters by region and skips micro-states on request', () => {
-    const europe = targetPool(countries.features, { ...world, region: 'Europe' })
+    const europe = targetPool(geo.countries.features, { ...world, region: 'Europe' })
     expect(europe.every((f) => f.properties.region === 'Europe')).toBe(true)
     expect(europe.some((f) => f.properties.id === 'VAT')).toBe(true)
 
-    const europeNoMicro = targetPool(countries.features, { region: 'Europe', skipMicro: true })
+    const europeNoMicro = targetPool(geo.countries.features, { region: 'Europe', skipMicro: true })
     expect(europeNoMicro.some((f) => f.properties.isMicro)).toBe(false)
     expect(europeNoMicro.length).toBeLessThan(europe.length)
   })
 })
 
-describe('selectTargets', () => {
-  const pool = targetPool(countries.features, world)
+describe('pickWeighted', () => {
+  const entries = ids().map((id) => ({ id, weight: 1 }))
 
-  it('picks 10 distinct countries from the pool', () => {
-    const ids = selectTargets(pool, 10, { random: createRandom('1') })
-    expect(ids).toHaveLength(10)
-    expect(new Set(ids).size).toBe(10)
-    const poolIds = new Set(pool.map((f) => f.properties.id))
-    expect(ids.every((id) => poolIds.has(id))).toBe(true)
+  it('picks distinct ids, repeatably for a seed', () => {
+    const picked = pickWeighted(entries, 10, createRandom('1'))
+    expect(new Set(picked).size).toBe(10)
+    expect(pickWeighted(entries, 10, createRandom('1'))).toEqual(picked)
   })
 
-  it('is repeatable for the same seed', () => {
-    expect(selectTargets(pool, 10, { random: createRandom('same') })).toEqual(
-      selectTargets(pool, 10, { random: createRandom('same') }),
-    )
+  it('returns everything when asked for more than there is', () => {
+    expect(pickWeighted(entries.slice(0, 4), 10, createRandom('2'))).toHaveLength(4)
+  })
+})
+
+describe('weightByDifficulty', () => {
+  it('keeps the better-known half on easy, with a floor for small regions', () => {
+    const easy = weightByDifficulty(ids(), 'easy', geo).map((e) => e.id)
+    expect(easy).toHaveLength(Math.ceil(197 / 2))
+    expect(easy).toContain('BRA')
+    expect(easy).not.toContain('TUV')
+    expect(weightByDifficulty(ids('Oceania'), 'easy', geo)).toHaveLength(12)
   })
 
-  it('returns the whole pool when it is smaller than the count', () => {
-    const small = pool.slice(0, 4)
-    expect(selectTargets(small, 10, { random: createRandom('2') }).sort()).toEqual(
-      small.map((f) => f.properties.id).sort(),
-    )
+  it('favours obscure countries on hard', () => {
+    const hard = new Map(weightByDifficulty(ids(), 'hard', geo).map((e) => [e.id, e.weight]))
+    expect(hard.get('TUV')!).toBeGreaterThan(3 * hard.get('BRA')!)
   })
+})
 
-  it('favours weak countries in practice mode', () => {
-    const twoCountries = [countries.get('PER')!, countries.get('BOL')!]
+describe('practice', () => {
+  it('favours weak countries', () => {
     const stats: StatsByCountry = {
       PER: { attempts: 10, hits: 10, totalKm: 0, recent: [] },
       BOL: { attempts: 10, hits: 0, totalKm: 5000, recent: [] },
     }
+    const entries = weightByPractice(
+      [
+        { id: 'PER', weight: 1 },
+        { id: 'BOL', weight: 1 },
+      ],
+      stats,
+    )
     const random = createRandom('3')
     let boliviaFirst = 0
-    for (let i = 0; i < 500; i++) {
-      if (selectTargets(twoCountries, 1, { stats, random })[0] === 'BOL') boliviaFirst++
-    }
+    for (let i = 0; i < 500; i++) if (pickWeighted(entries, 1, random)[0] === 'BOL') boliviaFirst++
     expect(boliviaFirst).toBeGreaterThan(450)
   })
 
@@ -66,5 +85,22 @@ describe('selectTargets', () => {
     const weak = practiceWeight({ attempts: 5, hits: 0, totalKm: 900, recent: [] })
     expect(strong).toBeLessThan(practiceWeight(undefined))
     expect(weak).toBeGreaterThan(practiceWeight(undefined))
+  })
+})
+
+describe('nameChoices', () => {
+  it('offers the answer among plausible, distinct decoys', () => {
+    const choices = nameChoices(geo, 'PER', createRandom('x'))
+    expect(choices).toHaveLength(4)
+    expect(new Set(choices).size).toBe(4)
+    expect(choices).toContain('PER')
+    const southAmerican = choices.filter(
+      (id) => geo.feature(id).properties.region === 'South America',
+    )
+    expect(southAmerican).toHaveLength(4)
+  })
+
+  it('works for isolated island nations', () => {
+    expect(nameChoices(geo, 'NRU', createRandom('y'))).toHaveLength(4)
   })
 })

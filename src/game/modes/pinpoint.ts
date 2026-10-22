@@ -1,5 +1,5 @@
 import { MAX_POINTS, type ScoringRegion } from '../../geo/scoring'
-import { evaluateLocate, missedResult } from '../core/evaluate'
+import { evaluateChallenge, type ScoringOptions } from '../core/evaluate'
 import type { ModeRules } from '../core/mode'
 import { createRandom } from '../core/random'
 import {
@@ -8,18 +8,52 @@ import {
   startRounds,
   submitRound,
   totalPoints,
-  type Evaluate,
   type RoundsState,
 } from '../core/rounds'
-import { selectTargets, targetPool } from '../core/targets'
-import type { CountryOutcome, LocateChallenge, RoundResult } from '../core/types'
+import {
+  nameChoices,
+  pickWeighted,
+  targetPool,
+  weightByDifficulty,
+  weightByPractice,
+  type Difficulty,
+} from '../core/targets'
+import type { Challenge, CountryOutcome, RoundResult, Skill } from '../core/types'
 
 export const ROUNDS_PER_GAME = 10
 
+export type PinpointTarget = 'countries' | 'capitals'
+/** Find a named place on the globe, or name the place highlighted on it. */
+export type PinpointVariant = 'find' | 'name'
+
 export interface PinpointConfig {
   region: ScoringRegion
+  difficulty: Difficulty
+  target: PinpointTarget
+  variant: PinpointVariant
+  /** Play on the night-lights globe. */
+  night: boolean
   skipMicro: boolean
   practiceWeak: boolean
+}
+
+export const DEFAULT_PINPOINT_CONFIG: PinpointConfig = {
+  region: 'World',
+  difficulty: 'normal',
+  target: 'countries',
+  variant: 'find',
+  night: false,
+  skipMicro: false,
+  practiceWeak: false,
+}
+
+export const DIFFICULTY_RULES: Record<
+  Difficulty,
+  { cutoffScale: number; roundTimeMs: number | null }
+> = {
+  easy: { cutoffScale: 1.4, roundTimeMs: null },
+  normal: { cutoffScale: 1, roundTimeMs: null },
+  hard: { cutoffScale: 0.75, roundTimeMs: 20_000 },
 }
 
 export interface PinpointState {
@@ -27,32 +61,59 @@ export interface PinpointState {
   seed: string
   startedAt: number
   endedAt: number | null
-  rounds: RoundsState<LocateChallenge>
+  rounds: RoundsState<Challenge>
 }
 
-/** Classic mode: find each named country on the borderless globe. */
+/** Games with the same key are comparable for personal bests. */
+export function pinpointBestKey(config: PinpointConfig): string {
+  const { target, variant, region, difficulty, skipMicro, night, practiceWeak } = config
+  const flags = [skipMicro && 'no-micro', night && 'night', practiceWeak && 'practice']
+  const kind = variant === 'name' ? 'name' : target
+  return ['pinpoint', kind, region, difficulty, ...flags.filter(Boolean)].join(':')
+}
+
+/** The skill a Pinpoint game trains, for stats and weak-country practice. */
+export function pinpointSkill(config: PinpointConfig): Skill {
+  if (config.variant === 'name') return 'name'
+  return config.target === 'capitals' ? 'capital' : 'locate'
+}
+
+/** Classic mode: find each named country (or capital) on the globe, or name the one shown. */
 export const pinpoint: ModeRules<PinpointConfig, PinpointState> = {
   start({ config, seed, now, geo, players, stats }) {
-    const pool = targetPool(geo.countries.features, config)
-    const targetIds = selectTargets(pool, ROUNDS_PER_GAME, {
-      random: createRandom(seed),
-      stats: config.practiceWeak ? stats : undefined,
-    })
-    const challenges = targetIds.map((countryId) => ({ kind: 'locate' as const, countryId }))
+    const random = createRandom(seed)
+    const pool = targetPool(geo.countries.features, config).map((f) => f.properties.id)
+    let entries = weightByDifficulty(pool, config.difficulty, geo)
+    if (config.practiceWeak && stats) entries = weightByPractice(entries, stats)
+    const challenges = pickWeighted(entries, ROUNDS_PER_GAME, random).map(
+      (countryId): Challenge => {
+        if (config.variant === 'name') {
+          const choices = config.difficulty === 'easy' ? nameChoices(geo, countryId, random) : null
+          return { kind: 'identify', countryId, choices }
+        }
+        return { kind: config.target === 'capitals' ? 'capital' : 'locate', countryId }
+      },
+    )
     return {
       config,
       seed,
       startedAt: now,
       endedAt: null,
-      rounds: startRounds(challenges, { players, now }),
+      rounds: startRounds(challenges, {
+        players,
+        now,
+        roundTimeMs: DIFFICULTY_RULES[config.difficulty].roundTimeMs,
+      }),
     }
   },
 
   reduce(state, event, geo) {
-    const evaluate: Evaluate<LocateChallenge> = (challenge, submission) =>
-      submission
-        ? evaluateLocate(geo.countries, challenge.countryId, submission.pin, state.config.region)
-        : missedResult(challenge.countryId)
+    const options: ScoringOptions = {
+      region: state.config.region,
+      cutoffScale: DIFFICULTY_RULES[state.config.difficulty].cutoffScale,
+    }
+    const evaluate = (challenge: Challenge, submission: Parameters<typeof evaluateChallenge>[2]) =>
+      evaluateChallenge(geo, challenge, submission, options)
 
     switch (event.type) {
       case 'submit':
@@ -74,33 +135,33 @@ export const pinpoint: ModeRules<PinpointConfig, PinpointState> = {
   deadline: (state) => state.rounds.deadline,
 
   outcomesBetween(previous, next, playerId) {
+    const skill = pinpointSkill(next.config)
     return next.rounds.results
       .slice(previous.rounds.results.length)
-      .map((round) => outcomeOf(round[playerId]))
+      .map((round) => outcomeOf(round[playerId], skill))
   },
 
   summarize(state, playerId) {
-    const { region, skipMicro, practiceWeak } = state.config
-    const variant = [region, skipMicro && 'no-micro', practiceWeak && 'practice'].filter(Boolean)
-    const results = state.rounds.results.map((round) => round[playerId])
+    const skill = pinpointSkill(state.config)
     return {
       mode: 'pinpoint',
-      bestKey: ['pinpoint', ...variant].join(':'),
+      bestKey: pinpointBestKey(state.config),
       seed: state.seed,
       startedAt: state.startedAt,
       endedAt: state.endedAt ?? state.startedAt,
       score: totalPoints(state.rounds, playerId),
       maxScore: state.rounds.challenges.length * MAX_POINTS,
-      outcomes: results.map(outcomeOf),
+      outcomes: state.rounds.results.map((round) => outcomeOf(round[playerId], skill)),
     }
   },
 }
 
-function outcomeOf(result: RoundResult): CountryOutcome {
+function outcomeOf(result: RoundResult, skill: Skill): CountryOutcome {
   return {
     countryId: result.targetId,
-    skill: 'locate',
+    skill,
     success: result.hit,
-    distanceKm: result.kind === 'locate' ? result.distanceKm : undefined,
+    distanceKm:
+      result.kind === 'locate' || result.kind === 'capital' ? result.distanceKm : undefined,
   }
 }

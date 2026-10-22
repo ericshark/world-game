@@ -8,8 +8,9 @@ highlighted, how far off they were, and their score.
 
 - **Purpose:** personal hobby project, built for fun. May later become a free public site.
 - **Players:** geography enthusiasts and people who want to get better at geography.
-- **Platform:** desktop web browser only (for now). Runs locally; no hosting yet.
-- **Mode:** single-player only.
+- **Platform:** desktop and mobile web browsers. Runs locally; no hosting yet.
+- **Modes:** Pinpoint today; GeoRush, Rare Earth, Mystery Country, World Journey, Daily World and
+  World Battle are planned (see the expansion plan).
 
 ## Core game: "Find X"
 
@@ -91,11 +92,43 @@ At max zoom (continent view), micro-states and small islands are only a few pixe
 - **Three.js via react-three-fiber** for the globe
 - Static site, no backend. Runs locally for now.
 
+## Pinpoint options
+
+Pinpoint's setup combines a few choices:
+
+- **Find it / Name it.** Find it names a place and you pin it. Name It highlights a country (the
+  camera flies to it) and you name it. Name It scoring: correct 1,000; correct after the
+  first-letter hint 500; naming a neighbor 200; anything else 0.
+- **Countries / Capitals** (Find it only). A capital is a point: pins within 25 km score 1,000,
+  and points fall to 0 at 1,000 km (World and Oceania), 750 km (other continents) or 500 km
+  (Europe). Countries with several official capitals accept any of them.
+- **Difficulty.**
+  - Easy keeps the better-known half of the region (at least 12 countries), scores with
+    zero-point distances ×1.4, and offers 4 multiple-choice answers in Name It.
+  - Normal plays every country.
+  - Hard favours obscure, small countries (up to ~10×), uses distances ×0.75, and gives 20
+    seconds a round. When time runs out, the pin already down is scored; with no pin, the round
+    scores 0.
+- **Night Earth** swaps in NASA's Black Marble city lights. **Practise weak countries** uses the
+  stats of the skill being played.
+
+The score stays out of 10,000 with no streak or speed bonus, so games stay comparable. Streaks
+show in the HUD, and personal bests are kept per setup.
+
+## Platform
+
+- Home screen with mode tiles; setup sheets remember the last choices.
+- Shared HUD, result card (grade, points, fact card with capital, population, neighbours) and
+  results screen with personal bests.
+- Settings: sound (synthesised with Web Audio), motion (system, reduced or full), km or miles,
+  tap or crosshair pin placement, latitude and longitude grid, reset progress.
+- Keyboard play: arrow keys turn the globe, +/− zoom, Space drops a pin at the screen centre,
+  Enter confirms.
+- Phones get a bottom-sheet layout, a wider field of view in portrait, and 4096-wide textures.
+
 ## Out of scope for v1 (possible later)
 
-- "Identify" mode (country highlighted → name it) and "guess from terrain" mode
-- Timer / hard difficulty
-- Mobile / touch support
-- Hosting, daily challenge, leaderboards, accounts, multiplayer
+- "Guess from terrain" mode
+- Hosting, leaderboards, accounts
 - Shaded-relief imagery toggle
 - Translations

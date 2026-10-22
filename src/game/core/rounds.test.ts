@@ -19,7 +19,7 @@ const challenges: LocateChallenge[] = [
 
 /** Scores 100 points per degree of longitude, so tests can tell submissions apart. */
 const evaluate: Evaluate<LocateChallenge> = (challenge, submission) =>
-  submission
+  submission?.pin
     ? ({
         kind: 'locate',
         targetId: challenge.countryId,

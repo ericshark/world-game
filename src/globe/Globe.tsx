@@ -1,46 +1,88 @@
 import { OrbitControls, Stars, useTexture } from '@react-three/drei'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
-import { Suspense, useRef, type ComponentRef, type ReactNode } from 'react'
+import { Suspense, useEffect, useMemo, useRef, type ComponentRef, type ReactNode } from 'react'
 import { SRGBColorSpace } from 'three'
 import type { LonLat } from '../geo/coords'
 import { Atmosphere } from './Atmosphere'
 import { CAMERA_FOV, MAX_CAMERA_DISTANCE, MIN_CAMERA_DISTANCE } from './constants'
+import { lonLatToVector3, vector3ToLonLat } from './coords3d'
 import { LatLonGrid } from './LatLonGrid'
+import { prefersSmallTextures, textureUrl, type Surface } from './textures'
 import { useGlobePicking } from './useGlobePicking'
 
-const EARTH_TEXTURE_URL = `${import.meta.env.BASE_URL}textures/earth.jpg`
 /** OrbitControls rotate speed when fully zoomed out; it shrinks as the camera gets closer. */
 const ROTATE_SPEED_ZOOMED_OUT = 0.6
+/** Degrees an arrow key turns the globe when fully zoomed out. */
+const KEY_STEP_DEG = 8
+const KEY_ZOOM_FACTOR = 1.12
+
+/** Moves the globe within the screen, in fractions of its size (x right, y up). */
+export interface ViewShift {
+  x: number
+  y: number
+}
+
+const NO_SHIFT: ViewShift = { x: 0, y: 0 }
 
 interface GlobeProps {
   onPick?: (point: LonLat) => void
   showGrid?: boolean
-  /** Slowly spin the globe, e.g. behind the start screen. */
+  /** Slowly spin the globe, e.g. behind the home screen. */
   autoRotate?: boolean
+  surface?: Surface
+  /** Arrow keys turn the globe and +/- zoom (off while typing). */
+  keyboard?: boolean
+  /** Receives a function that returns the point under the centre of the screen. */
+  centerRef?: { current: (() => LonLat) | null }
+  /** Slides the globe aside, e.g. away from a panel covering part of the screen. */
+  shift?: ViewShift
   children?: ReactNode
 }
 
-export function Globe({ onPick, showGrid = false, autoRotate = false, children }: GlobeProps) {
+export function Globe({
+  onPick,
+  showGrid = false,
+  autoRotate = false,
+  surface = 'day',
+  keyboard = true,
+  centerRef,
+  shift = NO_SHIFT,
+  children,
+}: GlobeProps) {
   return (
     <Canvas
+      dpr={[1, 2]}
       camera={{ fov: CAMERA_FOV, near: 0.01, far: 1000, position: [0, 0, MAX_CAMERA_DISTANCE] }}
     >
       <color attach="background" args={['#02030a']} />
       <Stars radius={100} depth={60} count={5000} factor={4} saturation={0} fade speed={0} />
-      <Suspense fallback={null}>
-        <Earth onPick={onPick} />
-      </Suspense>
-      <Atmosphere />
+      <EarthSurfaces surface={surface} onPick={onPick} />
+      <Atmosphere tint={surface === 'night' ? '#7f8dff' : undefined} />
       {showGrid && <LatLonGrid />}
       <GlobeControls autoRotate={autoRotate} />
+      {keyboard && <KeyboardOrbit />}
+      {centerRef && <CenterProbe centerRef={centerRef} />}
+      <CameraFit shift={shift} />
       {children}
     </Canvas>
   )
 }
 
-function Earth({ onPick }: { onPick?: (point: LonLat) => void }) {
+/** Shows the day Earth while the night texture loads the first time. */
+function EarthSurfaces({ surface, onPick }: { surface: Surface; onPick?: (p: LonLat) => void }) {
+  const maxTextureSize = useThree((state) => state.gl.capabilities.maxTextureSize)
+  const small = useMemo(() => prefersSmallTextures(maxTextureSize), [maxTextureSize])
+  const day = <Earth url={textureUrl('day', small)} onPick={onPick} />
+  return (
+    <Suspense fallback={surface === 'night' ? <Suspense fallback={null}>{day}</Suspense> : null}>
+      {surface === 'night' ? <Earth url={textureUrl('night', small)} onPick={onPick} /> : day}
+    </Suspense>
+  )
+}
+
+function Earth({ url, onPick }: { url: string; onPick?: (point: LonLat) => void }) {
   const maxAnisotropy = useThree((state) => state.gl.capabilities.getMaxAnisotropy())
-  const texture = useTexture(EARTH_TEXTURE_URL, (loaded) => {
+  const texture = useTexture(url, (loaded) => {
     for (const t of Array.isArray(loaded) ? loaded : [loaded]) {
       t.colorSpace = SRGBColorSpace
       // Keeps the surface sharp near the limb, where the texture is viewed at a steep angle.
@@ -81,5 +123,108 @@ function GlobeControls({ autoRotate }: { autoRotate: boolean }) {
       autoRotate={autoRotate}
       autoRotateSpeed={0.35}
     />
+  )
+}
+
+/** Arrow keys turn the globe and +/- zoom, so it can be played without a pointer. */
+function KeyboardOrbit() {
+  const camera = useThree((state) => state.camera)
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (isTyping(event.target)) return
+      const radius = camera.position.length()
+      const zoom = (radius - 1) / (MAX_CAMERA_DISTANCE - 1)
+      const step = KEY_STEP_DEG * zoom
+      const [lon, lat] = vector3ToLonLat(camera.position)
+      let next: [number, number] = [lon, lat]
+      let nextRadius = radius
+      switch (event.key) {
+        case 'ArrowLeft':
+          next = [lon - step, lat]
+          break
+        case 'ArrowRight':
+          next = [lon + step, lat]
+          break
+        case 'ArrowUp':
+          next = [lon, Math.min(80, lat + step)]
+          break
+        case 'ArrowDown':
+          next = [lon, Math.max(-80, lat - step)]
+          break
+        case '+':
+        case '=':
+          nextRadius = Math.max(MIN_CAMERA_DISTANCE, radius / KEY_ZOOM_FACTOR)
+          break
+        case '-':
+        case '_':
+          nextRadius = Math.min(MAX_CAMERA_DISTANCE, radius * KEY_ZOOM_FACTOR)
+          break
+        default:
+          return
+      }
+      event.preventDefault()
+      lonLatToVector3(next, nextRadius, camera.position)
+      camera.lookAt(0, 0, 0)
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [camera])
+
+  return null
+}
+
+/** The camera always looks at the globe's centre, so the screen centre is the point below it. */
+function CenterProbe({ centerRef }: { centerRef: { current: (() => LonLat) | null } }) {
+  const camera = useThree((state) => state.camera)
+  useEffect(() => {
+    centerRef.current = () => vector3ToLonLat(camera.position)
+    return () => {
+      centerRef.current = null
+    }
+  }, [camera, centerRef])
+  return null
+}
+
+/**
+ * Fits the globe to the screen: on portrait screens the field of view widens so the whole Earth
+ * still fits side to side, and a view shift slides the globe aside smoothly.
+ */
+function CameraFit({ shift }: { shift: ViewShift }) {
+  const current = useRef({ ...shift })
+  useFrame(({ camera, size }, delta) => {
+    if (!('fov' in camera)) return
+    const aspect = size.width / size.height
+    const halfFov = (CAMERA_FOV * Math.PI) / 360
+    const fov = aspect < 1 ? (360 / Math.PI) * Math.atan(Math.tan(halfFov) / aspect) : CAMERA_FOV
+
+    const follow = 1 - Math.exp(-delta * 6)
+    current.current.x += (shift.x - current.current.x) * follow
+    current.current.y += (shift.y - current.current.y) * follow
+    const { x, y } = current.current
+
+    if (Math.abs(x) < 1e-3 && Math.abs(y) < 1e-3) {
+      if (camera.view?.enabled) camera.clearViewOffset()
+    } else {
+      camera.setViewOffset(
+        size.width,
+        size.height,
+        -x * size.width,
+        y * size.height,
+        size.width,
+        size.height,
+      )
+    }
+    if (camera.fov !== fov) camera.fov = fov
+    camera.updateProjectionMatrix()
+  })
+  return null
+}
+
+function isTyping(target: EventTarget | null): boolean {
+  return (
+    target instanceof HTMLInputElement ||
+    target instanceof HTMLTextAreaElement ||
+    target instanceof HTMLSelectElement
   )
 }

@@ -37,3 +37,17 @@ export const CLICKED_PAINT = {
   stroke: CLICKED_COLOR,
   lineWidth: 2.5,
 }
+/** A country being asked about, before the answer is known. */
+export const QUESTION_PAINT = { fill: 'rgb(255 255 255 / 0.16)', stroke: '#ffffff', lineWidth: 3 }
+/** Context around the answer, such as its neighbours. */
+export const CONTEXT_PAINT = {
+  fill: 'rgb(255 255 255 / 0)',
+  stroke: 'rgb(255 255 255 / 0.35)',
+  lineWidth: 1.5,
+}
+/** The answer's country, faintly, when the answer is a point inside it (a capital). */
+export const TARGET_AREA_PAINT = {
+  fill: 'rgb(255 213 74 / 0.14)',
+  stroke: 'rgb(255 213 74 / 0.6)',
+  lineWidth: 1.5,
+}

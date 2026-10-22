@@ -13,9 +13,14 @@ interface SessionCallbacks {
 
 export interface LocalSession<Config, State> {
   state: State | null
-  start(config: Config, options?: { seed?: string; stats?: StatsByCountry }): State
+  start(config: Config, options?: StartOptions): State
   send(event: SessionEvent): State | null
   end(): void
+}
+
+interface StartOptions {
+  seed?: string
+  stats?: StatsByCountry
 }
 
 /**
@@ -26,9 +31,13 @@ export function useLocalSession<Config, State>(
   rules: ModeRules<Config, State>,
   geo: GeoData | null,
   callbacks: SessionCallbacks,
+  /** Starts a game straight away with this setup. */
+  initial?: { config: Config } & StartOptions,
 ): LocalSession<Config, State> {
-  const [state, setState] = useState<State | null>(null)
-  const stateRef = useRef<State | null>(null)
+  const [state, setState] = useState<State | null>(() =>
+    initial && geo ? startGame(rules, geo, initial.config, initial) : null,
+  )
+  const stateRef = useRef<State | null>(state)
   const callbacksRef = useRef(callbacks)
   useEffect(() => {
     callbacksRef.current = callbacks
@@ -40,21 +49,11 @@ export function useLocalSession<Config, State>(
   }, [])
 
   const start = useCallback(
-    (
-      config: Config,
-      { seed = randomSeed(), stats }: { seed?: string; stats?: StatsByCountry } = {},
-    ) => {
+    (config: Config, options: StartOptions = {}) => {
       if (!geo) throw new Error('Geography is not loaded yet')
-      const initial = rules.start({
-        config,
-        seed,
-        now: Date.now(),
-        geo,
-        players: [LOCAL_PLAYER],
-        stats,
-      })
-      commit(initial)
-      return initial
+      const started = startGame(rules, geo, config, options)
+      commit(started)
+      return started
     },
     [rules, geo, commit],
   )
@@ -91,4 +90,13 @@ export function useLocalSession<Config, State>(
   }, [deadline, send])
 
   return { state, start, send, end }
+}
+
+function startGame<Config, State>(
+  rules: ModeRules<Config, State>,
+  geo: GeoData,
+  config: Config,
+  { seed = randomSeed(), stats }: StartOptions,
+): State {
+  return rules.start({ config, seed, now: Date.now(), geo, players: [LOCAL_PLAYER], stats })
 }

@@ -22,21 +22,19 @@ export function familiarityScore(facts: CountryFacts): number {
 }
 
 /**
- * Ranks countries from easiest to hardest to find and splits them into tiers. Small countries
- * are harder to click as well as less familiar, so size counts twice.
+ * How hard a country is to find, from 0 (easy) to 1 (hard). Small countries are harder to click
+ * as well as less familiar, so size counts twice.
  */
-export function difficultyTiers(
-  countries: { id: string; familiarity: number; areaKm2: number }[],
-): Map<string, DifficultyTier> {
-  const ranked = countries
-    .map(({ id, familiarity, areaKm2 }) => {
-      const smallness = 1 - scale(Math.log10(Math.max(areaKm2, 0.1)), 0, 7.2)
-      return { id, difficulty: 0.75 * (1 - familiarity) + 0.25 * smallness }
-    })
-    .sort((a, b) => a.difficulty - b.difficulty || a.id.localeCompare(b.id))
+export function difficultyScore(familiarity: number, areaKm2: number): number {
+  const smallness = 1 - scale(Math.log10(Math.max(areaKm2, 0.1)), 0, 7.2)
+  return 0.75 * (1 - familiarity) + 0.25 * smallness
+}
 
+/** Ranks countries from easiest to hardest and splits them into tiers of fixed shares. */
+export function difficultyTiers(scores: Map<string, number>): Map<string, DifficultyTier> {
+  const ranked = [...scores].sort(([a, x], [b, y]) => x - y || a.localeCompare(b))
   const tiers = new Map<string, DifficultyTier>()
-  ranked.forEach(({ id }, index) => {
+  ranked.forEach(([id], index) => {
     const share = (index + 1) / ranked.length
     const tier = TIER_CUMULATIVE_SHARE.findIndex((limit) => share <= limit) + 1
     tiers.set(id, tier as DifficultyTier)

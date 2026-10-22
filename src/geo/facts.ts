@@ -1,6 +1,11 @@
 import type { LonLat } from './coords'
 import { CountryIndex, type CountryCollection, type CountryFeature } from './countries'
-import { difficultyTiers, familiarityScore, type DifficultyTier } from './difficulty'
+import {
+  difficultyScore,
+  difficultyTiers,
+  familiarityScore,
+  type DifficultyTier,
+} from './difficulty'
 import { NameMatcher } from './names'
 
 export interface Capital {
@@ -61,6 +66,7 @@ export class GeoData {
   private readonly distanceRow: Map<string, number>
   private readonly distanceKm: number[]
   private readonly familiarityById: Map<string, number>
+  private readonly difficultyById: Map<string, number>
   private readonly tierById: Map<string, DifficultyTier>
 
   constructor(countries: CountryIndex, file: FactsFile) {
@@ -74,13 +80,13 @@ export class GeoData {
     this.familiarityById = new Map(
       this.playableIds.map((id) => [id, familiarityScore(this.factsOf(id))]),
     )
-    this.tierById = difficultyTiers(
-      this.playableIds.map((id) => ({
+    this.difficultyById = new Map(
+      this.playableIds.map((id) => [
         id,
-        familiarity: this.familiarityById.get(id)!,
-        areaKm2: this.factsOf(id).areaKm2,
-      })),
+        difficultyScore(this.familiarityById.get(id)!, this.factsOf(id).areaKm2),
+      ]),
     )
+    this.tierById = difficultyTiers(this.difficultyById)
     this.names = new NameMatcher(
       this.playableIds.map((id) => ({
         id,
@@ -120,6 +126,11 @@ export class GeoData {
 
   familiarity(id: string): number {
     return this.familiarityById.get(id) ?? 0
+  }
+
+  /** 0 (easy to find) … 1 (hard). */
+  difficulty(id: string): number {
+    return this.difficultyById.get(id) ?? 1
   }
 
   difficultyTier(id: string): DifficultyTier {

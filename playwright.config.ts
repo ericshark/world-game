@@ -8,6 +8,8 @@ export default defineConfig({
   timeout: 60_000,
   expect: { timeout: 15_000 },
   fullyParallel: true,
+  // Each test renders WebGL in software; more than a couple at once starves the CPU.
+  workers: Number(process.env.PW_WORKERS ?? 2),
   reporter: 'list',
   use: {
     baseURL: `http://localhost:${PORT}`,
@@ -19,6 +21,8 @@ export default defineConfig({
       name: 'desktop',
       use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 } },
     },
+    // A phone: small portrait screen with touch.
+    { name: 'phone', use: { ...devices['Pixel 7'] } },
   ],
   webServer: {
     command: `npx vite --port ${PORT} --strictPort`,
