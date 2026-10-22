@@ -1,0 +1,146 @@
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { WebSocket } from 'ws'
+import type { RoomView, ServerMessage } from '../src/net/protocol'
+import { loadServerGeo, startServer, type RunningServer } from './index'
+
+const geo = loadServerGeo()
+let server: RunningServer
+
+beforeAll(async () => {
+  server = await startServer({ port: 0, host: '127.0.0.1', geo })
+})
+afterAll(() => server.close())
+
+/** A test client that records every message and can wait for one. */
+async function connect() {
+  const socket = new WebSocket(`ws://127.0.0.1:${server.port}/ws`)
+  const messages: ServerMessage[] = []
+  const waiters: (() => void)[] = []
+  socket.on('message', (data) => {
+    messages.push(JSON.parse(data.toString()))
+    for (const wake of waiters.splice(0)) wake()
+  })
+  await new Promise((resolve) => socket.once('open', resolve))
+  const client = {
+    socket,
+    messages,
+    send: (message: object) => socket.send(JSON.stringify(message)),
+    async waitFor<T extends ServerMessage>(
+      test: (m: ServerMessage) => m is T,
+      after = 0,
+    ): Promise<T> {
+      for (;;) {
+        const found = messages.slice(after).find(test)
+        if (found) return found
+        await new Promise<void>((resolve, reject) => {
+          const timeout = setTimeout(
+            () => reject(new Error('timed out waiting for a message')),
+            5000,
+          )
+          waiters.push(() => {
+            clearTimeout(timeout)
+            resolve()
+          })
+        })
+      }
+    },
+    /** The latest room view matching a condition. */
+    async room(test: (room: RoomView) => boolean, after = 0) {
+      const message = await client.waitFor(
+        (m): m is Extract<ServerMessage, { t: 'room' }> => m.t === 'room' && test(m.room),
+        after,
+      )
+      return message.room
+    },
+  }
+  return client
+}
+
+const isWelcome = (m: ServerMessage): m is Extract<ServerMessage, { t: 'welcome' }> =>
+  m.t === 'welcome'
+const isError = (m: ServerMessage): m is Extract<ServerMessage, { t: 'error' }> => m.t === 'error'
+
+describe('battle server', () => {
+  it('runs a private room from lobby to revealed rounds, with reconnection', async () => {
+    const ana = await connect()
+    ana.send({ t: 'create', name: 'Ana', color: '#ff6b6b' })
+    const { code, playerId: anaId } = await ana.waitFor(isWelcome)
+    expect(code).toMatch(/^[A-Z]{4}$/)
+
+    const ben = await connect()
+    ben.send({ t: 'join', code: code.toLowerCase(), name: 'Ben', color: '#ff6b6b' })
+    const { playerId: benId, token: benToken } = await ben.waitFor(isWelcome)
+    const lobby = await ana.room((room) => room.members.length === 2)
+    expect(lobby.hostId).toBe(anaId)
+    // Same colour requested: the second player gets another one.
+    expect(lobby.members[1].color).not.toBe(lobby.members[0].color)
+
+    // Only the host configures and starts.
+    ben.send({ t: 'start' })
+    ana.send({
+      t: 'configure',
+      settings: { format: 'party', content: 'pinpoint', bots: 0, botSkill: 'novice' },
+    })
+    ana.send({ t: 'start' })
+    const playing = await ben.room((room) => room.phase === 'playing')
+    const challenge = playing.battle!.rounds.challenges[0]
+    if (challenge.kind !== 'locate') throw new Error('expected a locate round')
+
+    // Ana answers; Ben must not see her pin before the reveal.
+    const mark = ben.messages.length
+    ana.send({ t: 'submit', round: 0, pin: geo.factsOf(challenge.countryId).label })
+    const afterAna = await ben.room(
+      (room) => (room.battle?.rounds.deadline ?? Infinity) < playing.battle!.rounds.deadline!,
+      mark,
+    )
+    expect(afterAna.battle!.rounds.submissions[0]).toEqual({})
+
+    ben.send({ t: 'submit', round: 0, pin: [-150, -40] })
+    const revealed = await ana.room((room) => room.battle?.rounds.phase === 'revealed')
+    expect(revealed.battle!.rounds.results[0][anaId].points).toBe(1000)
+    expect(revealed.battle!.rounds.results[0][benId].kind).toBe('locate')
+
+    ana.send({ t: 'ready' })
+    ben.send({ t: 'ready' })
+    await ana.room((room) => room.battle?.rounds.round === 1)
+
+    // A newcomer cannot join mid-game.
+    const carl = await connect()
+    carl.send({ t: 'join', code, name: 'Carl', color: '#5ad1ff' })
+    expect((await carl.waitFor(isError)).message).toMatch(/already started/)
+
+    // Ben drops out and comes back as himself.
+    ben.socket.close()
+    await ana.room((room) => room.members.find((m) => m.id === benId)?.connected === false)
+    const benAgain = await connect()
+    benAgain.send({ t: 'join', code, name: 'Ben', color: '#5ad1ff', token: benToken })
+    expect((await benAgain.waitFor(isWelcome)).playerId).toBe(benId)
+    await ana.room((room) => room.members.find((m) => m.id === benId)?.connected === true)
+
+    for (const client of [ana, benAgain, carl]) client.socket.close()
+  })
+
+  it('refuses bad messages and impossible games', async () => {
+    const solo = await connect()
+    solo.socket.send('{nonsense')
+    expect((await solo.waitFor(isError)).message).toBe('Unrecognised message.')
+    solo.send({ t: 'join', code: 'ZZZZ', name: 'Solo', color: '#ff6b6b' })
+    expect((await solo.waitFor(isError, 1)).message).toBe('No room with that code.')
+
+    solo.send({ t: 'create', name: 'Solo', color: '#ff6b6b' })
+    await solo.waitFor(isWelcome)
+    const mark = solo.messages.length
+    solo.send({ t: 'start' })
+    expect((await solo.waitFor(isError, mark)).message).toMatch(/at least two players/)
+
+    // With bots, one person can play.
+    solo.send({
+      t: 'configure',
+      settings: { format: 'duel', content: 'mixed', bots: 1, botSkill: 'novice' },
+    })
+    solo.send({ t: 'start' })
+    const room = await solo.room((r) => r.phase === 'playing')
+    expect(room.battle!.config.roster.map((p) => p.name)).toEqual(['Solo', 'Magellan'])
+    solo.socket.close()
+  })
+})

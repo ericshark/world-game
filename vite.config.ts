@@ -5,10 +5,16 @@ import { defineConfig } from 'vitest/config'
 export default defineConfig({
   plugins: [react()],
   // Default + 1; Vite moves to the next free port if this one is taken.
-  server: { port: 5174 },
+  server: {
+    port: 5174,
+    // The battle server (npm run server); WG_SERVER_PORT lets tests use their own.
+    proxy: {
+      '/ws': { target: `ws://localhost:${process.env.WG_SERVER_PORT ?? 8788}`, ws: true },
+    },
+  },
   preview: { port: 4174 },
   test: {
     environment: 'node',
-    include: ['src/**/*.test.ts'],
+    include: ['src/**/*.test.ts', 'server/**/*.test.ts'],
   },
 })
