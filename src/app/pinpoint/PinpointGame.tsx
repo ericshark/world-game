@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { play, vibrate } from '../../audio/sound'
 import type { LonLat } from '../../geo/coords'
-import type { Challenge, RoundResult } from '../../game/core/types'
+import type { CountryChallenge, RoundResult } from '../../game/core/types'
 import { LOCAL_PLAYER } from '../../game/core/types'
 import {
   DIFFICULTY_RULES,
@@ -398,7 +398,7 @@ function announce(result: RoundResult, streak: number) {
 
 function verdictOf(
   result: RoundResult,
-  challenge: Challenge,
+  challenge: CountryChallenge,
   nameOf: (id: string) => string,
   geo: GeoData,
 ) {
@@ -478,7 +478,7 @@ function detailOf(result: RoundResult, nameOf: (id: string) => string, units: Un
   }
 }
 
-function roundLabel(challenge: Challenge, nameOf: (id: string) => string, geo: GeoData) {
+function roundLabel(challenge: CountryChallenge, nameOf: (id: string) => string, geo: GeoData) {
   const name = nameOf(challenge.countryId)
   return challenge.kind === 'capital'
     ? `${geo.factsOf(challenge.countryId).capitals[0].name}, ${name}`

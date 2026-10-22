@@ -53,6 +53,7 @@ export function pinpointScene(
     }
 
     case 'locate':
+    case 'category':
     case 'capital': {
       const isCapital = result.kind === 'capital'
       const clicked =

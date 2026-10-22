@@ -27,6 +27,7 @@ export interface RoundsState<C extends Challenge = Challenge> {
 export type Evaluate<C extends Challenge> = (
   challenge: C,
   submission: Submission | undefined,
+  playerId: PlayerId,
 ) => RoundResult
 
 interface StartOptions {
@@ -134,7 +135,7 @@ function reveal<C extends Challenge>(state: RoundsState<C>, evaluate: Evaluate<C
   const challenge = state.challenges[state.round]
   const submissions = state.submissions[state.round]
   const results = Object.fromEntries(
-    state.players.map((player) => [player, evaluate(challenge, submissions[player])]),
+    state.players.map((player) => [player, evaluate(challenge, submissions[player], player)]),
   )
   return { ...state, phase: 'revealed', deadline: null, results: [...state.results, results] }
 }

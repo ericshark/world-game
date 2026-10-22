@@ -7,6 +7,9 @@ import { useApp } from './AppContext'
 import { PinpointGame } from './pinpoint/PinpointGame'
 import { PinpointSetup } from './pinpoint/PinpointSetup'
 import type { ModeKey, Route } from './router'
+import { loadRareEarthConfig } from './rareEarth/config'
+import { RareEarthGame } from './rareEarth/RareEarthGame'
+import { RareEarthSetup } from './rareEarth/RareEarthSetup'
 import { loadRushConfig } from './rush/config'
 import { RushGame } from './rush/RushGame'
 import { RushSetup } from './rush/RushSetup'
@@ -27,6 +30,7 @@ const SCREENS: Partial<
 > = {
   pinpoint: { Setup: PinpointSetup, Game: withConfig(PinpointGame, loadPinpointConfig) },
   rush: { Setup: RushSetup, Game: withConfig(RushGame, loadRushConfig) },
+  'rare-earth': { Setup: RareEarthSetup, Game: withConfig(RareEarthGame, loadRareEarthConfig) },
 }
 
 export function Routes({ route }: { route: Route }) {

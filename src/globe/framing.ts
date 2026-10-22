@@ -37,3 +37,24 @@ export function frameCountry(feature: Feature, center: LonLat): CameraView {
     distance: Math.min(MAX_CAMERA_DISTANCE, Math.max(MIN_CAMERA_DISTANCE, distance)),
   }
 }
+
+/** Frames a set of points, such as every valid answer to a question. */
+export function frameMany(points: LonLat[]): CameraView {
+  const vectors = points.map(([lon, lat]) => {
+    const [l, p] = [(lon * Math.PI) / 180, (lat * Math.PI) / 180]
+    return [Math.cos(p) * Math.cos(l), Math.cos(p) * Math.sin(l), Math.sin(p)]
+  })
+  const sum = vectors.reduce((a, v) => [a[0] + v[0], a[1] + v[1], a[2] + v[2]], [0, 0, 0])
+  const length = Math.hypot(...sum)
+  if (length < 1e-6) return { center: points[0] ?? [0, 0], distance: MAX_CAMERA_DISTANCE }
+  const center: LonLat = [
+    (Math.atan2(sum[1], sum[0]) * 180) / Math.PI,
+    (Math.asin(sum[2] / length) * 180) / Math.PI,
+  ]
+  const spread = Math.max(...points.map((point) => geoDistance(center, point)))
+  const distance = MIN_CAMERA_DISTANCE + 0.3 + spread * 2.2
+  return {
+    center,
+    distance: Math.min(MAX_CAMERA_DISTANCE, Math.max(MIN_CAMERA_DISTANCE, distance)),
+  }
+}

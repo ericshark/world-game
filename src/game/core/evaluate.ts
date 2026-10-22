@@ -3,8 +3,11 @@ import type { LonLat } from '../../geo/coords'
 import { EARTH_RADIUS_KM, nearestPointOnCountry } from '../../geo/distance'
 import type { GeoData } from '../../geo/facts'
 import { MAX_POINTS, scoreCapitalGuess, scoreGuess, type ScoringRegion } from '../../geo/scoring'
+import { rarities } from './categories'
 import type {
   CapitalResult,
+  CategoryChallenge,
+  CategoryResult,
   Challenge,
   IdentifyResult,
   LocateResult,
@@ -21,7 +24,12 @@ export interface ScoringOptions {
   region: ScoringRegion
   /** >1 is more forgiving (easy), <1 stricter (hard). */
   cutoffScale: number
+  /** Answers the player already gave this game; naming one again does not count. */
+  usedAnswers?: readonly string[]
 }
+
+/** Share of a Rare Earth answer's points kept even when it is placed badly. */
+const CATEGORY_PLACEMENT_FLOOR = 0.25
 
 /** Scores a submission for any challenge; an incomplete or missing one counts as missed. */
 export function evaluateChallenge(
@@ -48,6 +56,44 @@ export function evaluateChallenge(
             Boolean(submission.hintUsed),
           )
         : missedResult(challenge.countryId)
+    case 'category':
+      return submission?.answerId && submission.pin
+        ? evaluateCategory(geo, challenge, submission.answerId, submission.pin, options)
+        : missedResult(challenge.category.id)
+  }
+}
+
+/**
+ * A Rare Earth answer: rarer valid answers are worth more (100–1,000), scaled by how well the
+ * player then placed their country, keeping at least a quarter for a valid but misplaced answer.
+ */
+export function evaluateCategory(
+  geo: GeoData,
+  { category }: CategoryChallenge,
+  answerId: string,
+  guess: LonLat,
+  options: ScoringOptions,
+): CategoryResult {
+  const located = evaluateLocate(geo, answerId, guess, options)
+  const reused = options.usedAnswers?.includes(answerId) ?? false
+  const fits = category.valid.includes(answerId) || category.lenient.includes(answerId)
+  const valid = fits && !reused
+  const rarity = fits ? (rarities(category, geo).get(answerId) ?? 0) : 0
+  const rarityPoints = Math.round(100 + 900 * rarity)
+  const placement =
+    CATEGORY_PLACEMENT_FLOOR + (1 - CATEGORY_PLACEMENT_FLOOR) * (located.points / MAX_POINTS)
+  return {
+    ...located,
+    kind: 'category',
+    answerId,
+    categoryId: category.id,
+    valid,
+    reused,
+    rarity,
+    rarityPoints,
+    locatePoints: located.points,
+    points: valid ? Math.round(rarityPoints * placement) : 0,
+    hit: valid,
   }
 }
 
@@ -140,5 +186,7 @@ export function skillOf(challenge: Challenge): Skill {
       return 'capital'
     case 'identify':
       return 'name'
+    case 'category':
+      return 'recall'
   }
 }

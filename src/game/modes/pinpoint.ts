@@ -18,7 +18,7 @@ import {
   weightByPractice,
   type Difficulty,
 } from '../core/targets'
-import type { Challenge, CountryOutcome, RoundResult, Skill } from '../core/types'
+import type { CountryChallenge, CountryOutcome, RoundResult, Skill } from '../core/types'
 
 export const ROUNDS_PER_GAME = 10
 
@@ -61,7 +61,7 @@ export interface PinpointState {
   seed: string
   startedAt: number
   endedAt: number | null
-  rounds: RoundsState<Challenge>
+  rounds: RoundsState<CountryChallenge>
 }
 
 /** Games with the same key are comparable for personal bests. */
@@ -86,7 +86,7 @@ export const pinpoint: ModeRules<PinpointConfig, PinpointState> = {
     let entries = weightByDifficulty(pool, config.difficulty, geo)
     if (config.practiceWeak && stats) entries = weightByPractice(entries, stats)
     const challenges = pickWeighted(entries, ROUNDS_PER_GAME, random).map(
-      (countryId): Challenge => {
+      (countryId): CountryChallenge => {
         if (config.variant === 'name') {
           const choices = config.difficulty === 'easy' ? nameChoices(geo, countryId, random) : null
           return { kind: 'identify', countryId, choices }
@@ -112,8 +112,10 @@ export const pinpoint: ModeRules<PinpointConfig, PinpointState> = {
       region: state.config.region,
       cutoffScale: DIFFICULTY_RULES[state.config.difficulty].cutoffScale,
     }
-    const evaluate = (challenge: Challenge, submission: Parameters<typeof evaluateChallenge>[2]) =>
-      evaluateChallenge(geo, challenge, submission, options)
+    const evaluate = (
+      challenge: CountryChallenge,
+      submission: Parameters<typeof evaluateChallenge>[2],
+    ) => evaluateChallenge(geo, challenge, submission, options)
 
     switch (event.type) {
       case 'submit':

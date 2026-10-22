@@ -71,6 +71,30 @@ export const MODES: ModeInfo[] = [
       },
     ],
   },
+  {
+    key: 'rare-earth',
+    title: 'Rare Earth',
+    tagline: 'Name the country nobody else would, then find it.',
+    icon: 'gem',
+    accent: '#b98aff',
+    howTo: [
+      {
+        icon: 'gem',
+        title: 'Think of a rare answer',
+        text: 'Each round asks for a country that fits a category, like “a landlocked country in Africa”. Obvious answers score 100; obscure ones up to 1,000.',
+      },
+      {
+        icon: 'pin',
+        title: 'Then find it',
+        text: 'Place your country on the globe. Placing it well keeps the full rarity score; a bad placement still keeps a quarter.',
+      },
+      {
+        icon: 'check',
+        title: 'Every answer once',
+        text: 'A wrong or repeated answer scores nothing. At the reveal, every valid answer lights up in its rarity colour.',
+      },
+    ],
+  },
 ]
 
 export function modeInfo(key: ModeKey): ModeInfo {

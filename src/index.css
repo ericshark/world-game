@@ -1431,3 +1431,77 @@ input {
     transform: translateY(-6px);
   }
 }
+
+/* Rare Earth */
+
+.prompt--category {
+  max-width: min(640px, calc(100% - 2 * var(--gutter)));
+}
+
+.prompt__eyebrow {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  margin: 0 0 2px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #b98aff;
+}
+
+.prompt__text--small {
+  font-size: 26px;
+}
+
+.answer-panel__hint {
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: var(--text-faint);
+  text-align: center;
+}
+
+.is-wrong-text {
+  color: var(--danger);
+}
+
+.spread {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--panel-border);
+}
+
+.spread__line {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.spread__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+  color: var(--text-faint);
+}
+
+.spread__legend li {
+  display: inline-flex;
+  gap: 5px;
+  align-items: center;
+}
+
+.spread__legend span {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+}
+
+@media (max-width: 640px) {
+  .prompt__text--small {
+    font-size: 19px;
+  }
+}

@@ -1,4 +1,5 @@
 import type { LonLat } from '../../geo/coords'
+import type { Category } from './categories'
 
 /** Every game is shaped for several players; single-player games have just this one. */
 export type PlayerId = string
@@ -24,7 +25,16 @@ export interface IdentifyChallenge {
   choices: string[] | null
 }
 
-export type Challenge = LocateChallenge | CapitalChallenge | IdentifyChallenge
+/** Name a country that fits the category, then find it on the globe (Rare Earth). */
+export interface CategoryChallenge {
+  kind: 'category'
+  category: Category
+}
+
+/** Challenges about one known country. */
+export type CountryChallenge = LocateChallenge | CapitalChallenge | IdentifyChallenge
+
+export type Challenge = CountryChallenge | CategoryChallenge
 
 /**
  * What a player sends for a round: only their input, never a score. The host (this browser for
@@ -72,6 +82,21 @@ export interface IdentifyResult {
   hit: boolean
 }
 
+export interface CategoryResult extends PinResult {
+  kind: 'category'
+  /** The country the player named (also targetId, so stats follow it). */
+  answerId: string
+  categoryId: string
+  /** Fits the category and was not already used this game. */
+  valid: boolean
+  reused: boolean
+  /** 0 (the obvious answer) to 1 (the most obscure). */
+  rarity: number
+  rarityPoints: number
+  /** Points for placing the named country, before the rarity multiplier. */
+  locatePoints: number
+}
+
 /** A player who did not submit before the round closed. */
 export interface MissedResult {
   kind: 'missed'
@@ -80,7 +105,8 @@ export interface MissedResult {
   hit: false
 }
 
-export type RoundResult = LocateResult | CapitalResult | IdentifyResult | MissedResult
+export type RoundResult =
+  LocateResult | CapitalResult | IdentifyResult | CategoryResult | MissedResult
 
 export type ModeId = 'pinpoint' | 'rush' | 'rare-earth' | 'mystery' | 'journey' | 'daily' | 'battle'
 
