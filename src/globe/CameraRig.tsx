@@ -1,7 +1,8 @@
 import { useFrame } from '@react-three/fiber'
 import { useEffect, useRef } from 'react'
 import { Quaternion, Vector3 } from 'three'
-import { lonLatToVector3, type LonLat } from '../geo/coords'
+import type { LonLat } from '../geo/coords'
+import { lonLatToVector3 } from './coords3d'
 
 const FLIGHT_DURATION_MS = 1100
 

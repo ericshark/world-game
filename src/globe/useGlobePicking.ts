@@ -1,6 +1,7 @@
 import type { ThreeEvent } from '@react-three/fiber'
 import { useCallback } from 'react'
-import { vector3ToLonLat, type LonLat } from '../geo/coords'
+import type { LonLat } from '../geo/coords'
+import { vector3ToLonLat } from './coords3d'
 
 /** Pointer travel (px) between press and release above which a click counts as a drag. */
 const MAX_CLICK_DRAG_PX = 5

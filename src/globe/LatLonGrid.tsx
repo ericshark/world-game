@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { BufferGeometry, Float32BufferAttribute, Vector3 } from 'three'
-import { lonLatToVector3 } from '../geo/coords'
+import { lonLatToVector3 } from './coords3d'
 
 const GRID_STEP_DEG = 30
 const SAMPLE_STEP_DEG = 2
