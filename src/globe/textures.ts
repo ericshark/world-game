@@ -7,7 +7,7 @@ const BASE = `${import.meta.env.BASE_URL}textures/`
  * with mipmaps, enough to crash mobile Safari, and some GPUs cannot load it at all.
  */
 export function prefersSmallTextures(maxTextureSize: number): boolean {
-  if (maxTextureSize < 8192) return true
+  if (maxTextureSize < 8192 || isAutomated()) return true
   const coarsePointer = window.matchMedia?.('(pointer: coarse)').matches ?? false
   const memory = (navigator as Navigator & { deviceMemory?: number }).deviceMemory
   return coarsePointer || (memory !== undefined && memory <= 4)
@@ -15,4 +15,12 @@ export function prefersSmallTextures(maxTextureSize: number): boolean {
 
 export function textureUrl(surface: Surface, small: boolean): string {
   return `${BASE}${surface === 'night' ? 'night' : 'earth'}${small ? '-4k' : ''}.jpg`
+}
+
+/**
+ * Browser automation (end-to-end tests) renders WebGL in software, where a full-resolution
+ * globe is painfully slow; tests check behaviour, not pixels.
+ */
+export function isAutomated(): boolean {
+  return typeof navigator !== 'undefined' && navigator.webdriver === true
 }

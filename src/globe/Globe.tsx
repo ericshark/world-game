@@ -7,7 +7,7 @@ import { Atmosphere } from './Atmosphere'
 import { CAMERA_FOV, MAX_CAMERA_DISTANCE, MIN_CAMERA_DISTANCE } from './constants'
 import { lonLatToVector3, vector3ToLonLat } from './coords3d'
 import { LatLonGrid } from './LatLonGrid'
-import { prefersSmallTextures, textureUrl, type Surface } from './textures'
+import { isAutomated, prefersSmallTextures, textureUrl, type Surface } from './textures'
 import { useGlobePicking } from './useGlobePicking'
 
 /** OrbitControls rotate speed when fully zoomed out; it shrinks as the camera gets closer. */
@@ -54,7 +54,7 @@ export function Globe({
 }: GlobeProps) {
   return (
     <Canvas
-      dpr={[1, 2]}
+      dpr={isAutomated() ? 1 : [1, 2]}
       camera={{ fov: CAMERA_FOV, near: 0.01, far: 1000, position: [0, 0, MAX_CAMERA_DISTANCE] }}
     >
       <color attach="background" args={['#02030a']} />

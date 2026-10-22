@@ -2,7 +2,8 @@ import { expect, test } from '@playwright/test'
 import { openGame, pinTarget, placePin, snapshot, startPinpoint } from './helpers'
 
 test('plays a full game from the home screen and records stats', async ({ page }, info) => {
-  test.setTimeout(120_000)
+  // Ten rounds, a reload and the Passport, rendered in software.
+  test.setTimeout(180_000)
   await openGame(page)
   await startPinpoint(page, ['Europe'])
 

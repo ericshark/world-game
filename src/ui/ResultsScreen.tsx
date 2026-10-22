@@ -25,7 +25,8 @@ interface ResultsScreenProps {
   nameOf?: (id: string) => string
   tiles: { label: string; value: string }[]
   rows: ResultRow[]
-  onPlayAgain: () => void
+  /** Left out when the game cannot be replayed (daily puzzles). */
+  onPlayAgain?: () => void
   onChangeSetup: () => void
   onHome: () => void
   children?: ReactNode
@@ -96,14 +97,28 @@ export function ResultsScreen({
         </ol>
 
         <div className="button-row">
-          <button type="button" className="button button--primary" onClick={onPlayAgain} autoFocus>
-            Play again
-          </button>
-          <button type="button" className="button button--ghost" onClick={onChangeSetup}>
-            Change setup
-          </button>
-          <button type="button" className="button button--ghost" onClick={onHome}>
-            Home
+          {onPlayAgain && (
+            <>
+              <button
+                type="button"
+                className="button button--primary"
+                onClick={onPlayAgain}
+                autoFocus
+              >
+                Play again
+              </button>
+              <button type="button" className="button button--ghost" onClick={onChangeSetup}>
+                Change setup
+              </button>
+            </>
+          )}
+          <button
+            type="button"
+            className={`button ${onPlayAgain ? 'button--ghost' : 'button--primary'}`}
+            onClick={onHome}
+            autoFocus={!onPlayAgain}
+          >
+            {onPlayAgain ? 'Home' : 'Done'}
           </button>
         </div>
       </section>

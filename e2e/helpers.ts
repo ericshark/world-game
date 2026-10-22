@@ -5,7 +5,10 @@ type Snapshot = ReturnType<NonNullable<Window['__worldGame']>['snapshot']>
 /** Opens the game and waits until the Earth and the country data have loaded. */
 export async function openGame(page: Page, path = '/') {
   await page.goto(path)
-  await expect(page.getByRole('status').filter({ hasText: 'Loading' })).toBeHidden()
+  // The first load can take a while: Vite may optimise dependencies and reload the page.
+  await expect(page.getByRole('status').filter({ hasText: 'Loading' })).toBeHidden({
+    timeout: 60_000,
+  })
 }
 
 /** From the home screen: opens Pinpoint's setup, applies choices, and starts the game. */
