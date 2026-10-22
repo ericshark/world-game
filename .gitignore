@@ -25,3 +25,7 @@ dist-ssr
 
 # Raw downloads used by scripts/build-*.mjs
 .cache
+
+# Playwright
+test-results
+playwright-report

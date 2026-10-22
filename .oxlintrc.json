@@ -4,5 +4,23 @@
   "rules": {
     "react/rules-of-hooks": "error",
     "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
+  },
+  "overrides": [
+    {
+      "files": ["src/geo/**", "src/game/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["react", "react-dom", "three", "@react-three/*"],
+                "message": "Game rules and geography must run outside the browser (tests, a future server)."
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
 }

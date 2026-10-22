@@ -1,4 +1,4 @@
-import { accuracy, type StatsByCountry } from '../game/stats'
+import { accuracy, type StatsByCountry } from '../game/profile/stats'
 import { formatKm } from './format'
 
 interface StatsScreenProps {

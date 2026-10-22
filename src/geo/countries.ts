@@ -71,9 +71,3 @@ function inBounds([lon, lat]: LonLat, [[west, south], [east, north]]: IndexedCou
   if (lat < south || lat > north) return false
   return west <= east ? lon >= west && lon <= east : lon >= west || lon <= east
 }
-
-export async function loadCountries(): Promise<CountryIndex> {
-  const response = await fetch(`${import.meta.env.BASE_URL}data/countries.json`)
-  if (!response.ok) throw new Error(`Failed to load country data: ${response.status}`)
-  return new CountryIndex((await response.json()) as CountryCollection)
-}

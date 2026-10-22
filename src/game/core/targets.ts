@@ -1,14 +1,20 @@
-import type { CountryFeature } from '../geo/countries'
-import type { GameConfig } from './gameReducer'
-import { accuracy, type CountryStats, type StatsByCountry } from './stats'
+import type { CountryFeature } from '../../geo/countries'
+import type { ScoringRegion } from '../../geo/scoring'
+import { accuracy, type CountryStats, type StatsByCountry } from '../profile/stats'
+import type { Random } from './random'
 
-/** Countries the game may ask for under this config. */
-export function targetPool(countries: CountryFeature[], config: GameConfig): CountryFeature[] {
+export interface PoolOptions {
+  region: ScoringRegion
+  skipMicro: boolean
+}
+
+/** Countries a game may ask for under these options. */
+export function targetPool(countries: CountryFeature[], options: PoolOptions): CountryFeature[] {
   return countries.filter(
     ({ properties }) =>
       properties.playable &&
-      (config.region === 'World' || properties.region === config.region) &&
-      !(config.skipMicro && properties.isMicro),
+      (options.region === 'World' || properties.region === options.region) &&
+      !(options.skipMicro && properties.isMicro),
   )
 }
 
@@ -22,16 +28,16 @@ export function practiceWeight(stats: CountryStats | undefined): number {
 }
 
 interface SelectOptions {
+  random: Random
   /** When given, countries are weighted by practiceWeight instead of picked uniformly. */
   stats?: StatsByCountry
-  random?: () => number
 }
 
 /** Picks up to `count` distinct country ids from the pool. */
 export function selectTargets(
   pool: CountryFeature[],
   count: number,
-  { stats, random = Math.random }: SelectOptions = {},
+  { random, stats }: SelectOptions,
 ): string[] {
   const remaining = pool.map((feature) => ({
     id: feature.properties.id,

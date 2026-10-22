@@ -1,4 +1,4 @@
-import type { RoundResult } from '../game/gameReducer'
+import type { RoundResult } from '../game/core/types'
 import { MAX_POINTS } from '../geo/scoring'
 import { formatKm, formatNumber } from './format'
 
@@ -37,7 +37,7 @@ export function SummaryScreen({
               <span className="round-list__index">{index + 1}</span>
               <span className="round-list__name">{nameOf(result.targetId)}</span>
               <span className="round-list__distance">
-                {result.hit ? '✓' : formatKm(result.distanceKm)}
+                {result.hit ? '✓' : result.kind === 'locate' ? formatKm(result.distanceKm) : '—'}
               </span>
               <span className="round-list__points">{formatNumber(result.points)}</span>
             </li>

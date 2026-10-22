@@ -1,4 +1,4 @@
-import type { RoundResult } from '../game/gameReducer'
+import type { RoundResult } from '../game/core/types'
 import { MAX_POINTS } from '../geo/scoring'
 import { formatKm, formatNumber } from './format'
 
@@ -98,6 +98,15 @@ function ResultHeadline({
   targetName: string
   clickedName: string | null
 }) {
+  if (result.kind === 'missed') {
+    return (
+      <div className="result__headline">
+        <p className="result__verdict">Time's up</p>
+        <p className="result__detail">{targetName} is highlighted on the globe</p>
+      </div>
+    )
+  }
+
   if (result.hit) {
     return (
       <div className="result__headline">

@@ -19,16 +19,21 @@ port if occupied.
 ## Useful commands
 
 - `npm test`: run unit tests.
+- `npm run e2e`: play through the game in headless Chromium (Playwright). It starts its own
+  dev server on port 5180.
 - `npm run build`: type-check and build into `dist/`.
 - `npm run lint`: lint the code.
 - `npm run format:check`: check formatting.
 
 ## How it works
 
-- `src/geo/`: coordinates, country lookup, distance, and scoring.
-- `src/game/`: game state, target selection, saved stats, and settings.
-- `src/globe/` and `src/screens/`: globe rendering, pins, camera, and game screens.
-- `data/places.json`: playable countries and regions.
+- `src/geo/`: coordinates, country lookup, facts, name matching, distance, and scoring.
+- `src/game/core/`: the round engine, seeded randomness, and shared game types.
+- `src/game/modes/`: each game mode's rules, as pure functions of plain state.
+- `src/game/profile/`: saved progress, stats, personal bests, and settings.
+- `src/app/` and `src/screens/`: hosting a game in the browser, and the game screens.
+- `src/globe/`: globe rendering, country paint overlay, pins, and camera.
+- `data/`: curated places, capitals, aliases, and geography facts (see [data](docs/data.md)).
 
 Country data and globe imagery are committed in `public/`. Rebuild them only
 when changing assets: `npm run build:data` and `npm run build:texture`.

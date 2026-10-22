@@ -1,94 +1,107 @@
-import { geoDistance, geoInterpolate } from 'd3-geo'
-import { useEffect, useReducer, useRef, useState } from 'react'
-import { evaluateGuess } from './game/evaluateGuess'
+import { useEffect, useRef, useState } from 'react'
+import { pinpointScene } from './app/pinpointScene'
+import { useTestHook } from './app/testHook'
+import { useLocalSession } from './app/useLocalSession'
+import { LOCAL_PLAYER, type CountryOutcome, type SessionSummary } from './game/core/types'
+import { pinpoint, type PinpointConfig } from './game/modes/pinpoint'
 import {
-  gameReducer,
-  initialGameState,
-  isRevealed,
-  ROUNDS_PER_GAME,
-  type GameConfig,
-  type RoundResult,
-} from './game/gameReducer'
-import { selectTargets, targetPool } from './game/selectTargets'
-import { loadLastConfig, saveLastConfig } from './game/settings'
-import { clearStats, loadStats, recordResult, saveStats } from './game/stats'
+  clearProfile,
+  emptyProfile,
+  loadProfile,
+  saveProfile,
+  skillStats,
+  type Profile,
+} from './game/profile/profile'
+import { recordOutcomes, recordSession } from './game/profile/record'
+import { loadLastConfig, saveLastConfig } from './game/profile/settings'
 import type { LonLat } from './geo/coords'
-import { loadCountries, type CountryIndex } from './geo/countries'
+import { loadGeoData, type GeoData } from './geo/facts'
 import { CameraRig, type CameraFocus } from './globe/CameraRig'
-import { MAX_CAMERA_DISTANCE, MIN_CAMERA_DISTANCE } from './globe/constants'
+import { CountryPaintLayer } from './globe/CountryPaintLayer'
+import { framePair, randomOverview, type CameraView } from './globe/framing'
 import { Globe } from './globe/Globe'
-import { HighlightOverlay } from './globe/HighlightOverlay'
-import { PinAndArc } from './globe/PinAndArc'
+import { Markers } from './globe/Markers'
 import { LoadingOverlay } from './screens/LoadingOverlay'
 import { PlayingScreen } from './screens/PlayingScreen'
 import { StartScreen } from './screens/StartScreen'
 import { StatsScreen } from './screens/StatsScreen'
 import { SummaryScreen } from './screens/SummaryScreen'
 
+type View = 'start' | 'stats' | 'game'
+
 export default function App() {
-  const [countries, setCountries] = useState<CountryIndex | null>(null)
+  const [geo, setGeo] = useState<GeoData | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
-  const [state, dispatch] = useReducer(gameReducer, initialGameState)
+  const [view, setView] = useState<View>('start')
   const [config, setConfig] = useState(loadLastConfig)
-  const [stats, setStats] = useState(() => loadStats())
+  const [profile, setProfile] = useState(() => loadProfile())
+  const profileRef = useRef(profile)
+  const [draftPin, setDraftPin] = useState<LonLat | null>(null)
   const [showGrid, setShowGrid] = useState(false)
   const [cameraFocus, setCameraFocus] = useState<CameraFocus | null>(null)
   const nextFocusId = useRef(0)
 
   useEffect(() => {
-    loadCountries()
-      .then(setCountries)
+    loadGeoData()
+      .then(setGeo)
       .catch((error: unknown) => setLoadError(String(error)))
   }, [])
 
-  const playing = state.screen === 'playing' ? state : null
-  const revealed = playing ? isRevealed(playing) : false
-  const result = playing && revealed ? playing.results[playing.round] : null
-  const targetId = playing?.targetIds[playing.round]
-  const target = (targetId && countries?.get(targetId)) || null
-  const clicked = result?.clickedId ? (countries?.get(result.clickedId) ?? null) : null
-  const nameOf = (id: string) => countries?.get(id)?.properties.name ?? id
+  const changeProfile = (next: Profile) => {
+    profileRef.current = next
+    setProfile(next)
+    saveProfile(next)
+  }
 
-  const flyTo = (center: LonLat, distance: number) => {
+  const session = useLocalSession(pinpoint, geo, {
+    onOutcomes: (outcomes: CountryOutcome[]) =>
+      changeProfile(recordOutcomes(profileRef.current, outcomes)),
+    onFinish: (summary: SessionSummary) =>
+      changeProfile(recordSession(profileRef.current, summary).profile),
+  })
+
+  const game = view === 'game' ? session.state : null
+  const rounds = game?.rounds
+  const result = rounds?.phase === 'revealed' ? rounds.results[rounds.round][LOCAL_PLAYER] : null
+  const targetId =
+    rounds && rounds.phase !== 'finished' ? rounds.challenges[rounds.round].countryId : null
+  const nameOf = (id: string) => geo?.nameOf(id) ?? id
+
+  const flyTo = ({ center, distance }: CameraView) => {
     nextFocusId.current += 1
     setCameraFocus({ id: nextFocusId.current, center, distance })
   }
 
-  // Each round starts zoomed out over a random spot, so the last answer gives no hint.
-  const flyToRandomView = () => {
-    const lon = Math.random() * 360 - 180
-    const lat = Math.random() * 100 - 40
-    flyTo([lon, lat], MAX_CAMERA_DISTANCE)
-  }
-
-  const startGame = (gameConfig: GameConfig) => {
-    if (!countries) return
-    const pool = targetPool(countries.features, gameConfig)
-    const targetIds = selectTargets(pool, ROUNDS_PER_GAME, {
-      stats: gameConfig.practiceWeak ? stats : undefined,
-    })
+  const startGame = (gameConfig: PinpointConfig) => {
+    if (!geo) return
     saveLastConfig(gameConfig)
-    dispatch({ type: 'start', config: gameConfig, targetIds })
-    flyToRandomView()
+    session.start(gameConfig, { stats: skillStats(profileRef.current, 'locate') })
+    setDraftPin(null)
+    setView('game')
+    flyTo(randomOverview())
   }
 
   const confirmGuess = () => {
-    if (!playing?.pin || revealed || !countries || !targetId) return
-    const roundResult = evaluateGuess(countries, targetId, playing.pin, playing.config.region)
-    dispatch({ type: 'confirm', result: roundResult })
-
-    const updatedStats = recordResult(stats, roundResult)
-    setStats(updatedStats)
-    saveStats(updatedStats)
-
-    const { center, distance } = revealView(roundResult)
-    flyTo(center, distance)
+    if (rounds?.phase !== 'open' || !draftPin) return
+    const next = session.send({
+      type: 'submit',
+      playerId: LOCAL_PLAYER,
+      submission: { pin: draftPin, at: Date.now() },
+    })
+    const revealed = next?.rounds.results[next.rounds.round]?.[LOCAL_PLAYER]
+    if (revealed?.kind === 'locate') flyTo(framePair(revealed.guess, revealed.nearest))
   }
 
   const nextRound = () => {
-    if (!playing || !revealed) return
-    dispatch({ type: 'next' })
-    if (playing.round + 1 < playing.targetIds.length) flyToRandomView()
+    if (rounds?.phase !== 'revealed') return
+    const next = session.send({ type: 'next', at: Date.now() })
+    setDraftPin(null)
+    if (next?.rounds.phase === 'open') flyTo(randomOverview())
+  }
+
+  const quit = () => {
+    session.end()
+    setView('start')
   }
 
   // Enter confirms the pin or moves on, unless a focused control is handling the key itself.
@@ -100,89 +113,95 @@ export default function App() {
       }
       // Consume the key so it cannot also activate a button that the update focuses.
       event.preventDefault()
-      if (revealed) nextRound()
+      if (rounds?.phase === 'revealed') nextRound()
       else confirmGuess()
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
   })
 
-  const canPick = Boolean(playing && !revealed && countries)
+  useTestHook({
+    snapshot: () => ({
+      view,
+      round: rounds?.round ?? null,
+      phase: rounds?.phase ?? null,
+      targetId,
+      draftPin,
+    }),
+    placePin: (point) => {
+      if (rounds?.phase === 'open') setDraftPin(point)
+    },
+    targetPoint: () => (geo && targetId ? geo.factsOf(targetId).label : null),
+  })
+
+  const canPick = rounds?.phase === 'open'
+  const scene = pinpointScene(game, draftPin)
+  const clickedId = result?.kind === 'locate' ? result.clickedId : null
 
   return (
     <div className="app">
       <Globe
-        onPick={canPick ? (point) => dispatch({ type: 'placePin', point }) : undefined}
+        onPick={canPick ? setDraftPin : undefined}
         showGrid={showGrid}
-        autoRotate={state.screen === 'start'}
+        autoRotate={view === 'start'}
       >
         <CameraRig focus={cameraFocus} />
-        {target && result && <HighlightOverlay target={target} clicked={clicked} />}
-        {playing?.pin && <PinAndArc pin={playing.pin} nearest={result?.nearest} />}
+        {geo && <CountryPaintLayer countries={geo.countries} paints={scene.paints} />}
+        <Markers pins={scene.pins} arcs={scene.arcs} />
       </Globe>
 
-      {state.screen === 'start' && (
+      {view === 'start' && (
         <StartScreen
-          countries={countries}
+          countries={geo?.countries ?? null}
           config={config}
-          hasStats={Object.keys(stats).length > 0}
+          hasStats={Object.keys(skillStats(profile, 'locate')).length > 0}
           onConfigChange={setConfig}
           onPlay={() => startGame(config)}
-          onShowStats={() => dispatch({ type: 'showStats' })}
+          onShowStats={() => setView('stats')}
         />
       )}
 
-      {playing && target && (
+      {game && rounds && targetId && (
         <PlayingScreen
-          targetName={target.properties.name}
-          round={playing.round}
-          totalRounds={playing.targetIds.length}
-          score={playing.results.reduce((sum, r) => sum + r.points, 0)}
-          hasPin={playing.pin !== null}
+          targetName={nameOf(targetId)}
+          round={rounds.round}
+          totalRounds={rounds.challenges.length}
+          score={rounds.results.reduce((sum, r) => sum + r[LOCAL_PLAYER].points, 0)}
+          hasPin={draftPin !== null}
           result={result}
-          clickedName={clicked && clicked !== target ? clicked.properties.name : null}
+          clickedName={clickedId && clickedId !== targetId ? nameOf(clickedId) : null}
           showGrid={showGrid}
           onShowGridChange={setShowGrid}
           onConfirm={confirmGuess}
           onNext={nextRound}
-          onQuit={() => dispatch({ type: 'quit' })}
+          onQuit={quit}
         />
       )}
 
-      {state.screen === 'summary' && (
+      {game && rounds?.phase === 'finished' && (
         <SummaryScreen
-          results={state.results}
+          results={rounds.results.map((round) => round[LOCAL_PLAYER])}
           nameOf={nameOf}
-          onPlayAgain={() => startGame(state.config)}
-          onChangeSettings={() => dispatch({ type: 'quit' })}
+          onPlayAgain={() => startGame(game.config)}
+          onChangeSettings={quit}
         />
       )}
 
-      {state.screen === 'stats' && (
+      {view === 'stats' && (
         <StatsScreen
-          stats={stats}
-          playableCount={countries?.playable.length ?? 0}
+          stats={skillStats(profile, 'locate')}
+          playableCount={geo?.playableIds.length ?? 0}
           nameOf={nameOf}
           onReset={() => {
-            clearStats()
-            setStats({})
+            clearProfile()
+            changeProfile(emptyProfile())
           }}
-          onBack={() => dispatch({ type: 'quit' })}
+          onBack={() => setView('start')}
         />
       )}
 
-      <LoadingOverlay dataReady={countries !== null} error={loadError} />
+      <LoadingOverlay dataReady={geo !== null} error={loadError} />
       <footer className="credit">Imagery: NASA Blue Marble · Borders: Natural Earth</footer>
     </div>
   )
-}
-
-/** Frames the guess and the target together: zooms in for near misses, out for far ones. */
-function revealView({ guess, nearest }: RoundResult): { center: LonLat; distance: number } {
-  const separation = geoDistance(guess, nearest)
-  const distance = MIN_CAMERA_DISTANCE + 0.6 + separation * 2.5
-  return {
-    center: geoInterpolate(guess, nearest)(0.5),
-    distance: Math.min(MAX_CAMERA_DISTANCE, Math.max(MIN_CAMERA_DISTANCE, distance)),
-  }
 }

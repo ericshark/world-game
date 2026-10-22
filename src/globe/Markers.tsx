@@ -4,36 +4,31 @@ import { geoDistance, geoInterpolate } from 'd3-geo'
 import { useMemo, useRef } from 'react'
 import { Group, Quaternion, Vector3 } from 'three'
 import type { LonLat } from '../geo/coords'
-import { lonLatToVector3 } from './coords3d'
 import { MAX_CAMERA_DISTANCE } from './constants'
-import { CLICKED_COLOR, TARGET_COLOR } from './HighlightOverlay'
+import { lonLatToVector3 } from './coords3d'
+import type { GlobeScene } from './scene'
 
 const ARC_SAMPLES = 64
 const UP = new Vector3(0, 1, 0)
 
-interface PinAndArcProps {
-  pin: LonLat
-  /** Once revealed: the closest point of the target, joined to the pin by an arc. */
-  nearest?: LonLat
-}
-
-export function PinAndArc({ pin, nearest }: PinAndArcProps) {
-  const showArc = nearest && geoDistance(pin, nearest) > 1e-4
+/** The pins and arcs of a scene. */
+export function Markers({ pins, arcs }: Pick<GlobeScene, 'pins' | 'arcs'>) {
   return (
     <>
-      <Marker at={pin} color={CLICKED_COLOR} />
-      {showArc && (
-        <>
-          <Marker at={nearest} color={TARGET_COLOR} />
-          <Arc from={pin} to={nearest} />
-        </>
-      )}
+      {pins.map((pin, index) => (
+        <Pin key={`pin-${index}`} at={pin.at} color={pin.color} />
+      ))}
+      {arcs
+        .filter((arc) => geoDistance(arc.from, arc.to) > 1e-4)
+        .map((arc, index) => (
+          <Arc key={`arc-${index}`} from={arc.from} to={arc.to} />
+        ))}
     </>
   )
 }
 
 /** A pin standing on the surface; it shrinks as the camera zooms in so it stays readable. */
-function Marker({ at, color }: { at: LonLat; color: string }) {
+function Pin({ at, color }: { at: LonLat; color: string }) {
   const group = useRef<Group>(null)
   const { position, quaternion } = useMemo(() => {
     const normal = lonLatToVector3(at)

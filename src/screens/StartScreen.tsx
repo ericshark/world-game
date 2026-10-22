@@ -1,15 +1,15 @@
 import { REGIONS, type CountryIndex } from '../geo/countries'
 import type { ScoringRegion } from '../geo/scoring'
-import { ROUNDS_PER_GAME, type GameConfig } from '../game/gameReducer'
-import { targetPool } from '../game/selectTargets'
+import { targetPool } from '../game/core/targets'
+import { ROUNDS_PER_GAME, type PinpointConfig } from '../game/modes/pinpoint'
 
 const REGION_OPTIONS: ScoringRegion[] = ['World', ...REGIONS]
 
 interface StartScreenProps {
   countries: CountryIndex | null
-  config: GameConfig
+  config: PinpointConfig
   hasStats: boolean
-  onConfigChange: (config: GameConfig) => void
+  onConfigChange: (config: PinpointConfig) => void
   onPlay: () => void
   onShowStats: () => void
 }
