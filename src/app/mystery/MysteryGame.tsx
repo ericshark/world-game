@@ -24,6 +24,7 @@ import { Hud } from '../../ui/Hud'
 import { ResultCard } from '../../ui/ResultCard'
 import { ResultsScreen } from '../../ui/ResultsScreen'
 import { useApp } from '../AppContext'
+import { celebrates } from '../celebrate'
 import { useStagePicking, useStageScene } from '../globeStage'
 import { modeInfo } from '../modes'
 import { useTestHook } from '../testHook'
@@ -54,7 +55,11 @@ export function MysteryGame({ config, onChangeSetup, onHome }: MysteryGameProps)
     geo,
     {
       onOutcomes: app.recordOutcomes,
-      onFinish: (summary) => setRecorded(app.finishSession(summary)),
+      onFinish: (summary) => {
+        const result = app.finishSession(summary)
+        setRecorded(result)
+        if (celebrates(result)) play('best')
+      },
     },
     { config },
   )
@@ -144,8 +149,8 @@ export function MysteryGame({ config, onChangeSetup, onHome }: MysteryGameProps)
         subtitle={`It was ${nameOf(state.targetId)}`}
         score={score}
         maxScore={MYSTERY_MAX_POINTS}
-        previousBest={recorded.previousBest}
-        isPersonalBest={recorded.isPersonalBest}
+        recorded={recorded}
+        nameOf={nameOf}
         tiles={[
           { label: 'Guesses', value: String(state.guesses.length) },
           { label: 'Hint', value: state.hintUsed ? 'Used' : 'No' },

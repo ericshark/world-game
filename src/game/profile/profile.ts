@@ -17,29 +17,72 @@ export interface HistoryEntry {
   score: number
   maxScore: number | null
   endedAt: number
+  metrics?: Record<string, number>
 }
+
+/** One day's daily puzzles, keyed by local date (YYYY-MM-DD) in the profile. */
+export interface DailyRecord {
+  five?: { score: number; tones: string[] }
+  mystery?: { score: number; guesses: number; solved: boolean }
+  route?: { score: number; stars: number }
+}
+
+/** Looks the player has picked from what they have unlocked. */
+export interface Cosmetics {
+  pin: string
+  glow: string
+}
+
+export type CountrySkills = Partial<Record<Skill, CountryStats>>
 
 /** Everything the player has achieved, kept in this browser only. */
 export interface Profile {
   version: 2
-  countries: Record<string, Partial<Record<Skill, CountryStats>>>
+  countries: Record<string, CountrySkills>
   bests: Record<string, PersonalBest>
   /** Finished games, oldest first, capped in length. */
   history: HistoryEntry[]
+  xp: number
+  /** Achievement id → when it was unlocked. */
+  achievements: Record<string, number>
+  /** Country id → when it was first mastered. */
+  masteredAt: Record<string, number>
+  daily: Record<string, DailyRecord>
+  cosmetics: Cosmetics
 }
 
+export const DEFAULT_COSMETICS: Cosmetics = { pin: 'coral', glow: 'classic' }
+
 export function emptyProfile(): Profile {
-  return { version: 2, countries: {}, bests: {}, history: [] }
+  return {
+    version: 2,
+    countries: {},
+    bests: {},
+    history: [],
+    xp: 0,
+    achievements: {},
+    masteredAt: {},
+    daily: {},
+    cosmetics: DEFAULT_COSMETICS,
+  }
 }
 
 export function loadProfile(storage?: JsonStorage): Profile {
   const saved = readJson<Partial<Profile> | null>(PROFILE_KEY, null, storage)
   if (isObject(saved) && saved.version === 2) {
+    // Fields added after the first v2 release default to empty.
     return {
       version: 2,
       countries: isObject(saved.countries) ? saved.countries : {},
       bests: isObject(saved.bests) ? saved.bests : {},
       history: Array.isArray(saved.history) ? saved.history : [],
+      xp: typeof saved.xp === 'number' && saved.xp >= 0 ? saved.xp : 0,
+      achievements: isObject(saved.achievements) ? saved.achievements : {},
+      masteredAt: isObject(saved.masteredAt) ? saved.masteredAt : {},
+      daily: isObject(saved.daily) ? saved.daily : {},
+      cosmetics: isObject(saved.cosmetics)
+        ? { ...DEFAULT_COSMETICS, ...(saved.cosmetics as Partial<Cosmetics>) }
+        : DEFAULT_COSMETICS,
     }
   }
   return migrateLegacyStats(readJson<unknown>(LEGACY_STATS_KEY, null, storage))

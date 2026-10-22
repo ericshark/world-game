@@ -1,11 +1,10 @@
 import { useState } from 'react'
-import { useApp } from '../app/AppContext'
-import type { Skill } from '../game/core/types'
-import { skillStats } from '../game/profile/profile'
-import { accuracy } from '../game/profile/stats'
-import { Choice } from '../ui/controls'
-import { Sheet } from '../ui/Sheet'
-import { formatDistance } from './format'
+import { useApp } from '../../app/AppContext'
+import type { Skill } from '../../game/core/types'
+import { skillStats } from '../../game/profile/profile'
+import { accuracy } from '../../game/profile/stats'
+import { Choice } from '../../ui/controls'
+import { formatDistance } from '../format'
 
 const SKILLS: { value: Skill; label: string }[] = [
   { value: 'locate', label: 'Find' },
@@ -13,7 +12,8 @@ const SKILLS: { value: Skill; label: string }[] = [
   { value: 'name', label: 'Name It' },
 ]
 
-export function StatsScreen({ onClose }: { onClose: () => void }) {
+/** Per-country results for one skill, weakest first. */
+export function CountryTable() {
   const { geo, profile, preferences } = useApp()
   const [skill, setSkill] = useState<Skill>('locate')
   const stats = skillStats(profile, skill)
@@ -33,7 +33,7 @@ export function StatsScreen({ onClose }: { onClose: () => void }) {
   const showDistance = skill !== 'name'
 
   return (
-    <Sheet eyebrow="Your stats" title="How well you know the world" onClose={onClose} wide>
+    <>
       <Choice label="Skill" value={skill} onChange={setSkill} options={SKILLS} />
       {rows.length === 0 ? (
         <p className="empty">Nothing here yet. Your results will show up as you play.</p>
@@ -76,7 +76,7 @@ export function StatsScreen({ onClose }: { onClose: () => void }) {
           </div>
         </>
       )}
-    </Sheet>
+    </>
   )
 }
 

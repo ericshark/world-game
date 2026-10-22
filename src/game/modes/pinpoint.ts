@@ -154,6 +154,7 @@ export const pinpoint: ModeRules<PinpointConfig, PinpointState> = {
       score: totalPoints(state.rounds, playerId),
       maxScore: state.rounds.challenges.length * MAX_POINTS,
       outcomes: state.rounds.results.map((round) => outcomeOf(round[playerId], skill)),
+      metrics: { hits: state.rounds.results.filter((round) => round[playerId].hit).length },
     }
   },
 }

@@ -1654,3 +1654,287 @@ input {
   font-size: 13px;
   color: var(--text-muted);
 }
+
+/* Rewards on the results screen */
+
+.rewards {
+  display: grid;
+  gap: 8px;
+  margin: 16px 0 0;
+  padding: 12px;
+  border-radius: 12px;
+  background: rgb(255 255 255 / 0.04);
+  text-align: left;
+}
+
+.rewards__xp {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  font-size: 14px;
+}
+
+.rewards__level {
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.rewards__gain {
+  font-weight: 700;
+  color: var(--tone-perfect);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.xp-bar {
+  flex: 1;
+  height: 8px;
+  border-radius: 4px;
+  background: rgb(255 255 255 / 0.1);
+  overflow: hidden;
+}
+
+.xp-bar span {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+  background: linear-gradient(90deg, #6be38a, #ffd54a);
+  transition: width 0.9s ease-out;
+}
+
+.rewards__note {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin: 0;
+  font-size: 14px;
+  color: var(--accent);
+}
+
+.badges {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.badge {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgb(255 213 74 / 0.1);
+  color: var(--accent);
+  font-size: 13px;
+  animation: pop 0.4s ease-out both;
+}
+
+.badge span {
+  color: var(--text-muted);
+}
+
+.badge strong {
+  display: block;
+  color: var(--text);
+  font-size: 14px;
+}
+
+/* Passport */
+
+.screen--passport {
+  display: flex;
+  justify-content: flex-end;
+  padding: calc(16px + var(--safe-top)) var(--gutter) calc(16px + var(--safe-bottom));
+}
+
+.passport {
+  display: flex;
+  flex-direction: column;
+  width: 420px;
+  max-height: 100%;
+  padding: 20px;
+  overflow: auto;
+}
+
+.passport__header {
+  display: flex;
+  justify-content: space-between;
+}
+
+.passport__rank {
+  margin: 0;
+  font-size: 26px;
+}
+
+.passport__level {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-top: 8px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.passport__next {
+  font-weight: 400;
+  color: var(--text-faint);
+  white-space: nowrap;
+}
+
+.passport .stat-tiles {
+  margin: 14px 0 8px;
+}
+
+.passport__hint {
+  margin: 0 0 14px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.regions {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.regions__head {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+}
+
+.regions__head span {
+  color: var(--text-muted);
+}
+
+.region-bar {
+  display: flex;
+  height: 8px;
+  margin: 6px 0 2px;
+  border-radius: 4px;
+  background: rgb(255 255 255 / 0.08);
+  overflow: hidden;
+}
+
+.regions .button--link {
+  min-height: 28px;
+  padding: 2px 0;
+  font-size: 13px;
+}
+
+.country-card__name {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin: 6px 0;
+  font-size: 22px;
+}
+
+.country-card__skills {
+  display: grid;
+  gap: 4px;
+  margin: 0 0 8px;
+  padding: 0;
+  list-style: none;
+  font-size: 14px;
+}
+
+.country-card__skills li {
+  display: flex;
+  justify-content: space-between;
+  color: var(--text-muted);
+}
+
+.country-card .button--link {
+  padding-left: 0;
+}
+
+.awards {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.awards li {
+  display: flex;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgb(255 255 255 / 0.03);
+  color: var(--text-faint);
+  font-size: 13px;
+  opacity: 0.6;
+}
+
+.awards li.is-unlocked {
+  background: rgb(255 213 74 / 0.1);
+  color: var(--text-muted);
+  opacity: 1;
+}
+
+.awards li.is-unlocked .icon {
+  color: var(--accent);
+}
+
+.awards strong {
+  display: block;
+  color: var(--text);
+}
+
+.looks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.look {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  min-height: 40px;
+  padding: 6px 12px;
+  border: 1px solid rgb(255 255 255 / 0.12);
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.04);
+  cursor: pointer;
+}
+
+.look[aria-checked='true'] {
+  border-color: rgb(255 213 74 / 0.7);
+}
+
+.look:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.look small {
+  color: var(--text-faint);
+}
+
+.look__swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+}
+
+@media (max-width: 640px) {
+  .screen--passport {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .passport {
+    width: 100%;
+    max-height: 58%;
+    border-radius: var(--radius) var(--radius) 0 0;
+    padding-bottom: calc(16px + var(--safe-bottom));
+  }
+}

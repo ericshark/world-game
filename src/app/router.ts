@@ -6,7 +6,7 @@ export type Route =
   | { name: 'home' }
   | { name: 'setup'; mode: ModeKey }
   | { name: 'play'; mode: ModeKey }
-  | { name: 'stats' }
+  | { name: 'passport' }
   | { name: 'settings' }
 
 const MODE_KEYS: readonly ModeKey[] = ['pinpoint', 'rush', 'rare-earth', 'mystery', 'journey']
@@ -16,7 +16,9 @@ export function parseRoute(hash: string): Route {
   const [first, second] = hash.replace(/^#\/?/, '').split('/')
   const mode = MODE_KEYS.find((key) => key === second)
   if ((first === 'setup' || first === 'play') && mode) return { name: first, mode }
-  if (first === 'stats' || first === 'settings') return { name: first }
+  // "stats" was the Passport's old name.
+  if (first === 'passport' || first === 'stats') return { name: 'passport' }
+  if (first === 'settings') return { name: first }
   return { name: 'home' }
 }
 

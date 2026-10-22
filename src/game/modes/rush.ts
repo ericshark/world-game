@@ -147,6 +147,11 @@ export const rush: ModeRules<RushConfig, RushState, RushEvent> = {
       score: state.score,
       maxScore: null,
       outcomes: state.answers.flatMap(outcomeOf),
+      metrics: {
+        found: state.answers.filter((a) => a.outcome === 'hit').length,
+        bestStreak: state.bestStreak,
+        suddenDeath: state.config.suddenDeath ? 1 : 0,
+      },
     }
   },
 }

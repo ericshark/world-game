@@ -1,4 +1,7 @@
 import type { ReactNode } from 'react'
+import { unlockedAt } from '../game/profile/cosmetics'
+import type { RecordedSession } from '../game/profile/record'
+import { levelForXp, xpForLevel } from '../game/profile/xp'
 import { formatNumber } from '../screens/format'
 import type { Tone } from './grades'
 import { Icon } from './Icon'
@@ -17,8 +20,9 @@ interface ResultsScreenProps {
   subtitle?: string
   score: number
   maxScore: number | null
-  previousBest: number | null
-  isPersonalBest: boolean
+  recorded: RecordedSession
+  /** Names countries mastered during the game. */
+  nameOf?: (id: string) => string
   tiles: { label: string; value: string }[]
   rows: ResultRow[]
   onPlayAgain: () => void
@@ -33,8 +37,8 @@ export function ResultsScreen({
   subtitle,
   score,
   maxScore,
-  previousBest,
-  isPersonalBest,
+  recorded,
+  nameOf,
   tiles,
   rows,
   onPlayAgain,
@@ -43,6 +47,7 @@ export function ResultsScreen({
   children,
 }: ResultsScreenProps) {
   const shown = useCountUp(score, 1200)
+  const { previousBest, isPersonalBest } = recorded
   const bestNote =
     previousBest === null
       ? 'Your first score in this setup'
@@ -75,6 +80,8 @@ export function ResultsScreen({
           ))}
         </div>
 
+        <Rewards recorded={recorded} nameOf={nameOf} />
+
         {children}
 
         <ol className="round-list">
@@ -100,6 +107,63 @@ export function ResultsScreen({
           </button>
         </div>
       </section>
+    </div>
+  )
+}
+
+/** XP, level-ups, achievements and newly mastered countries earned by the game. */
+function Rewards({
+  recorded,
+  nameOf,
+}: {
+  recorded: RecordedSession
+  nameOf?: (id: string) => string
+}) {
+  const xp = recorded.profile.xp
+  const level = levelForXp(xp)
+  const floor = xpForLevel(level)
+  const progress = (xp - floor) / (xpForLevel(level + 1) - floor)
+  const shownXp = useCountUp(recorded.xpGained, 900)
+  const levelledUp = recorded.levelAfter > recorded.levelBefore
+  const unlocks = levelledUp
+    ? Array.from({ length: recorded.levelAfter - recorded.levelBefore }, (_, i) =>
+        unlockedAt(recorded.levelBefore + i + 1),
+      ).flat()
+    : []
+
+  return (
+    <div className="rewards">
+      <div className="rewards__xp">
+        <span className="rewards__level">Level {level}</span>
+        <span className="xp-bar" aria-hidden="true">
+          <span style={{ width: `${Math.round(progress * 100)}%` }} />
+        </span>
+        <span className="rewards__gain">+{formatNumber(shownXp)} XP</span>
+      </div>
+      {levelledUp && (
+        <p className="rewards__note">
+          <Icon name="trophy" size={16} /> Level up!
+          {unlocks.length > 0 && ` Unlocked: ${unlocks.map((u) => u.label).join(', ')}`}
+        </p>
+      )}
+      {recorded.achievements.length > 0 && (
+        <ul className="badges" aria-label="Achievements unlocked">
+          {recorded.achievements.map((achievement) => (
+            <li key={achievement.id} className="badge">
+              <Icon name="trophy" size={16} />
+              <span>
+                <strong>{achievement.title}</strong>
+                {achievement.description}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+      {recorded.newlyMastered.length > 0 && nameOf && (
+        <p className="rewards__note">
+          <Icon name="check" size={16} /> Mastered: {recorded.newlyMastered.map(nameOf).join(', ')}
+        </p>
+      )}
     </div>
   )
 }

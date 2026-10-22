@@ -22,6 +22,7 @@ import { ResultCard } from '../../ui/ResultCard'
 import { ResultsScreen } from '../../ui/ResultsScreen'
 import { TimerBar } from '../../ui/TimerBar'
 import { useApp } from '../AppContext'
+import { celebrates } from '../celebrate'
 import { useStagePicking, useStageScene } from '../globeStage'
 import { modeInfo } from '../modes'
 import { useTestHook } from '../testHook'
@@ -62,7 +63,7 @@ export function RareEarthGame({ config, onChangeSetup, onHome }: RareEarthGamePr
       onFinish: (summary) => {
         const result = app.finishSession(summary)
         setRecorded(result)
-        play(result.isPersonalBest && result.previousBest !== null ? 'best' : 'finish')
+        play(celebrates(result) ? 'best' : 'finish')
       },
     },
     { config },
@@ -177,8 +178,8 @@ export function RareEarthGame({ config, onChangeSetup, onHome }: RareEarthGamePr
         subtitle={config.difficulty === 'hard' ? 'Hard' : 'Normal'}
         score={results.reduce((sum, r) => sum + r.points, 0)}
         maxScore={rounds.challenges.length * 1000}
-        previousBest={recorded.previousBest}
-        isPersonalBest={recorded.isPersonalBest}
+        recorded={recorded}
+        nameOf={nameOf}
         tiles={[
           { label: 'Valid answers', value: `${valid.length} / ${results.length}` },
           { label: 'Rarest answer', value: rarest ? nameOf(rarest.answerId) : '—' },

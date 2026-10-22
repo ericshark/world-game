@@ -21,6 +21,7 @@ import { Hud } from '../../ui/Hud'
 import { ResultCard } from '../../ui/ResultCard'
 import { ResultsScreen } from '../../ui/ResultsScreen'
 import { useApp } from '../AppContext'
+import { celebrates } from '../celebrate'
 import { useStagePicking, useStageScene } from '../globeStage'
 import { modeInfo } from '../modes'
 import { useTestHook } from '../testHook'
@@ -53,7 +54,7 @@ export function JourneyGame({ config, onChangeSetup, onHome }: JourneyGameProps)
       onFinish: (summary) => {
         const result = app.finishSession(summary)
         setRecorded(result)
-        play(result.isPersonalBest && result.previousBest !== null ? 'best' : 'finish')
+        play(celebrates(result) ? 'best' : 'finish')
       },
     },
     { config },
@@ -162,8 +163,8 @@ export function JourneyGame({ config, onChangeSetup, onHome }: JourneyGameProps)
         subtitle={`${title} · ${nameOf(state.from)} → ${nameOf(state.to)}`}
         score={score}
         maxScore={JOURNEY_MAX_POINTS}
-        previousBest={recorded.previousBest}
-        isPersonalBest={recorded.isPersonalBest}
+        recorded={recorded}
+        nameOf={nameOf}
         tiles={[
           { label: 'Stars', value: '★'.repeat(stars) || '—' },
           { label: 'Steps (par)', value: `${state.cost} (${state.par})` },

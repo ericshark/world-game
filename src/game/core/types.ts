@@ -134,4 +134,10 @@ export interface SessionSummary {
   score: number
   maxScore: number | null
   outcomes: CountryOutcome[]
+  /** Mode-specific figures for achievements, e.g. GeoRush's `found` or a journey's `stars`. */
+  metrics: Record<string, number>
+  /** Set when the game was one of the day's daily puzzles. */
+  daily?: { dateKey: string; puzzle: DailyPuzzle }
 }
+
+export type DailyPuzzle = 'five' | 'mystery' | 'route'

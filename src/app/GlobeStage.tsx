@@ -5,17 +5,27 @@ import { CameraRig, type CameraFocus } from '../globe/CameraRig'
 import { CountryPaintLayer } from '../globe/CountryPaintLayer'
 import { Globe, type ViewShift } from '../globe/Globe'
 import { Markers } from '../globe/Markers'
-import { EMPTY_SCENE } from '../globe/scene'
+import { CLICKED_COLOR, EMPTY_SCENE } from '../globe/scene'
 import type { Surface } from '../globe/textures'
 import { GlobeStageContext, type GlobeStage } from './globeStage'
 
 interface GlobeStageProviderProps {
   geo: GeoData | null
   showGrid: boolean
+  /** The player's chosen colour for their own pins. */
+  pinColor: string
+  /** The atmosphere's glow colour. */
+  glow: string
   children: ReactNode
 }
 
-export function GlobeStageProvider({ geo, showGrid, children }: GlobeStageProviderProps) {
+export function GlobeStageProvider({
+  geo,
+  showGrid,
+  pinColor,
+  glow,
+  children,
+}: GlobeStageProviderProps) {
   const [scene, setSceneState] = useState(EMPTY_SCENE)
   const [surface, setSurface] = useState<Surface>('day')
   const [autoRotate, setAutoRotate] = useState(true)
@@ -58,10 +68,17 @@ export function GlobeStageProvider({ geo, showGrid, children }: GlobeStageProvid
           surface={surface}
           centerRef={centerRef}
           shift={shift}
+          glow={glow}
         >
           <CameraRig focus={focus} />
           {geo && <CountryPaintLayer countries={geo.countries} paints={scene.paints} />}
-          <Markers pins={scene.pins} arcs={scene.arcs} />
+          <Markers
+            // Scenes mark the player's own pins with the shared "clicked" colour.
+            pins={scene.pins.map((pin) =>
+              pin.color === CLICKED_COLOR ? { ...pin, color: pinColor } : pin,
+            )}
+            arcs={scene.arcs}
+          />
         </Globe>
       </div>
       {children}

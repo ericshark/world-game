@@ -36,6 +36,8 @@ interface GlobeProps {
   centerRef?: { current: (() => LonLat) | null }
   /** Slides the globe aside, e.g. away from a panel covering part of the screen. */
   shift?: ViewShift
+  /** Atmosphere colour on the day globe. */
+  glow?: string
   children?: ReactNode
 }
 
@@ -47,6 +49,7 @@ export function Globe({
   keyboard = true,
   centerRef,
   shift = NO_SHIFT,
+  glow,
   children,
 }: GlobeProps) {
   return (
@@ -57,7 +60,7 @@ export function Globe({
       <color attach="background" args={['#02030a']} />
       <Stars radius={100} depth={60} count={5000} factor={4} saturation={0} fade speed={0} />
       <EarthSurfaces surface={surface} onPick={onPick} />
-      <Atmosphere tint={surface === 'night' ? '#7f8dff' : undefined} />
+      <Atmosphere tint={surface === 'night' ? '#7f8dff' : glow} />
       {showGrid && <LatLonGrid />}
       <GlobeControls autoRotate={autoRotate} />
       {keyboard && <KeyboardOrbit />}

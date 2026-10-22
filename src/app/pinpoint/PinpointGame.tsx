@@ -25,6 +25,7 @@ import { ResultCard } from '../../ui/ResultCard'
 import { ResultsScreen } from '../../ui/ResultsScreen'
 import { TimerBar } from '../../ui/TimerBar'
 import { useApp } from '../AppContext'
+import { celebrates } from '../celebrate'
 import { useStagePicking, useStageScene } from '../globeStage'
 import { modeInfo } from '../modes'
 import { bestStreak, trailingHits } from '../streaks'
@@ -64,7 +65,7 @@ export function PinpointGame({ config, onChangeSetup, onHome }: PinpointGameProp
       onFinish: (summary) => {
         const result = app.finishSession(summary)
         setRecorded(result)
-        play(result.isPersonalBest && result.previousBest !== null ? 'best' : 'finish')
+        play(celebrates(result) ? 'best' : 'finish')
       },
     },
     { config, stats: stats() },
@@ -223,8 +224,8 @@ export function PinpointGame({ config, onChangeSetup, onHome }: PinpointGameProp
         subtitle={describeConfig(config)}
         score={summary.score}
         maxScore={summary.maxScore}
-        previousBest={recorded.previousBest}
-        isPersonalBest={recorded.isPersonalBest}
+        recorded={recorded}
+        nameOf={nameOf}
         tiles={[
           { label: 'Correct', value: `${results.filter((r) => r.hit).length} / ${results.length}` },
           { label: 'Best streak', value: String(bestStreak(results)) },

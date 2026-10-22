@@ -2,14 +2,16 @@ import type { CSSProperties } from 'react'
 import { useApp } from '../app/AppContext'
 import { MODES } from '../app/modes'
 import { useGlobeShift } from '../app/useLayoutShift'
+import { countByMastery, explorerRank } from '../game/profile/mastery'
+import { levelForXp } from '../game/profile/xp'
 import { Icon } from '../ui/Icon'
 
 export function HomeScreen() {
   const { navigate, profile, geo } = useApp()
   useGlobeShift({ x: 0.14, y: 0 }, { x: 0, y: 0.2 })
-  const found = Object.values(profile.countries).filter((skills) =>
-    Object.values(skills).some((stats) => stats && stats.hits > 0),
-  ).length
+  const counts = countByMastery(profile, geo.playableIds)
+  const found = counts.found + counts.mastered
+  const rank = explorerRank(counts.mastered)
 
   return (
     <div className="screen screen--home">
@@ -41,12 +43,16 @@ export function HomeScreen() {
         </div>
 
         <nav className="home__links" aria-label="More">
-          <button type="button" className="link-tile" onClick={() => navigate({ name: 'stats' })}>
-            <Icon name="chart" size={18} />
+          <button
+            type="button"
+            className="link-tile"
+            onClick={() => navigate({ name: 'passport' })}
+          >
+            <Icon name="globe" size={18} />
             <span>
-              Your stats
+              {rank.title} · Level {levelForXp(profile.xp)}
               <small>
-                {found} / {geo.playableIds.length} countries found
+                Your World: {found} / {geo.playableIds.length} found
               </small>
             </span>
           </button>

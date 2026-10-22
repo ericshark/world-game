@@ -21,6 +21,7 @@ import { Icon } from '../../ui/Icon'
 import { ResultsScreen } from '../../ui/ResultsScreen'
 import { TimerBar } from '../../ui/TimerBar'
 import { useApp } from '../AppContext'
+import { celebrates } from '../celebrate'
 import { useStagePicking, useStageScene } from '../globeStage'
 import { modeInfo } from '../modes'
 import { useTestHook } from '../testHook'
@@ -66,7 +67,7 @@ export function RushGame({ config, onChangeSetup, onHome }: RushGameProps) {
       onFinish: (summary) => {
         const result = app.finishSession(summary)
         setRecorded(result)
-        play(result.isPersonalBest && result.previousBest !== null ? 'best' : 'finish')
+        play(celebrates(result) ? 'best' : 'finish')
       },
     },
     // The clock should not run while the first-time intro is being read.
@@ -173,8 +174,8 @@ export function RushGame({ config, onChangeSetup, onHome }: RushGameProps) {
         subtitle={[config.region, config.suddenDeath ? 'Sudden death' : '60 seconds'].join(' · ')}
         score={state.score}
         maxScore={null}
-        previousBest={recorded.previousBest}
-        isPersonalBest={recorded.isPersonalBest}
+        recorded={recorded}
+        nameOf={nameOf}
         tiles={[
           { label: 'Found', value: String(found) },
           { label: 'Best streak', value: String(state.bestStreak) },

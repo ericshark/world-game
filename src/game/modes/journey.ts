@@ -204,6 +204,11 @@ export const journey: ModeRules<JourneyConfig, JourneyState, JourneyEvent> = {
       score: journeyScore(state),
       maxScore: JOURNEY_MAX_POINTS,
       outcomes: state.steps.map(outcomeOf),
+      metrics: {
+        stars: journeyStars(state),
+        expedition: state.config.kind === 'expedition' ? 1 : 0,
+        missteps: state.steps.filter((s) => s.kind === 'misstep').length,
+      },
     }
   },
 }

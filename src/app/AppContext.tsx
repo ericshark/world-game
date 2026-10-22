@@ -7,6 +7,7 @@ import {
   emptyProfile,
   loadProfile,
   saveProfile,
+  type Cosmetics,
   type Profile,
 } from '../game/profile/profile'
 import { recordOutcomes, recordSession, type RecordedSession } from '../game/profile/record'
@@ -21,6 +22,7 @@ export interface AppServices {
   /** Records a finished game; returns how it compares with the player's best. */
   finishSession(summary: SessionSummary): RecordedSession
   resetProfile(): void
+  setCosmetics(update: Partial<Cosmetics>): void
   preferences: Preferences
   setPreferences(update: Partial<Preferences>): void
   navigate(route: Route, options?: { replace?: boolean }): void
@@ -35,7 +37,7 @@ export function useApp(): AppServices {
 }
 
 /** Profile and preferences, kept in React state and saved to browser storage on change. */
-export function useStoredState() {
+export function useStoredState(geo: GeoData | null) {
   const [profile, setProfile] = useState(() => loadProfile())
   const profileRef = useRef(profile)
   const [preferences, setPreferencesState] = useState(() => loadPreferences())
@@ -57,12 +59,18 @@ export function useStoredState() {
       profile,
       preferences,
       recordOutcomes: (outcomes: CountryOutcome[]) =>
-        commitProfile(recordOutcomes(profileRef.current, outcomes)),
+        commitProfile(recordOutcomes(profileRef.current, outcomes, Date.now())),
       finishSession: (summary: SessionSummary) => {
-        const recorded = recordSession(profileRef.current, summary)
+        if (!geo) throw new Error('Geography is not loaded yet')
+        const recorded = recordSession(profileRef.current, summary, geo)
         commitProfile(recorded.profile)
         return recorded
       },
+      setCosmetics: (update: Partial<Cosmetics>) =>
+        commitProfile({
+          ...profileRef.current,
+          cosmetics: { ...profileRef.current.cosmetics, ...update },
+        }),
       resetProfile: () => {
         clearProfile()
         commitProfile(emptyProfile())
@@ -74,6 +82,6 @@ export function useStoredState() {
         savePreferences(next)
       },
     }),
-    [profile, preferences, commitProfile],
+    [profile, preferences, commitProfile, geo],
   )
 }

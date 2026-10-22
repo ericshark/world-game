@@ -138,6 +138,7 @@ export const mystery: ModeRules<MysteryConfig, MysteryState, MysteryEvent> = {
       score: mysteryScore(state),
       maxScore: MYSTERY_MAX_POINTS,
       outcomes: state.endedAt === null ? [] : [outcomeOf(state)],
+      metrics: { guesses: state.guesses.length, solved: isSolved(state) ? 1 : 0 },
     }
   },
 }

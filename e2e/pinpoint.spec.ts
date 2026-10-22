@@ -42,9 +42,13 @@ test('plays a full game from the home screen and records stats', async ({ page }
   await page.getByRole('button', { name: 'Home' }).click()
   await page.reload()
   await openGame(page)
-  await expect(page.getByText('9 / 197 countries found')).toBeVisible()
-  await page.getByRole('button', { name: /Your stats/ }).click()
-  await expect(page.getByRole('dialog').locator('.tile__value').nth(1)).toHaveText('10')
+  await expect(page.getByText('Your World: 9 / 197 found')).toBeVisible()
+  await page.getByRole('button', { name: /Your World/ }).click()
+  await expect(page.locator('.passport .tile__value').nth(1)).toHaveText('9')
+  await page.getByRole('radio', { name: 'Countries' }).click()
+  await expect(page.locator('.passport .tile__value').nth(4)).toHaveText('10')
+  await page.getByRole('radio', { name: 'Awards' }).click()
+  await expect(page.locator('.awards .is-unlocked')).toContainText(['First steps'])
 })
 
 test('names countries: multiple choice on easy, typed with aliases on normal', async ({ page }) => {

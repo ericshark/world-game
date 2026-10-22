@@ -2,7 +2,7 @@ import { useState, type ComponentType } from 'react'
 import { loadPinpointConfig } from '../game/profile/settings'
 import { HomeScreen } from '../screens/HomeScreen'
 import { SettingsScreen } from '../screens/SettingsScreen'
-import { StatsScreen } from '../screens/StatsScreen'
+import { PassportScreen } from '../screens/passport/PassportScreen'
 import { useApp } from './AppContext'
 import { PinpointGame } from './pinpoint/PinpointGame'
 import { PinpointSetup } from './pinpoint/PinpointSetup'
@@ -73,13 +73,8 @@ export function Routes({ route }: { route: Route }) {
         />
       )
     }
-    case 'stats':
-      return (
-        <>
-          <HomeScreen />
-          <StatsScreen onClose={home} />
-        </>
-      )
+    case 'passport':
+      return <PassportScreen onClose={home} />
     case 'settings':
       return (
         <>

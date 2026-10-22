@@ -1,6 +1,6 @@
 import { MAX_POINTS } from '../../geo/scoring'
 import type { GeoData } from '../../geo/facts'
-import { buildCategories, type Category } from '../core/categories'
+import { buildCategories, rarityTier, type Category } from '../core/categories'
 import { evaluateChallenge, type ScoringOptions } from '../core/evaluate'
 import type { ModeRules } from '../core/mode'
 import { createRandom, shuffled, type Random } from '../core/random'
@@ -126,6 +126,7 @@ export const rareEarth: ModeRules<RareEarthConfig, RareEarthState> = {
       score: totalPoints(state.rounds, playerId),
       maxScore: state.rounds.challenges.length * MAX_POINTS,
       outcomes: playerResults(state.rounds, playerId).flatMap(outcomeOf),
+      metrics: rareEarthMetrics(playerResults(state.rounds, playerId)),
     }
   },
 }
@@ -135,6 +136,15 @@ export function usedAnswers(rounds: RoundsState<CategoryChallenge>, playerId: Pl
   return playerResults(rounds, playerId).flatMap((result) =>
     result.kind === 'category' ? [result.answerId] : [],
   )
+}
+
+function rareEarthMetrics(results: RoundResult[]) {
+  const valid = results.filter((r) => r.kind === 'category' && r.valid)
+  return {
+    valid: valid.length,
+    legendary: valid.filter((r) => r.kind === 'category' && rarityTier(r.rarity) === 'Legendary')
+      .length,
+  }
 }
 
 function outcomeOf(result: RoundResult): CountryOutcome[] {
