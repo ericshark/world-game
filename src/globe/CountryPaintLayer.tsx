@@ -5,16 +5,17 @@ import { CanvasTexture, MeshBasicMaterial, SRGBColorSpace } from 'three'
 import type { CountryIndex } from '../geo/countries'
 import { easeOutCubic, useReducedMotion } from '../ui/motion'
 import type { CountryPaint } from './scene'
+import { prefersSmallTextures } from './textures'
 
 // The overlay is an equirectangular image wrapped on a sphere just above the Earth, so d3 can
 // draw any country (multipolygons, antimeridian crossings) with an ordinary 2D canvas path.
 const MAX_OVERLAY_WIDTH = 4096
+/** Phones get a smaller overlay: it quarters the memory and the cost of every repaint. */
+const SMALL_OVERLAY_WIDTH = 2048
 const OVERLAY_RADIUS = 1.002
 /** Micro-states are invisible at globe scale, so they also get a ring of this radius. */
 const MICRO_RING_RADIUS_DEG = 1.2
 const FADE_IN_MS = 450
-/** Pulses are bold outlines, so a smaller overlay is plenty and saves memory. */
-const PULSE_OVERLAY_WIDTH = 2048
 const PULSE_RADIUS = 1.0025
 const PULSE_MS = 2400
 const PULSE_BEATS = 3
@@ -28,12 +29,13 @@ interface CountryPaintLayerProps {
 
 export function CountryPaintLayer({ countries, paints, effect = 'fade' }: CountryPaintLayerProps) {
   const maxTextureSize = useThree((state) => state.gl.capabilities.maxTextureSize)
+  const invalidate = useThree((state) => state.invalidate)
   const pulse = effect === 'pulse'
-  const surface = useMemo(
-    () =>
-      new PaintSurface(Math.min(pulse ? PULSE_OVERLAY_WIDTH : MAX_OVERLAY_WIDTH, maxTextureSize)),
-    [maxTextureSize, pulse],
-  )
+  const small = useMemo(() => prefersSmallTextures(maxTextureSize), [maxTextureSize])
+  const surface = useMemo(() => {
+    const width = pulse || small ? SMALL_OVERLAY_WIDTH : MAX_OVERLAY_WIDTH
+    return new PaintSurface(Math.min(width, maxTextureSize))
+  }, [maxTextureSize, pulse, small])
   useEffect(() => () => surface.dispose(), [surface])
 
   // New paints fade in, so a reveal lands softly instead of popping.
@@ -41,9 +43,12 @@ export function CountryPaintLayer({ countries, paints, effect = 'fade' }: Countr
   const changedAt = useRef(0)
   const reducedMotion = useReducedMotion()
   useLayoutEffect(() => {
-    if (surface.paint(countries, paints)) changedAt.current = performance.now()
+    if (surface.paint(countries, paints)) {
+      changedAt.current = performance.now()
+      invalidate()
+    }
   })
-  useFrame(() => {
+  useFrame(({ invalidate: next }) => {
     if (!material.current) return
     const elapsed = performance.now() - changedAt.current
     const opacity = pulse
@@ -52,6 +57,8 @@ export function CountryPaintLayer({ countries, paints, effect = 'fade' }: Countr
     material.current.opacity = opacity
     // A finished pulse costs nothing to draw.
     material.current.visible = opacity > 0
+    // Fades and pulses need a frame each until they are done.
+    if (elapsed < (pulse ? PULSE_MS : FADE_IN_MS)) next()
   })
 
   return (
@@ -87,7 +94,7 @@ function pulseOpacity(t: number, reducedMotion: boolean): number {
 class PaintSurface {
   readonly texture: CanvasTexture
   private readonly canvas: HTMLCanvasElement
-  private drawnKey: string | null = null
+  private drawnKeys: string[] = []
   private drawnCountries: CountryIndex | null = null
 
   constructor(width: number) {
@@ -99,15 +106,31 @@ class PaintSurface {
     this.texture.anisotropy = 8
   }
 
-  /** Redraws if the paints changed; returns whether it did. */
+  /**
+   * Redraws if the paints changed; returns whether it did. When paints were only added to the
+   * end (a GeoRush run reveals one country after another), only the new ones are drawn.
+   */
   paint(countries: CountryIndex, paints: CountryPaint[]): boolean {
-    const key = paints.map((p) => `${p.id}/${p.fill}/${p.stroke}/${p.lineWidth}`).join('|')
-    if (key === this.drawnKey && countries === this.drawnCountries) return false
-    this.drawnKey = key
+    const keys = paints.map((p) => `${p.id}/${p.fill}/${p.stroke}/${p.lineWidth}`)
+    const sameCountries = countries === this.drawnCountries
+    if (
+      sameCountries &&
+      keys.length === this.drawnKeys.length &&
+      keys.every((k, i) => k === this.drawnKeys[i])
+    ) {
+      return false
+    }
+    const appended =
+      sameCountries &&
+      this.drawnKeys.length > 0 &&
+      keys.length > this.drawnKeys.length &&
+      this.drawnKeys.every((k, i) => k === keys[i])
+    const added = appended ? paints.slice(this.drawnKeys.length) : paints
+    this.drawnKeys = keys
     this.drawnCountries = countries
     // Nothing to show: the layer is hidden, so skip clearing and re-uploading the texture.
     if (paints.length === 0) return false
-    drawPaints(this.canvas, countries, paints)
+    drawPaints(this.canvas, countries, added, !appended)
     this.texture.needsUpdate = true
     return true
   }
@@ -117,9 +140,14 @@ class PaintSurface {
   }
 }
 
-function drawPaints(canvas: HTMLCanvasElement, countries: CountryIndex, paints: CountryPaint[]) {
+function drawPaints(
+  canvas: HTMLCanvasElement,
+  countries: CountryIndex,
+  paints: CountryPaint[],
+  clear: boolean,
+) {
   const context = canvas.getContext('2d')!
-  context.clearRect(0, 0, canvas.width, canvas.height)
+  if (clear) context.clearRect(0, 0, canvas.width, canvas.height)
   const projection = geoEquirectangular()
     .scale(canvas.width / (2 * Math.PI))
     .translate([canvas.width / 2, canvas.height / 2])

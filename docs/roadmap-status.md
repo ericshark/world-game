@@ -119,12 +119,9 @@ Work through these in order. Each item should end with tests and a focused commi
 
 ### Phase 3
 
-- **Performance.**
-  - Code-split each mode and screen, and put three.js, r3f and drei in their own vendor chunk.
-    The bundle is one 1.37 MB chunk today.
-  - Render the globe only on demand (`frameloop="demand"` plus `invalidate()`).
-  - Use a 2048 overlay on phones, and paint incrementally.
-  - Give assets hashed URLs with cache headers.
+- **Performance.** Done (see [performance](performance.md)): code splitting with a lazy 3D
+  chunk, on-demand rendering, a 2048 overlay with incremental paint on phones, hashed and brotli
+  assets with cache headers. KTX2 was not tried.
 - **Robustness.**
   - Error boundaries, a "3D unavailable" fallback, and recovery from WebGL context loss.
   - Retry when loading fails.

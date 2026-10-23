@@ -1,42 +1,80 @@
-import { useState, type ComponentType } from 'react'
+import { lazy, Suspense, useState, type ComponentType } from 'react'
 import { EXPEDITIONS } from '../game/modes/expeditions'
 import { loadPinpointConfig, sanitizePinpointConfig } from '../game/profile/settings'
 import { formatNumber } from '../screens/format'
 import { Sheet } from '../ui/Sheet'
 import { HomeScreen } from '../screens/HomeScreen'
-import { SignInLink } from '../screens/account/SignInLink'
-import { LeaderboardScreen } from '../screens/LeaderboardScreen'
-import { SettingsScreen } from '../screens/SettingsScreen'
-import { PassportScreen } from '../screens/passport/PassportScreen'
 import { useApp } from './AppContext'
-import { OnlineScreen } from './online/OnlineScreen'
-import { RoomScreen } from './online/RoomScreen'
-import { BattleSetup } from './battle/BattleSetup'
-import { LocalBattle } from './battle/LocalBattle'
 import { FORMAT_LABELS, loadBattleSetup, sanitizeBattleSetup } from './battle/setup'
 import { decodeChallenge, GameContext } from './challenge'
-import { DailyPlay } from './daily/DailyPlay'
-import { DailyScreen } from './daily/DailyScreen'
 import { todayKey } from './today'
-import { PinpointGame } from './pinpoint/PinpointGame'
 import { describeConfig } from './pinpoint/describe'
-import { PinpointSetup } from './pinpoint/PinpointSetup'
 import { modeInfo } from './modes'
 import type { DailyPuzzle } from '../game/core/types'
 import type { ModeKey, Route } from './router'
 import { loadJourneyConfig, sanitizeJourneyConfig } from './journey/config'
-import { JourneyGame } from './journey/JourneyGame'
-import { JourneySetup } from './journey/JourneySetup'
 import { loadMysteryConfig, sanitizeMysteryConfig } from './mystery/config'
-import { MysteryGame } from './mystery/MysteryGame'
-import { MysterySetup } from './mystery/MysterySetup'
 import { loadRareEarthConfig, sanitizeRareEarthConfig } from './rareEarth/config'
-import { RareEarthGame } from './rareEarth/RareEarthGame'
-import { RareEarthSetup } from './rareEarth/RareEarthSetup'
 import { loadRushConfig, rushSubtitle, sanitizeRushConfig } from './rush/config'
-import { RushGame } from './rush/RushGame'
-import { RushSetup } from './rush/RushSetup'
-import { TutorialGame } from './tutorial/TutorialGame'
+
+// Each screen and game downloads when first opened, so the first visit loads only the menu.
+const SignInLink = lazy(() =>
+  import('../screens/account/SignInLink').then((m) => ({ default: m.SignInLink })),
+)
+const LeaderboardScreen = lazy(() =>
+  import('../screens/LeaderboardScreen').then((m) => ({ default: m.LeaderboardScreen })),
+)
+const SettingsScreen = lazy(() =>
+  import('../screens/SettingsScreen').then((m) => ({ default: m.SettingsScreen })),
+)
+const PassportScreen = lazy(() =>
+  import('../screens/passport/PassportScreen').then((m) => ({ default: m.PassportScreen })),
+)
+const OnlineScreen = lazy(() =>
+  import('./online/OnlineScreen').then((m) => ({ default: m.OnlineScreen })),
+)
+const RoomScreen = lazy(() =>
+  import('./online/RoomScreen').then((m) => ({ default: m.RoomScreen })),
+)
+const BattleSetup = lazy(() =>
+  import('./battle/BattleSetup').then((m) => ({ default: m.BattleSetup })),
+)
+const LocalBattle = lazy(() =>
+  import('./battle/LocalBattle').then((m) => ({ default: m.LocalBattle })),
+)
+const DailyPlay = lazy(() => import('./daily/DailyPlay').then((m) => ({ default: m.DailyPlay })))
+const DailyScreen = lazy(() =>
+  import('./daily/DailyScreen').then((m) => ({ default: m.DailyScreen })),
+)
+const PinpointGame = lazy(() =>
+  import('./pinpoint/PinpointGame').then((m) => ({ default: m.PinpointGame })),
+)
+const PinpointSetup = lazy(() =>
+  import('./pinpoint/PinpointSetup').then((m) => ({ default: m.PinpointSetup })),
+)
+const JourneyGame = lazy(() =>
+  import('./journey/JourneyGame').then((m) => ({ default: m.JourneyGame })),
+)
+const JourneySetup = lazy(() =>
+  import('./journey/JourneySetup').then((m) => ({ default: m.JourneySetup })),
+)
+const MysteryGame = lazy(() =>
+  import('./mystery/MysteryGame').then((m) => ({ default: m.MysteryGame })),
+)
+const MysterySetup = lazy(() =>
+  import('./mystery/MysterySetup').then((m) => ({ default: m.MysterySetup })),
+)
+const RareEarthGame = lazy(() =>
+  import('./rareEarth/RareEarthGame').then((m) => ({ default: m.RareEarthGame })),
+)
+const RareEarthSetup = lazy(() =>
+  import('./rareEarth/RareEarthSetup').then((m) => ({ default: m.RareEarthSetup })),
+)
+const RushGame = lazy(() => import('./rush/RushGame').then((m) => ({ default: m.RushGame })))
+const RushSetup = lazy(() => import('./rush/RushSetup').then((m) => ({ default: m.RushSetup })))
+const TutorialGame = lazy(() =>
+  import('./tutorial/TutorialGame').then((m) => ({ default: m.TutorialGame })),
+)
 
 interface SetupProps {
   onClose: () => void
@@ -111,6 +149,14 @@ const SCREENS: Record<ModeKey, ModeScreens<unknown>> = {
 }
 
 export function Routes({ route }: { route: Route }) {
+  return (
+    <Suspense fallback={null}>
+      <CurrentRoute route={route} />
+    </Suspense>
+  )
+}
+
+function CurrentRoute({ route }: { route: Route }) {
   const { navigate } = useApp()
   const home = () => navigate({ name: 'home' })
 

@@ -6,6 +6,7 @@ import type { ServerConfig } from './config'
 import { authRoutes } from './auth/routes'
 import { dailyRoutes } from './daily'
 import { leaderboardRoutes } from './leaderboards'
+import { precompressed } from './precompressed'
 import type { GeoData } from '../src/geo/facts'
 import type { Mail, Mailer } from './auth/mail'
 import type { OAuthProvider, OAuthProviderId } from './auth/oauth'
@@ -45,9 +46,9 @@ export function createApp(context: AppContext) {
     app.use('*', async (c, next) => {
       await next()
       if (!c.res.ok || c.res.headers.has('cache-control')) return
-      const hashed = c.req.path.startsWith('/assets/')
-      c.header('cache-control', hashed ? 'public, max-age=31536000, immutable' : 'no-cache')
+      c.header('cache-control', cacheControl(c.req.path, c.req.query('v') !== undefined))
     })
+    app.use('*', precompressed(distDir))
     app.use('*', serveStatic({ root }))
     app.get('*', serveStatic({ root, path: 'index.html' }))
   }
@@ -57,4 +58,17 @@ export function createApp(context: AppContext) {
 /** serveStatic resolves roots against the working directory. */
 function relativeRoot(distDir: string) {
   return relative(process.cwd(), resolve(distDir)) || '.'
+}
+
+/**
+ * Built scripts and styles have hashed names, and the globe's textures and data are asked for
+ * with a `?v=` version of their content, so browsers may keep all of those forever. The page
+ * itself must be re-checked so a new deploy is noticed.
+ */
+export function cacheControl(path: string, versioned: boolean): string {
+  if (path.startsWith('/assets/')) return 'public, max-age=31536000, immutable'
+  if (path.startsWith('/textures/') || path.startsWith('/data/')) {
+    return versioned ? 'public, max-age=31536000, immutable' : 'public, max-age=3600'
+  }
+  return 'no-cache'
 }

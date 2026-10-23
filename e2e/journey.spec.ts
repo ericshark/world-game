@@ -8,11 +8,13 @@ test('World Journey: moves, missteps and connections on an expedition', async ({
   await setup.getByRole('radio', { name: 'Expeditions' }).click()
   await setup.getByRole('radio', { name: /Cape to Cairo/ }).click()
   await setup.getByRole('button', { name: 'Play' }).click()
+  // The game loads on demand: wait for it (or its first-time rules card) to appear.
   const gotIt = page.getByRole('button', { name: 'Got it' })
+  await expect(page.locator('.prompt__text').or(gotIt).first()).toBeVisible()
   if (await gotIt.isVisible()) await gotIt.click()
 
   await expect(page.locator('.prompt__text')).toContainText('South Africa → Egypt')
-  const go = page.getByRole('button', { name: 'Go' })
+  const go = page.getByRole('button', { name: 'Go', exact: true })
   await expect(go).toBeDisabled()
 
   // Harare, Zimbabwe: next door.

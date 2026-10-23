@@ -164,6 +164,58 @@ describe('http', () => {
     expect(await missing.json()).toEqual({ error: 'Not found.' })
   })
 
+  it('sends pre-compressed files and long cache lifetimes for versioned ones', async () => {
+    const { mkdtempSync, mkdirSync, rmSync, writeFileSync } = await import('node:fs')
+    const { tmpdir } = await import('node:os')
+    const { join } = await import('node:path')
+    const { brotliCompressSync } = await import('node:zlib')
+    const dist = mkdtempSync(join(tmpdir(), 'wg-dist-'))
+    mkdirSync(join(dist, 'data'))
+    mkdirSync(join(dist, 'textures'))
+    writeFileSync(join(dist, 'index.html'), '<title>World Game</title>')
+    const json = JSON.stringify({ countries: 'x'.repeat(5000) })
+    writeFileSync(join(dist, 'data', 'countries.json'), json)
+    writeFileSync(join(dist, 'data', 'countries.json.br'), brotliCompressSync(Buffer.from(json)))
+    writeFileSync(join(dist, 'textures', 'earth.jpg'), 'pretend image')
+    const site = await startServer({
+      config: loadConfig(
+        {},
+        { port: 0, host: '127.0.0.1', databasePath: ':memory:', distDir: dist },
+      ),
+      geo,
+    })
+    try {
+      const base = `http://127.0.0.1:${site.port}`
+      const packed = await fetch(`${base}/data/countries.json?v=abc`, {
+        headers: { 'accept-encoding': 'br' },
+      })
+      expect(packed.headers.get('content-encoding')).toBe('br')
+      expect(packed.headers.get('content-type')).toMatch(/json/)
+      expect(packed.headers.get('cache-control')).toMatch(/immutable/)
+      expect(await packed.text()).toBe(json)
+
+      // Without brotli support the plain file is served.
+      const plain = await fetch(`${base}/data/countries.json`, {
+        headers: { 'accept-encoding': 'identity' },
+      })
+      expect(plain.headers.get('content-encoding')).toBeNull()
+      expect(plain.headers.get('cache-control')).toBe('public, max-age=3600')
+      expect(await plain.text()).toBe(json)
+
+      expect(
+        (await fetch(`${base}/textures/earth.jpg?v=abc`)).headers.get('cache-control'),
+      ).toMatch(/immutable/)
+      // A path that climbs out of the site folder gets the page, never another file.
+      const climb = await fetch(`${base}/..%2f..%2fetc%2fpasswd`, {
+        headers: { 'accept-encoding': 'br' },
+      })
+      expect(await climb.text()).not.toMatch(/root:/)
+    } finally {
+      await site.close()
+      rmSync(dist, { recursive: true, force: true })
+    }
+  })
+
   it('serves the built site from the same port, with a single-page fallback', async () => {
     const { mkdtempSync, mkdirSync, rmSync, writeFileSync } = await import('node:fs')
     const { tmpdir } = await import('node:os')

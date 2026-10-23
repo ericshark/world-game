@@ -1,35 +1,33 @@
-import { useMemo, useRef, useState, type ReactNode } from 'react'
+import { lazy, Suspense, useMemo, useRef, useState, type ReactNode } from 'react'
 import type { LonLat } from '../geo/coords'
 import type { GeoData } from '../geo/facts'
-import { CameraRig, type CameraFocus } from '../globe/CameraRig'
-import { CountryPaintLayer } from '../globe/CountryPaintLayer'
-import { Globe, type ViewShift } from '../globe/Globe'
-import { Markers } from '../globe/Markers'
-import {
-  cosmeticById,
-  GLOWS,
-  PIN_SKINS,
-  pinShapeOf,
-  TRAILS,
-  type TrailStyle,
-} from '../game/profile/cosmetics'
+import type { CameraFocus } from '../globe/CameraRig'
 import type { Cosmetics } from '../game/profile/profile'
-import { EMPTY_SCENE, type CountryPaint, type PulseSpec } from '../globe/scene'
+import { EMPTY_SCENE } from '../globe/scene'
 import type { Surface } from '../globe/textures'
+import type { ViewShift } from '../globe/Globe'
 import { GlobeStageContext, type GlobeStage } from './globeStage'
+
+// three.js and the globe are big; they download in a chunk of their own.
+const GlobeView = lazy(() => import('./GlobeView'))
 
 interface GlobeStageProviderProps {
   geo: GeoData | null
   showGrid: boolean
   /** The player's chosen pin, trail and glow. */
   looks: Cosmetics
+  /** Reports the Earth's first load, for the loading screen. */
+  onLoad: (progress: number, ready: boolean) => void
   children: ReactNode
 }
 
-export function GlobeStageProvider({ geo, showGrid, looks, children }: GlobeStageProviderProps) {
-  const pinColor = cosmeticById(PIN_SKINS, looks.pin).color
-  const pinShape = pinShapeOf(looks.shape)
-  const trail = cosmeticById(TRAILS, looks.trail).id as TrailStyle
+export function GlobeStageProvider({
+  geo,
+  showGrid,
+  looks,
+  onLoad,
+  children,
+}: GlobeStageProviderProps) {
   const [scene, setSceneState] = useState(EMPTY_SCENE)
   const [surface, setSurface] = useState<Surface>('day')
   const [autoRotate, setAutoRotate] = useState(true)
@@ -65,47 +63,23 @@ export function GlobeStageProvider({ geo, showGrid, looks, children }: GlobeStag
   return (
     <GlobeStageContext.Provider value={stage}>
       <div className="stage">
-        <Globe
-          onPick={(point) => pickRef.current?.(point)}
-          showGrid={showGrid}
-          autoRotate={autoRotate}
-          surface={surface}
-          centerRef={centerRef}
-          shift={shift}
-          glow={cosmeticById(GLOWS, looks.glow).color}
-        >
-          <CameraRig focus={focus} />
-          {geo && <CountryPaintLayer countries={geo.countries} paints={scene.paints} />}
-          {geo && (
-            <CountryPaintLayer
-              countries={geo.countries}
-              paints={pulsePaints(scene.pulses)}
-              effect="pulse"
-            />
-          )}
-          <Markers
-            pins={scene.pins.map((pin) =>
-              pin.own ? { ...pin, color: pinColor, shape: pinShape } : pin,
-            )}
-            // A comet trail takes the colour of the pin it flies from.
-            arcs={scene.arcs.map((arc) =>
-              arc.own
-                ? { ...arc, style: trail, color: trail === 'comet' ? pinColor : arc.color }
-                : arc,
-            )}
-            markers={scene.markers ?? []}
+        <Suspense fallback={null}>
+          <GlobeView
+            geo={geo}
+            showGrid={showGrid}
+            looks={looks}
+            scene={scene}
+            surface={surface}
+            autoRotate={autoRotate}
+            shift={shift}
+            focus={focus}
+            onPick={(point) => pickRef.current?.(point)}
+            centerRef={centerRef}
+            onLoad={onLoad}
           />
-        </Globe>
+        </Suspense>
       </div>
       {children}
     </GlobeStageContext.Provider>
   )
-}
-
-const NO_PULSES: CountryPaint[] = []
-
-/** Pulses are drawn as bold outlines on a layer of their own, which then fades. */
-function pulsePaints(pulses: PulseSpec[] | undefined): CountryPaint[] {
-  if (!pulses || pulses.length === 0) return NO_PULSES
-  return pulses.map(({ id, color }) => ({ id, fill: `${color}33`, stroke: color, lineWidth: 6 }))
 }

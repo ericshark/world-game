@@ -55,6 +55,8 @@ export function Globe({
 }: GlobeProps) {
   return (
     <Canvas
+      // Draw only when something changed or is animating, so an idle globe costs no battery.
+      frameloop="demand"
       dpr={isAutomated() ? 1 : [1, 2]}
       camera={{ fov: CAMERA_FOV, near: 0.01, far: 1000, position: [0, 0, MAX_CAMERA_DISTANCE] }}
     >
@@ -108,10 +110,12 @@ function GlobeControls({ autoRotate }: { autoRotate: boolean }) {
   const controls = useRef<ComponentRef<typeof OrbitControls>>(null)
 
   // Keep a drag moving the surface at roughly the same on-screen speed at every zoom level.
-  useFrame(({ camera }) => {
+  useFrame(({ camera, invalidate }) => {
     if (!controls.current) return
     const zoom = (camera.position.length() - 1) / (MAX_CAMERA_DISTANCE - 1)
     controls.current.rotateSpeed = ROTATE_SPEED_ZOOMED_OUT * zoom
+    // Spinning never settles, so it keeps asking for the next frame.
+    if (autoRotate) invalidate()
   })
 
   return (
@@ -133,6 +137,7 @@ function GlobeControls({ autoRotate }: { autoRotate: boolean }) {
 /** Arrow keys turn the globe and +/- zoom, so it can be played without a pointer. */
 function KeyboardOrbit() {
   const camera = useThree((state) => state.camera)
+  const invalidate = useThree((state) => state.invalidate)
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -171,10 +176,11 @@ function KeyboardOrbit() {
       event.preventDefault()
       lonLatToVector3(next, nextRadius, camera.position)
       camera.lookAt(0, 0, 0)
+      invalidate()
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [camera])
+  }, [camera, invalidate])
 
   return null
 }
@@ -197,6 +203,9 @@ function CenterProbe({ centerRef }: { centerRef: { current: (() => LonLat) | nul
  */
 function CameraFit({ shift }: { shift: ViewShift }) {
   const current = useRef({ ...shift })
+  const invalidate = useThree((state) => state.invalidate)
+  // A new shift needs a frame to start easing towards it.
+  useEffect(() => invalidate(), [shift, invalidate])
   useFrame(({ camera, size }, delta) => {
     if (!('fov' in camera)) return
     const aspect = size.width / size.height
@@ -222,6 +231,8 @@ function CameraFit({ shift }: { shift: ViewShift }) {
     }
     if (camera.fov !== fov) camera.fov = fov
     camera.updateProjectionMatrix()
+    // Keep drawing until the globe has glided into place.
+    if (Math.abs(shift.x - x) > 5e-4 || Math.abs(shift.y - y) > 5e-4) invalidate()
   })
   return null
 }

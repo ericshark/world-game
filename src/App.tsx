@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { AppContext, useStoredState, type AppServices } from './app/AppContext'
 import { GlobeStageProvider } from './app/GlobeStage'
 import { useAccount } from './app/useAccount'
@@ -15,6 +15,14 @@ import { useToasts } from './ui/useToasts'
 export default function App() {
   const [geo, setGeo] = useState<GeoData | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
+  const [globe, setGlobe] = useState({ progress: 0, ready: false })
+  const onGlobeLoad = useCallback(
+    (progress: number, ready: boolean) =>
+      setGlobe((previous) =>
+        previous.progress === progress && previous.ready === ready ? previous : { progress, ready },
+      ),
+    [],
+  )
   const [route, navigate] = useRoute()
   const toasts = useToasts()
   useKeyboardInset()
@@ -40,6 +48,7 @@ export default function App() {
           geo={geo}
           showGrid={stored.preferences.showGrid}
           looks={stored.profile.cosmetics}
+          onLoad={onGlobeLoad}
         >
           {services && (
             <AppContext.Provider value={services}>
@@ -55,7 +64,7 @@ export default function App() {
           )}
         </GlobeStageProvider>
         <Toasts toasts={toasts.toasts} onDismiss={toasts.dismiss} />
-        <LoadingOverlay dataReady={geo !== null} error={loadError} />
+        <LoadingOverlay dataReady={geo !== null} globe={globe} error={loadError} />
       </div>
     </ReducedMotionContext.Provider>
   )

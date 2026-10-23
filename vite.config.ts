@@ -1,9 +1,26 @@
+import { createHash } from 'node:crypto'
+import { readdirSync, readFileSync } from 'node:fs'
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vitest/config'
+
+/**
+ * A fingerprint of the country data and textures. They are served from fixed names, so the
+ * page asks for them as `?v=<this>`: a browser keeps them until their content changes.
+ */
+function assetVersion(): string {
+  const hash = createHash('sha1')
+  for (const directory of ['public/data', 'public/textures']) {
+    for (const name of readdirSync(directory).sort()) {
+      hash.update(name).update(readFileSync(`${directory}/${name}`))
+    }
+  }
+  return hash.digest('hex').slice(0, 10)
+}
 
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
+  define: { 'import.meta.env.VITE_ASSET_VERSION': JSON.stringify(assetVersion()) },
   // Default + 1; Vite moves to the next free port if this one is taken.
   server: {
     port: 5174,
@@ -18,6 +35,24 @@ export default defineConfig({
         ws: true,
         // Players drop connections all the time (closed tabs, sleeping phones); not an error.
         configure: (proxy) => proxy.on('error', () => {}),
+      },
+    },
+  },
+  build: {
+    rolldownOptions: {
+      output: {
+        // three.js, react-three-fiber and drei are most of the weight and change rarely: one
+        // chunk of their own caches well and keeps the app's own code small.
+        codeSplitting: {
+          groups: [
+            // React is needed straight away; keeping it apart lets the 3D chunk load later.
+            { name: 'react', test: /node_modules[\\/](react|react-dom|scheduler)[\\/]/ },
+            {
+              name: 'three',
+              test: /node_modules[\\/](three|@react-three|three-stdlib|troika-[\w-]+|meshline|camera-controls|maath|@monogrid|detect-gpu|stats-gl|its-fine|suspend-react|zustand)[\\/]/,
+            },
+          ],
+        },
       },
     },
   },

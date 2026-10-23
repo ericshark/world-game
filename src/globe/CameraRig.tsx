@@ -1,4 +1,4 @@
-import { useFrame } from '@react-three/fiber'
+import { useFrame, useThree } from '@react-three/fiber'
 import { useEffect, useRef } from 'react'
 import { Quaternion, Vector3 } from 'three'
 import type { LonLat } from '../geo/coords'
@@ -30,11 +30,15 @@ export function CameraRig({ focus }: { focus: CameraFocus | null }) {
   const flight = useRef<Flight | null>(null)
   const duration = useReducedMotion() ? REDUCED_FLIGHT_DURATION_MS : FLIGHT_DURATION_MS
 
+  const invalidate = useThree((state) => state.invalidate)
+
   useEffect(() => {
     pending.current = focus
-  }, [focus])
+    // A flight needs a first frame to begin.
+    invalidate()
+  }, [focus, invalidate])
 
-  useFrame(({ camera, controls }) => {
+  useFrame(({ camera, controls, invalidate: next }) => {
     const orbit = controls as { enabled: boolean } | null
 
     if (pending.current) {
@@ -64,6 +68,8 @@ export function CameraRig({ focus }: { focus: CameraFocus | null }) {
     if (t >= 1) {
       flight.current = null
       if (orbit) orbit.enabled = true
+    } else {
+      next()
     }
   })
 

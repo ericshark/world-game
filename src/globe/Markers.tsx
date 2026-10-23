@@ -101,7 +101,7 @@ function Pin({ at, color, shape }: { at: LonLat; color: string; shape: PinShape 
     return { normal, quaternion: new Quaternion().setFromUnitVectors(UP, normal) }
   }, [at])
 
-  useFrame(({ camera }) => {
+  useFrame(({ camera, invalidate }) => {
     if (!group.current) return
     placedAt.current ??= performance.now()
     const zoom = (camera.position.length() - 1) / (MAX_CAMERA_DISTANCE - 1)
@@ -110,6 +110,7 @@ function Pin({ at, color, shape }: { at: LonLat; color: string; shape: PinShape 
     const t = reducedMotion ? 1 : Math.min(1, (performance.now() - placedAt.current) / PIN_DROP_MS)
     const height = PIN_DROP_HEIGHT * scale * (1 - bounce(t))
     group.current.position.copy(normal).multiplyScalar(1 + height)
+    if (t < 1) invalidate()
   })
 
   return (
@@ -167,13 +168,14 @@ function Arc({ from, to, color = '#ffffff', arrow = false, style = 'solid' }: Ar
   const head = useRef<Mesh>(null)
   const drawnFrom = useRef<number | null>(null)
   const reducedMotion = useReducedMotion()
-  useFrame(() => {
+  useFrame(({ invalidate }) => {
     if (!line.current) return
     drawnFrom.current ??= performance.now()
     const t = reducedMotion ? 1 : Math.min(1, (performance.now() - drawnFrom.current) / ARC_DRAW_MS)
     // Line2 draws one instance per segment, so drawing fewer reveals the arc progressively.
     line.current.geometry.instanceCount = Math.max(1, Math.ceil(easeOutCubic(t) * ARC_SAMPLES))
     if (head.current) head.current.visible = t >= 1
+    if (t < 1) invalidate()
   })
   // The arrowhead keeps its size on screen, like the pins.
   useFrame(({ camera }) => {
