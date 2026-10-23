@@ -20,6 +20,7 @@ import { HowToPlay } from '../../ui/HowToPlay'
 import { Hud } from '../../ui/Hud'
 import { ResultCard } from '../../ui/ResultCard'
 import { ResultsScreen } from '../../ui/ResultsScreen'
+import { useGameKeys } from '../../ui/useGameKeys'
 import { useApp } from '../AppContext'
 import { useChallenge } from '../challenge'
 import type { DailyGame } from '../daily/dailyGame'
@@ -125,19 +126,14 @@ export function JourneyGame({ config, seed, daily, onChangeSetup, onHome }: Jour
       : { paints: [], pins: [], arcs: [] },
   )
 
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.repeat || event.target instanceof HTMLButtonElement) return
-      if (event.key === 'Enter') {
-        event.preventDefault()
-        move()
-      } else if (event.key === ' ' && !finished) {
-        event.preventDefault()
-        setDraftPin(stage.center())
-      }
+  useGameKeys((event) => {
+    if (event.key === 'Enter') {
+      event.preventDefault()
+      move()
+    } else if (event.key === ' ' && !finished) {
+      event.preventDefault()
+      setDraftPin(stage.center())
     }
-    window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
   })
 
   const challenge = useChallenge(daily ? undefined : state?.seed, state ? journeyScore(state) : 0)

@@ -21,6 +21,7 @@ import { Hud } from '../../ui/Hud'
 import { Icon } from '../../ui/Icon'
 import { ResultsScreen } from '../../ui/ResultsScreen'
 import { TimerBar } from '../../ui/TimerBar'
+import { useGameKeys } from '../../ui/useGameKeys'
 import { useApp } from '../AppContext'
 import { useStagePicking, useStageScene } from '../globeStage'
 import { modeInfo } from '../modes'
@@ -151,18 +152,12 @@ export function BattleGame({ host, recorded, onPlayAgain, onHome }: BattleGamePr
   )
   useStageScene(view ? battleScene(view, me, draft.pin, geo) : { paints: [], pins: [], arcs: [] })
 
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.repeat || event.target instanceof HTMLInputElement) return
-      if (event.target instanceof HTMLButtonElement) return
-      if (event.key === 'Enter') {
-        event.preventDefault()
-        if (rounds?.phase === 'revealed') host.ready()
-        else confirm()
-      }
+  useGameKeys((event) => {
+    if (event.key === 'Enter') {
+      event.preventDefault()
+      if (rounds?.phase === 'revealed') host.ready()
+      else confirm()
     }
-    window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
   })
 
   useTestHook({

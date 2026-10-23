@@ -20,6 +20,7 @@ import { Hud } from '../../ui/Hud'
 import { Icon } from '../../ui/Icon'
 import { ResultsScreen } from '../../ui/ResultsScreen'
 import { TimerBar } from '../../ui/TimerBar'
+import { useGameKeys } from '../../ui/useGameKeys'
 import { useApp } from '../AppContext'
 import { useChallenge } from '../challenge'
 import { celebrates } from '../celebrate'
@@ -134,19 +135,14 @@ export function RushGame({ config, seed, onChangeSetup, onHome }: RushGameProps)
   useStagePicking(playing ? answer : null)
   useStageScene(flash ? flashScene(flash) : EMPTY_SCENE)
 
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.repeat || event.target instanceof HTMLInputElement) return
-      if (event.key === ' ' && playing) {
-        event.preventDefault()
-        const center = stage.center()
-        if (center) answer(center)
-      } else if (event.key.toLowerCase() === 's' && playing && !config.suddenDeath) {
-        skip()
-      }
+  useGameKeys((event) => {
+    if (event.key === ' ' && playing) {
+      event.preventDefault()
+      const center = stage.center()
+      if (center) answer(center)
+    } else if (event.key.toLowerCase() === 's' && playing && !config.suddenDeath) {
+      skip()
     }
-    window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
   })
 
   const challenge = useChallenge(state?.seed, state?.score ?? 0)

@@ -21,6 +21,7 @@ import { Icon } from '../../ui/Icon'
 import { ResultCard } from '../../ui/ResultCard'
 import { ResultsScreen } from '../../ui/ResultsScreen'
 import { TimerBar } from '../../ui/TimerBar'
+import { useGameKeys } from '../../ui/useGameKeys'
 import { useApp } from '../AppContext'
 import { celebrates } from '../celebrate'
 import { useChallenge } from '../challenge'
@@ -226,20 +227,15 @@ export function RoundGame<Config, State extends RoundModeState>(
   })
 
   // Enter confirms or moves on; Space drops the pin at the centre (keyboard play).
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.repeat || isFormControl(event.target)) return
-      if (event.key === 'Enter') {
-        event.preventDefault()
-        if (rounds?.phase === 'revealed') next()
-        else confirmPin()
-      } else if (event.key === ' ' && open && placing) {
-        event.preventDefault()
-        dropAtCenter()
-      }
+  useGameKeys((event) => {
+    if (event.key === 'Enter') {
+      event.preventDefault()
+      if (rounds?.phase === 'revealed') next()
+      else confirmPin()
+    } else if (event.key === ' ' && open && placing) {
+      event.preventDefault()
+      dropAtCenter()
     }
-    window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
   })
 
   const score = results.reduce((sum, r) => sum + r.points, 0)
@@ -397,13 +393,4 @@ function announce(result: RoundResult, streak: number) {
     play('miss')
     vibrate(30)
   }
-}
-
-function isFormControl(target: EventTarget | null) {
-  return (
-    target instanceof HTMLButtonElement ||
-    target instanceof HTMLInputElement ||
-    target instanceof HTMLTextAreaElement ||
-    target instanceof HTMLSelectElement
-  )
 }

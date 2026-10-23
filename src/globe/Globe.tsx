@@ -3,6 +3,7 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { Suspense, useEffect, useMemo, useRef, type ComponentRef, type ReactNode } from 'react'
 import { SRGBColorSpace } from 'three'
 import type { LonLat } from '../geo/coords'
+import { keyBelongsElsewhere } from '../ui/useGameKeys'
 import { Atmosphere } from './Atmosphere'
 import { CAMERA_FOV, MAX_CAMERA_DISTANCE, MIN_CAMERA_DISTANCE } from './constants'
 import { lonLatToVector3, vector3ToLonLat } from './coords3d'
@@ -135,7 +136,8 @@ function KeyboardOrbit() {
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (isTyping(event.target)) return
+      // Arrow keys still turn the globe while an on-screen button has focus.
+      if (keyBelongsElsewhere(event, { buttonsToo: false })) return
       const radius = camera.position.length()
       const zoom = (radius - 1) / (MAX_CAMERA_DISTANCE - 1)
       const step = KEY_STEP_DEG * zoom
@@ -222,12 +224,4 @@ function CameraFit({ shift }: { shift: ViewShift }) {
     camera.updateProjectionMatrix()
   })
   return null
-}
-
-function isTyping(target: EventTarget | null): boolean {
-  return (
-    target instanceof HTMLInputElement ||
-    target instanceof HTMLTextAreaElement ||
-    target instanceof HTMLSelectElement
-  )
 }
