@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs'
 import { extname, relative, resolve } from 'node:path'
 import { Hono } from 'hono'
+import { bodyLimit } from 'hono/body-limit'
 import { serveStatic } from '@hono/node-server/serve-static'
 import type { ServerConfig } from './config'
 import { authRoutes } from './auth/routes'
@@ -12,6 +13,9 @@ import type { GeoData } from '../src/geo/facts'
 import type { Mail, Mailer } from './auth/mail'
 import type { OAuthProvider, OAuthProviderId } from './auth/oauth'
 import type { Database } from './db'
+
+/** The biggest request body: a profile is the largest thing sent, and is capped lower still. */
+export const MAX_API_BODY_BYTES = 600 * 1024
 
 export interface AppContext {
   config: ServerConfig
@@ -31,6 +35,14 @@ export function createApp(context: AppContext) {
   const app = new Hono()
   app.use('*', securityHeaders(context.config))
   app.use('/api/*', originGuard(context.config))
+  // Nothing the API accepts is large; refuse big bodies before reading them.
+  app.use(
+    '/api/*',
+    bodyLimit({
+      maxSize: MAX_API_BODY_BYTES,
+      onError: (c) => c.json({ error: 'That request is too large.' }, 413),
+    }),
+  )
 
   app.get('/health', (c) => c.text(`ok ${context.roomCount()} rooms`))
 

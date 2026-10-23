@@ -392,3 +392,115 @@ describe('deleting data', () => {
     expect(next.json.player.id).not.toBe(signed.json.player.id)
   })
 })
+
+describe('session safety', () => {
+  it('changes the session when someone signs in, so an old one stops working', async () => {
+    const attacker = browser()
+    await attacker.request('/api/session', { body: {} })
+    const planted = attacker.cookies.get('wg_session')!
+
+    // The victim is somehow holding the attacker's session, and signs in.
+    const victim = browser()
+    victim.cookies.set('wg_session', planted)
+    const signed = await signInByEmail(victim, 'ana@example.com')
+    expect(signed.json.account).toEqual({ email: 'ana@example.com' })
+    expect(victim.cookies.get('wg_session')).not.toBe(planted)
+
+    // What the attacker kept no longer gets into the account.
+    const stolen = await attacker.request('/api/profile')
+    expect(stolen.status).toBe(401)
+    const again = await attacker.request('/api/session', { body: {} })
+    expect(again.json.account).toBeNull()
+  })
+
+  it('limits how many guest sessions one address may start', async () => {
+    await server.close()
+    server = await startServer({
+      config: loadConfig(
+        {},
+        {
+          port: 0,
+          host: '127.0.0.1',
+          databasePath: join(dir, 'limited.sqlite'),
+          distDir: null,
+          newSessionsPerIpPerHour: 3,
+        },
+      ),
+      geo,
+      now: () => clock,
+      mailer: new DevMailer(() => {}),
+    })
+    for (let i = 0; i < 3; i++) {
+      expect((await browser().request('/api/session', { body: {} })).status).toBe(200)
+    }
+    expect((await browser().request('/api/session', { body: {} })).status).toBe(429)
+    // A returning visitor with a cookie is not a new session.
+    const returning = browser()
+    clock += 3_600_001
+    await returning.request('/api/session', { body: {} })
+    expect((await returning.request('/api/session', { body: {} })).status).toBe(200)
+  })
+
+  it('limits nickname changes', async () => {
+    const ana = browser()
+    await ana.request('/api/session', { body: {} })
+    let last = 200
+    for (let i = 0; i < 12; i++) {
+      last = (await ana.request('/api/nickname', { method: 'PUT', body: { nickname: `Ana${i}` } }))
+        .status
+    }
+    expect(last).toBe(429)
+  })
+
+  it('refuses a huge request before reading it', async () => {
+    const ana = browser()
+    await ana.request('/api/session', { body: {} })
+    const response = await ana.request('/api/nickname', {
+      method: 'PUT',
+      body: { nickname: 'x'.repeat(700_000) },
+    })
+    expect(response.status).toBe(413)
+  })
+
+  it('shows the development mailbox only to a developer on this machine', async () => {
+    const ana = browser()
+    const direct = await ana.request('/api/dev/mailbox')
+    expect(direct.status).toBe(200)
+    // Through a proxy the request carries a forwarded address, and the mailbox is hidden.
+    const proxied = await fetch(`http://127.0.0.1:${server.port}/api/dev/mailbox`, {
+      headers: { 'x-forwarded-for': '203.0.113.5' },
+    })
+    expect(proxied.status).toBe(404)
+  })
+})
+
+describe('guest cleanup', () => {
+  it('removes guests with nothing left to come back to, and keeps the rest', async () => {
+    const { openDatabase } = await import('./db')
+    const { AuthStore } = await import('./auth/store')
+    const db = openDatabase(':memory:')
+    let time = 1_000_000
+    const store = new AuthStore(db, () => time)
+    const forgotten = store.startAnonymous()
+    const active = store.startAnonymous()
+    const played = store.startAnonymous()
+    store.endSession(forgotten.token)
+    store.endSession(played.token)
+    db.prepare(
+      `INSERT INTO daily_sessions (player_id, number, puzzle, state, status, last_event, started)
+       VALUES (?, 1, 'five', '{}', 'open', 0, 0)`,
+    ).run(played.player.id)
+
+    // Too new to remove, even when forgotten.
+    expect(store.pruneAnonymous()).toBe(0)
+    time += 25 * 3_600_000
+    // Their sessions expire after 180 days; the active one is kept until then.
+    expect(store.pruneAnonymous()).toBe(1)
+    const ids = db
+      .prepare('SELECT id FROM players ORDER BY id')
+      .all()
+      .map((r) => r.id)
+    expect(ids.sort()).toEqual([active.player.id, played.player.id].sort())
+    expect(ids).not.toContain(forgotten.player.id)
+  })
+})

@@ -141,11 +141,10 @@ Work through these in order. Each item should end with tests and a focused commi
   no stored state; one per seven days in a row, two at most) and three weekly goals with XP
   (`src/game/profile/weekly.ts`, shown on the Daily screen). Scoring cutoffs, the GeoRush ramp,
   Journey par bands and Duel damage were not retuned: that needs real player data.
-- **Security.**
-  - CSP and security headers, and origin allowlists.
-  - Per-IP connection and room-creation caps.
-  - 5-letter room codes.
-  - Run the `security-review` skill.
+- **Security.** Done (see [security](security.md)): CSP and security headers, origin allowlists on
+  writes and the socket, per-address connection, room, join and message limits, five-letter room
+  codes, session rotation on sign-in, body limits, and an all-formats anti-cheat test. The
+  `security-review` skill could not run without a remote, so the diff was reviewed by hand.
 - **Operations.**
   - Docker and docker-compose, with Litestream tested against MinIO.
   - CI with a WebKit project.

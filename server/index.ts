@@ -11,9 +11,12 @@ import { DevMailer, ResendMailer, type Mailer } from './auth/mail'
 import { configuredProviders, type OAuthProvider, type OAuthProviderId } from './auth/oauth'
 import { DEFAULT_PORT, loadConfig, type ServerConfig } from './config'
 import { openDatabase } from './db'
+import { AuthStore } from './auth/store'
 import { attachRealtime } from './realtime'
 
 export { DEFAULT_PORT }
+
+const PRUNE_EVERY_MS = 3_600_000
 
 export function loadServerGeo(): GeoData {
   const read = <T>(file: string) =>
@@ -70,6 +73,8 @@ export async function startServer({
     server.once('error', reject)
   })
   realtime = attachRealtime(http, geo, { db, config, now })
+  const pruner = setInterval(() => new AuthStore(db, now).pruneAnonymous(), PRUNE_EVERY_MS)
+  pruner.unref()
   const address = http.address()
 
   return {
@@ -77,6 +82,7 @@ export async function startServer({
     config,
     close: () =>
       new Promise((resolve) => {
+        clearInterval(pruner)
         realtime?.close()
         http.close(() => {
           db.close()

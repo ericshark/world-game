@@ -34,6 +34,7 @@ export default defineConfig({
         // Sign-in links point at the page the tests open (the Vite server).
         PUBLIC_ORIGIN: `http://localhost:${PORT}`,
         MAGIC_LINKS_PER_IP_PER_HOUR: '1000',
+        NEW_SESSIONS_PER_IP_PER_HOUR: '100000',
       },
       url: `http://localhost:${BATTLE_SERVER_PORT}/health`,
       reuseExistingServer: false,

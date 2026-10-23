@@ -158,9 +158,14 @@ export class AuthStore {
   /**
    * Signs the session's player in to an account. The account's own player takes over the
    * session; a new account adopts the anonymous player, nickname and all. Returns the player
-   * now in use.
+   * now in use and a fresh session token: signing in always ends the old session, so a session
+   * planted in someone's browser beforehand is no use once they have signed in.
    */
-  signIn(sessionToken: string, current: PlayerRow, accountId: string): PlayerRow {
+  signIn(
+    sessionToken: string,
+    current: PlayerRow,
+    accountId: string,
+  ): { player: PlayerRow; token: string } {
     return this.transaction(() => {
       const existing = toPlayer(
         this.db
@@ -182,15 +187,31 @@ export class AuthStore {
           target = { id, nickname: null, accountId }
         }
       }
-      if (target.id !== current.id) {
-        this.db
-          .prepare('UPDATE sessions SET player_id = ? WHERE token_hash = ?')
-          .run(target.id, hashToken(sessionToken))
-        // An anonymous player left behind has nothing worth keeping once it is merged.
-        if (current.accountId === null) this.mergeAnonymous(current.id, target.id)
+      this.endSession(sessionToken)
+      // An anonymous player left behind has nothing worth keeping once it is merged.
+      if (target.id !== current.id && current.accountId === null) {
+        this.mergeAnonymous(current.id, target.id)
       }
-      return target
+      return { player: target, token: this.openSession(target.id) }
     })
+  }
+
+  /**
+   * Removes guests nobody can come back as: no session left, no results and no rating, and
+   * older than a day. Without this every page load by a bot would leave a row behind.
+   */
+  pruneAnonymous(): number {
+    const now = this.now()
+    this.db.prepare('DELETE FROM sessions WHERE expires <= ?').run(now)
+    const result = this.db
+      .prepare(
+        `DELETE FROM players WHERE account_id IS NULL AND created < ?
+           AND NOT EXISTS (SELECT 1 FROM sessions WHERE sessions.player_id = players.id)
+           AND NOT EXISTS (SELECT 1 FROM daily_sessions WHERE daily_sessions.player_id = players.id)
+           AND NOT EXISTS (SELECT 1 FROM ratings WHERE ratings.player_id = players.id)`,
+      )
+      .run(now - 24 * 3_600_000)
+    return Number(result.changes)
   }
 
   /** Moves an abandoned anonymous player's records to the player that replaces it. */

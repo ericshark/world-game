@@ -33,6 +33,8 @@ export function authRoutes(
   const secure = config.publicOrigin.startsWith('https:')
   const perEmail = new RateLimiter(3, 15 * 60_000, now)
   const perIp = new RateLimiter(config.magicLinksPerIpPerHour, 60 * 60_000, now)
+  const newSessions = new RateLimiter(config.newSessionsPerIpPerHour, 60 * 60_000, now)
+  const nicknameChanges = new RateLimiter(10, 60_000, now)
   const ipOf = (c: Context) =>
     clientIp(
       {
@@ -93,6 +95,9 @@ export function authRoutes(
   api.post('/session', (c) => {
     let current = signedIn(c)
     if (!current) {
+      // Each visit without a cookie makes a row, so one address may only make so many.
+      if (!newSessions.take(ipOf(c)))
+        return c.json({ error: 'Too many new sessions. Try later.' }, 429)
       current = store.startAnonymous()
       setSession(c, current.token)
     }
@@ -102,6 +107,9 @@ export function authRoutes(
   api.put('/nickname', async (c) => {
     const current = signedIn(c)
     if (!current) return c.json({ error: 'Start a session first.' }, 401)
+    if (!nicknameChanges.take(current.player.id)) {
+      return c.json({ error: 'Slow down: too many nickname changes.' }, 429)
+    }
     const checked = checkNickname((await body(c)).nickname)
     if (!checked.ok) return c.json({ error: checked.reason }, 400)
     current.player.nickname = store.setNickname(current.player.id, checked.name)
@@ -138,8 +146,9 @@ export function authRoutes(
     const email = typeof token === 'string' ? store.consumeMagicLink(token) : null
     if (!email) return c.json({ error: 'That link has expired or was already used.' }, 400)
     const account = store.accountFor({ email })
-    const player = store.signIn(current.token, current.player, account.id)
-    return me(c, { player, token: current.token })
+    const signed = store.signIn(current.token, current.player, account.id)
+    setSession(c, signed.token)
+    return me(c, signed)
   })
 
   // Sign-in with Google or GitHub
@@ -192,7 +201,7 @@ export function authRoutes(
           subject: identity.subject,
         },
       })
-      store.signIn(current.token, current.player, account.id)
+      setSession(c, store.signIn(current.token, current.player, account.id).token)
     } catch {
       return failure('failed')
     }
@@ -258,7 +267,15 @@ export function authRoutes(
 
   // The development mailbox shows sign-in emails that were never really sent.
   if (devMailbox) {
-    api.get('/dev/mailbox', (c) => c.json(devMailbox))
+    // Sign-in links in this list let whoever reads them sign in. It is for a developer on this
+    // machine: not reachable through a proxy, and never in production.
+    api.get('/dev/mailbox', (c) => {
+      const remote = getConnInfo(c).remote.address ?? ''
+      const loopback = ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(remote)
+      const proxied = c.req.header('x-forwarded-for') || c.req.header('cf-connecting-ip')
+      if (!loopback || proxied) return c.json({ error: 'Not found.' }, 404)
+      return c.json(devMailbox)
+    })
   }
 
   return { signedIn }

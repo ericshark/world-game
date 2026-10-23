@@ -9,6 +9,7 @@ import { journey } from '../src/game/modes/journey'
 import { mystery } from '../src/game/modes/mystery'
 import { dailyNumber } from '../src/game/profile/daily'
 import type { AppContext } from './app'
+import { RateLimiter } from './auth/rateLimit'
 import type { Authentication } from './auth/routes'
 
 /** Bump when a puzzle generator changes, so a published puzzle is never silently rewritten. */
@@ -258,6 +259,8 @@ export function parseEvent(
 
 export function dailyRoutes(api: Hono, context: AppContext, auth: Authentication) {
   const service = new DailyService({ ...context, secret: context.config.dailySecret })
+  // Playing needs a few moves a minute; this only stops a script hammering the database.
+  const moves = new RateLimiter(60, 10_000, context.now)
 
   const route = (puzzleId: string) => PUZZLES.find((p) => p === puzzleId) ?? null
 
@@ -276,6 +279,7 @@ export function dailyRoutes(api: Hono, context: AppContext, auth: Authentication
   api.post('/daily/:puzzle/send', async (c) => {
     const current = auth.signedIn(c)
     if (!current) return c.json({ error: 'Start a session first.' }, 401)
+    if (!moves.take(current.player.id)) return c.json({ error: 'Slow down.' }, 429)
     const puzzleId = route(c.req.param('puzzle'))
     const body = (await c.req.json().catch(() => ({}))) as { dateKey?: string; event?: unknown }
     if (!puzzleId) return c.json({ error: 'No such puzzle.' }, 404)

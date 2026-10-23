@@ -2,7 +2,10 @@ import type { Hono } from 'hono'
 import type { DailyPuzzle } from '../src/game/core/types'
 import { dailyNumber } from '../src/game/profile/daily'
 import type { AppContext } from './app'
+import { getConnInfo } from '@hono/node-server/conninfo'
+import { RateLimiter } from './auth/rateLimit'
 import type { Authentication } from './auth/routes'
+import { clientIp } from './security'
 import { dateAllowed } from './daily'
 
 export const BOARD_SIZE = 100
@@ -135,6 +138,20 @@ export class Leaderboards {
 
 export function leaderboardRoutes(api: Hono, context: AppContext, auth: Authentication) {
   const boards = new Leaderboards(context.db)
+  // The boards are queries over every result; one address may ask for them this often.
+  const reads = new RateLimiter(120, 60_000, context.now)
+  api.use('/leaderboards/*', async (c, next) => {
+    const ip = clientIp(
+      {
+        'cf-connecting-ip': c.req.header('cf-connecting-ip'),
+        'x-forwarded-for': c.req.header('x-forwarded-for'),
+      },
+      getConnInfo(c).remote.address,
+      context.config.trustProxy,
+    )
+    if (!reads.take(ip)) return c.json({ error: 'Slow down.' }, 429)
+    await next()
+  })
   const who = (c: Parameters<Authentication['signedIn']>[0]) => auth.signedIn(c)?.player.id ?? null
 
   api.get('/leaderboards/daily', (c) => {
