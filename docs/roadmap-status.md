@@ -50,7 +50,7 @@ Where the three-phase launch roadmap stands, and how to carry on. The full plan 
 - **Tour:** a guided first game (`src/game/modes/tutorial.ts`, `#/tour`).
 - **Shared code:** `useRecordedGame` and `Crosshair`.
 
-### Phase 2 so far
+### Phase 2 (done so far)
 
 - **Server correctness:**
   - An unknown answer id no longer crashes the server.
@@ -89,7 +89,8 @@ Where the three-phase launch roadmap stands, and how to carry on. The full plan 
     `/api/dev/mailbox`), Google and GitHub through `arctic` (on only when their env vars are set,
     tested against a mock), versioned profile sync with a keep-cloud or use-device choice, and a
     Settings account section with sign out and "delete my online data".
-  - In dev, set `PUBLIC_ORIGIN` to the Vite address so emailed links open the app.- **Ranked dailies** (`server/daily.ts`, `src/app/useRemoteSession.ts`, `useGameSession.ts`):
+  - In dev, set `PUBLIC_ORIGIN` to the Vite address so emailed links open the app.
+- **Ranked dailies** (`server/daily.ts`, `src/app/useRemoteSession.ts`, `useGameSession.ts`):
   - `ModeRules.viewFor` for the Daily Five, Mystery and Journey; `daily.start` takes its seed from
     its params. Server sessions are stored in `daily_sessions`, with timing flags and counts of
     Rare Earth answers (`daily_answers`); the reveal shows real "% of players" from 30 answers.
@@ -97,16 +98,24 @@ Where the three-phase launch roadmap stands, and how to carry on. The full plan 
     server the daily is "Offline practice — not ranked". The e2e daily tests now play today's
     real date, because the server checks it.
 
+- **Quick Duel** (`server/matchmaking.ts`, `glicko2.ts`, `ratings.ts`, `#/room/QUICK`):
+  - Queue with a widening window, a bot offer after 20 s, Glicko-2 ratings (paper example in
+    `glicko2.test.ts`), and unrated same-IP, same-account and repeat pairings. The results screen
+    shows the rating change or the reason it did not count.
+  - The WebSocket now reads the session cookie, so queueing needs a session.
+- **Leaderboards** (`server/leaderboards.ts`, `src/screens/LeaderboardScreen.tsx`, `#/leaderboards`):
+  - Daily top 100 per puzzle with your rank and percentile, the duel ladder (5 or more games), and
+    all-time Daily Five averages (7 or more plays). Flagged results are excluded. Without a server
+    the screen says why it is empty. The Daily results show "Ranked #N … you beat X%".
+
+## Still to do
+
 Work through these in order. Each item should end with tests and a focused commit.
 
 ### Phase 2
 
-6. **E2E.**
-   - Quick Duel between two contexts.
-   - A ranked Daily, and a second attempt refused.
-   - (Done in `e2e/account.spec.ts`: magic-link sign-in with sync to a second context.)
-   - The leaderboard.
-   - Then run the full suite and tag `phase-2`.
+6. **Full checks and tag.** The e2e specs are written (`account`, `ranked`, `quickduel`). Run the
+   whole suite, then tag `phase-2`.
 
 ### Phase 3
 
