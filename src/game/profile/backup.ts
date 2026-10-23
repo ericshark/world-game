@@ -1,5 +1,6 @@
 import { loadProfile, saveProfile, type Profile } from './profile'
 import { loadPreferences, savePreferences, type Preferences } from './settings'
+import { MAX_PROFILE_BYTES } from './sanitize'
 import { memoryStorage } from './storage'
 
 const FORMAT = 'world-game-backup'
@@ -15,6 +16,7 @@ export function createBackup(profile: Profile, preferences: Preferences): string
  * World Game backup at all.
  */
 export function readBackup(text: string): { profile: Profile; preferences: Preferences } | null {
+  if (text.length > MAX_PROFILE_BYTES) return null
   let data: unknown
   try {
     data = JSON.parse(text)

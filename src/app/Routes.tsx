@@ -212,6 +212,8 @@ function CurrentRoute({ route }: { route: Route }) {
       return <PassportScreen onClose={home} />
     case 'tour':
       return <TutorialGame onHome={home} />
+    case 'crash':
+      throw new Error('Crash test (development only)')
     case 'leaderboards':
       return (
         <>

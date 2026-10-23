@@ -9,6 +9,7 @@ import { CAMERA_FOV, MAX_CAMERA_DISTANCE, MIN_CAMERA_DISTANCE } from './constant
 import { lonLatToVector3, vector3ToLonLat } from './coords3d'
 import { LatLonGrid } from './LatLonGrid'
 import { isAutomated, prefersSmallTextures, textureUrl, type Surface } from './textures'
+import { type ContextState, watchContextLoss } from './contextLoss'
 import { useGlobePicking } from './useGlobePicking'
 
 /** OrbitControls rotate speed when fully zoomed out; it shrinks as the camera gets closer. */
@@ -39,6 +40,8 @@ interface GlobeProps {
   shift?: ViewShift
   /** Atmosphere colour on the day globe. */
   glow?: string
+  /** Told when the graphics context is lost and when it comes back. */
+  onContextChange?: (state: ContextState) => void
   children?: ReactNode
 }
 
@@ -51,12 +54,20 @@ export function Globe({
   centerRef,
   shift = NO_SHIFT,
   glow,
+  onContextChange,
   children,
 }: GlobeProps) {
   return (
     <Canvas
       // Draw only when something changed or is animating, so an idle globe costs no battery.
       frameloop="demand"
+      onCreated={({ gl, invalidate }) => {
+        if (!onContextChange) return
+        watchContextLoss(gl.domElement, (state) => {
+          onContextChange(state)
+          if (state === 'ok') invalidate()
+        })
+      }}
       dpr={isAutomated() ? 1 : [1, 2]}
       camera={{ fov: CAMERA_FOV, near: 0.01, far: 1000, position: [0, 0, MAX_CAMERA_DISTANCE] }}
     >

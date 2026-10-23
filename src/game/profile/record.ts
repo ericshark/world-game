@@ -6,7 +6,8 @@ import type { DailyRecord, Profile } from './profile'
 import { recordAttempt } from './stats'
 import { levelForXp, sessionXp, XP_PER_ACHIEVEMENT } from './xp'
 
-export const HISTORY_LIMIT = 300
+export { HISTORY_LIMIT } from './sanitize'
+import { HISTORY_LIMIT } from './sanitize'
 
 /**
  * Adds a revealed round's outcomes to the per-country stats. Done round by round, so a game the

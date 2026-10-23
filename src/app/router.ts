@@ -16,6 +16,8 @@ export type Route =
   | { name: 'settings' }
   | { name: 'tour' }
   | { name: 'leaderboards' }
+  /** Development only: throws, to check the crash screen. */
+  | { name: 'crash' }
   | { name: 'signin'; token: string }
 
 export const MODE_KEYS: readonly ModeKey[] = [
@@ -35,6 +37,7 @@ export function parseRoute(hash: string): Route {
   const mode = MODE_KEYS.find((key) => key === second)
   if ((first === 'setup' || first === 'play') && mode) return { name: first, mode }
   if (first === 'challenge' && second) return { name: 'challenge', token: second }
+  if (import.meta.env.DEV && first === 'crash') return { name: 'crash' }
   if (first === 'online') return { name: 'online' }
   if (first === 'signin' && second) return { name: 'signin', token: second }
   if (first === 'room' && /^[A-Za-z]{3,5}$/.test(second ?? '')) {

@@ -15,6 +15,7 @@ import { useToasts } from './ui/useToasts'
 export default function App() {
   const [geo, setGeo] = useState<GeoData | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
+  const [attempt, setAttempt] = useState(0)
   const [globe, setGlobe] = useState({ progress: 0, ready: false })
   const onGlobeLoad = useCallback(
     (progress: number, ready: boolean) =>
@@ -31,10 +32,14 @@ export default function App() {
   const reducedMotion = useResolvedReducedMotion(stored.preferences.motion)
 
   useEffect(() => {
+    let current = true
     loadGeoData()
-      .then(setGeo)
-      .catch((error: unknown) => setLoadError(String(error)))
-  }, [])
+      .then((data) => current && setGeo(data))
+      .catch((error: unknown) => current && setLoadError(String(error)))
+    return () => {
+      current = false
+    }
+  }, [attempt])
 
   const services = useMemo<AppServices | null>(
     () => (geo ? { geo, navigate, account, ...stored } : null),
@@ -64,7 +69,15 @@ export default function App() {
           )}
         </GlobeStageProvider>
         <Toasts toasts={toasts.toasts} onDismiss={toasts.dismiss} />
-        <LoadingOverlay dataReady={geo !== null} globe={globe} error={loadError} />
+        <LoadingOverlay
+          dataReady={geo !== null}
+          globe={globe}
+          error={loadError}
+          onRetry={() => {
+            setLoadError(null)
+            setAttempt((n) => n + 1)
+          }}
+        />
       </div>
     </ReducedMotionContext.Provider>
   )

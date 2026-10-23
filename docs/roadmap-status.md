@@ -122,10 +122,11 @@ Work through these in order. Each item should end with tests and a focused commi
 - **Performance.** Done (see [performance](performance.md)): code splitting with a lazy 3D
   chunk, on-demand rendering, a 2048 overlay with incremental paint on phones, hashed and brotli
   assets with cache headers. KTX2 was not tried.
-- **Robustness.**
-  - Error boundaries, a "3D unavailable" fallback, and recovery from WebGL context loss.
-  - Retry when loading fails.
-  - Deep validation of saved and imported profiles, with a size cap.
+- **Robustness.** Done: an app-level error page with an error id (`src/ui/ErrorBoundary.tsx`), a
+  "3D unavailable" notice when WebGL is missing or the scene fails, WebGL context-loss recovery,
+  a Try again button when the data cannot load, and entry-by-entry validation of saved, imported
+  and cloud profiles with a size cap (`src/game/profile/sanitize.ts`). Tested in
+  `e2e/robustness.spec.ts`. `#/crash` (development only) throws on purpose for that test.
 - **Polish and accessibility.**
   - A pass over phone landscape and tablet sizes, plus `viewport-fit=cover` and `dvh`.
   - Axe audits.

@@ -1,6 +1,7 @@
 import { useState, type ChangeEvent } from 'react'
 import { useApp } from '../app/AppContext'
 import { createBackup, readBackup } from '../game/profile/backup'
+import { MAX_PROFILE_BYTES } from '../game/profile/sanitize'
 import { play } from '../audio/sound'
 import { Choice, Switch } from '../ui/controls'
 import { Sheet } from '../ui/Sheet'
@@ -28,6 +29,10 @@ export function SettingsScreen({ onClose }: { onClose: () => void }) {
     const file = event.target.files?.[0]
     event.target.value = ''
     if (!file) return
+    if (file.size > MAX_PROFILE_BYTES) {
+      setRestoreMessage('That file is too large to be a World Game backup.')
+      return
+    }
     const backup = readBackup(await file.text())
     if (!backup) {
       setRestoreMessage('That file is not a World Game backup.')

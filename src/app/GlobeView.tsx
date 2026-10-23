@@ -16,6 +16,7 @@ import {
 } from '../game/profile/cosmetics'
 import type { Cosmetics } from '../game/profile/profile'
 import { type CountryPaint, type GlobeScene, type PulseSpec } from '../globe/scene'
+import type { ContextState } from '../globe/contextLoss'
 import type { Surface } from '../globe/textures'
 
 export interface GlobeViewProps {
@@ -31,6 +32,7 @@ export interface GlobeViewProps {
   centerRef: RefObject<(() => LonLat) | null>
   /** Reports how far the first load has got, and whether the Earth is ready to look at. */
   onLoad: (progress: number, ready: boolean) => void
+  onContextChange: (state: ContextState) => void
 }
 
 /**
@@ -49,6 +51,7 @@ export default function GlobeView({
   onPick,
   centerRef,
   onLoad,
+  onContextChange,
 }: GlobeViewProps) {
   const pinColor = cosmeticById(PIN_SKINS, looks.pin).color
   const pinShape = pinShapeOf(looks.shape)
@@ -63,6 +66,7 @@ export default function GlobeView({
       centerRef={centerRef}
       shift={shift}
       glow={cosmeticById(GLOWS, looks.glow).color}
+      onContextChange={onContextChange}
     >
       <LoadReporter onLoad={onLoad} />
       <CameraRig focus={focus} />

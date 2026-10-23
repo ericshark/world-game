@@ -1,4 +1,4 @@
-import { lazy, Suspense, useMemo, useRef, useState, type ReactNode } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import type { LonLat } from '../geo/coords'
 import type { GeoData } from '../geo/facts'
 import type { CameraFocus } from '../globe/CameraRig'
@@ -6,6 +6,8 @@ import type { Cosmetics } from '../game/profile/profile'
 import { EMPTY_SCENE } from '../globe/scene'
 import type { Surface } from '../globe/textures'
 import type { ViewShift } from '../globe/Globe'
+import { webglSupported, type ContextState } from '../globe/contextLoss'
+import { ErrorBoundary } from '../ui/ErrorBoundary'
 import { GlobeStageContext, type GlobeStage } from './globeStage'
 
 // three.js and the globe are big; they download in a chunk of their own.
@@ -36,6 +38,8 @@ export function GlobeStageProvider({
   const pickRef = useRef<((point: LonLat) => void) | null>(null)
   const centerRef = useRef<(() => LonLat) | null>(null)
   const sceneKey = useRef(JSON.stringify(EMPTY_SCENE))
+  const [context, setContext] = useState<ContextState>('ok')
+  const [supported] = useState(webglSupported)
 
   const stage = useMemo<GlobeStage>(
     () => ({
@@ -63,23 +67,81 @@ export function GlobeStageProvider({
   return (
     <GlobeStageContext.Provider value={stage}>
       <div className="stage">
-        <Suspense fallback={null}>
-          <GlobeView
-            geo={geo}
-            showGrid={showGrid}
-            looks={looks}
-            scene={scene}
-            surface={surface}
-            autoRotate={autoRotate}
-            shift={shift}
-            focus={focus}
-            onPick={(point) => pickRef.current?.(point)}
-            centerRef={centerRef}
-            onLoad={onLoad}
-          />
-        </Suspense>
+        {supported ? (
+          <ErrorBoundary
+            fallback={() => <GlobeNotice kind="unavailable" onShown={() => onLoad(100, true)} />}
+          >
+            <Suspense fallback={null}>
+              <GlobeView
+                geo={geo}
+                showGrid={showGrid}
+                looks={looks}
+                scene={scene}
+                surface={surface}
+                autoRotate={autoRotate}
+                shift={shift}
+                focus={focus}
+                onPick={(point) => pickRef.current?.(point)}
+                centerRef={centerRef}
+                onLoad={onLoad}
+                onContextChange={setContext}
+              />
+            </Suspense>
+          </ErrorBoundary>
+        ) : (
+          <GlobeNotice kind="unavailable" onShown={() => onLoad(100, true)} />
+        )}
+        {context === 'lost' && <GlobeNotice kind="lost" />}
       </div>
       {children}
     </GlobeStageContext.Provider>
+  )
+}
+
+/**
+ * Explains a missing or stalled globe. The menus keep working either way; a lost graphics
+ * context usually comes back by itself, and a reload is offered if it does not.
+ */
+function GlobeNotice({
+  kind,
+  onShown,
+}: {
+  kind: 'unavailable' | 'lost'
+  /** Without a globe there is nothing to wait for: the loading screen can go. */
+  onShown?: () => void
+}) {
+  const [waited, setWaited] = useState(false)
+  useEffect(() => onShown?.(), [onShown])
+  useEffect(() => {
+    if (kind !== 'lost') return
+    const timer = window.setTimeout(() => setWaited(true), 4000)
+    return () => window.clearTimeout(timer)
+  }, [kind])
+  return (
+    <div className="globe-notice" role="alert">
+      {kind === 'unavailable' ? (
+        <p>
+          The 3D globe is not available in this browser or on this device, so games that need it
+          cannot be played here. Try another browser, or turn on hardware acceleration.
+        </p>
+      ) : (
+        <p>
+          The globe lost its graphics connection, which can happen when a device runs low on memory.
+          Trying to bring it back…
+          {waited && (
+            <>
+              {' '}
+              <button
+                type="button"
+                className="button button--link"
+                onClick={() => window.location.reload()}
+              >
+                Reload the page
+              </button>
+            </>
+          )}
+        </p>
+      )}
+    </div>
   )
 }

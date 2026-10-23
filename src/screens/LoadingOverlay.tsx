@@ -8,11 +8,13 @@ export function LoadingOverlay({
   dataReady,
   globe,
   error,
+  onRetry,
 }: {
   dataReady: boolean
   /** The 3D scene's first load: how far it has got, and whether the Earth is ready. */
   globe: { progress: number; ready: boolean }
   error: string | null
+  onRetry: () => void
 }) {
   const [done, setDone] = useState(false)
   if (!done && globe.ready && dataReady && !error) setDone(true)
@@ -21,7 +23,12 @@ export function LoadingOverlay({
   return (
     <div className="loading" role="status">
       {error ? (
-        <p className="error">Could not load the game: {error}</p>
+        <>
+          <p className="error">Could not load the game: {error}</p>
+          <button type="button" className="button button--primary" onClick={onRetry}>
+            Try again
+          </button>
+        </>
       ) : (
         <>
           <p className="loading__title">World Game</p>

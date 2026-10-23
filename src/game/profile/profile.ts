@@ -1,5 +1,15 @@
 import type { ModeId, Skill } from '../core/types'
 import type { CountryStats, StatsByCountry } from './stats'
+import {
+  isObject,
+  sanitizeBests,
+  sanitizeCosmeticPicks,
+  sanitizeCountries,
+  sanitizeDaily,
+  sanitizeHistory,
+  sanitizeTimes,
+  sanitizeXp,
+} from './sanitize'
 import { memoryStorage, readJson, removeKey, writeJson, type JsonStorage } from './storage'
 
 const PROFILE_KEY = 'world-game:profile:v2'
@@ -79,19 +89,17 @@ export function emptyProfile(): Profile {
 export function loadProfile(storage?: JsonStorage): Profile {
   const saved = readJson<Partial<Profile> | null>(PROFILE_KEY, null, storage)
   if (isObject(saved) && saved.version === 2) {
-    // Fields added after the first v2 release default to empty.
+    // Every part is checked entry by entry; whatever is damaged is dropped.
     return {
       version: 2,
-      countries: isObject(saved.countries) ? saved.countries : {},
-      bests: isObject(saved.bests) ? saved.bests : {},
-      history: Array.isArray(saved.history) ? saved.history : [],
-      xp: typeof saved.xp === 'number' && saved.xp >= 0 ? saved.xp : 0,
-      achievements: isObject(saved.achievements) ? saved.achievements : {},
-      masteredAt: isObject(saved.masteredAt) ? saved.masteredAt : {},
-      daily: isObject(saved.daily) ? saved.daily : {},
-      cosmetics: isObject(saved.cosmetics)
-        ? { ...DEFAULT_COSMETICS, ...(saved.cosmetics as Partial<Cosmetics>) }
-        : DEFAULT_COSMETICS,
+      countries: sanitizeCountries(saved.countries),
+      bests: sanitizeBests(saved.bests),
+      history: sanitizeHistory(saved.history),
+      xp: sanitizeXp(saved.xp),
+      achievements: sanitizeTimes(saved.achievements),
+      masteredAt: sanitizeTimes(saved.masteredAt, 400),
+      daily: sanitizeDaily(saved.daily),
+      cosmetics: { ...DEFAULT_COSMETICS, ...sanitizeCosmeticPicks(saved.cosmetics) },
     }
   }
   return migrateLegacyStats(readJson<unknown>(LEGACY_STATS_KEY, null, storage))
@@ -136,8 +144,4 @@ function migrateLegacyStats(legacy: unknown): Profile {
     }
   }
   return profile
-}
-
-function isObject(value: unknown): value is Record<string, never> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
 }

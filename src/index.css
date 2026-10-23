@@ -2799,3 +2799,20 @@ input {
   font-variant-numeric: tabular-nums;
   font-weight: 600;
 }
+
+.globe-notice {
+  position: absolute;
+  inset: auto 16px calc(16px + var(--safe-bottom, 0px)) 16px;
+  z-index: 40;
+  max-width: 520px;
+  margin: 0 auto;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  background: rgb(10 14 26 / 0.92);
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.globe-notice p {
+  margin: 0;
+}
