@@ -33,7 +33,8 @@ highlighted, how far off they were, and their score.
 - **10 rounds** per game, max **10,000** points. No country repeats within a game.
   If a region's pool is smaller than 10 (e.g. Oceania without micro-states), the game uses the whole pool.
 - **Enter** confirms the pin and moves to the next round.
-- **No timer** in v1 (possible future "hard" option).
+- **No timer**, except on Hard (20 s a round; see Pinpoint options). Every clock stops while
+  "How to play" is open.
 
 ### Scoring
 
@@ -124,6 +125,10 @@ show in the HUD, and personal bests are kept per setup.
   streak.
 - Targets come from four difficulty bands, and the band rises every 5 hits.
 - Sudden death has no clock and no skips; the first miss ends the run.
+- Night Earth is an option, with its own personal best.
+- The clock is a ring in the HUD, ticking through the last 10 s. A combo meter shows the
+  multiplier and how many hits in a row raise it, and the fanfare plays at each step.
+- After a run, every miss can be reviewed on the globe.
 
 ## Rare Earth
 
@@ -139,22 +144,26 @@ show in the HUD, and personal bests are kept per setup.
 
 ## Mystery Country
 
-- Guess any country by typing or tapping. Each guess shows its border-to-border distance and a
-  bearing, and is painted from cold to hot.
+- Guess any country by typing, tapping, or with the crosshair and Space. Each guess shows its
+  border-to-border distance and a bearing, and is painted from cold to hot. The latest guess
+  pulses and an arrow on the globe points from it towards the answer (500–1,500 km long, never
+  reaching it). The globe turns to show typed guesses.
 - Score: 1,000 for the first guess, minus 100 per extra guess, with a minimum of 100. After 6
   guesses the continent can be revealed, which costs 2 guesses.
 - Normal excludes micro-states; Hard includes everything.
 
 ## World Journey
 
-- Move by tapping the next country and pressing Go. A land border costs 1 step, and a sea crossing
+- Move by tapping (or typing) the next country and pressing Go. A land border costs 1 step, and a sea crossing
   to a coast within 500 km costs 2. Tapping an unconnected or forbidden country is a misstep (+1),
   and "Show connections" costs +1.
 - Par is the cheapest route, computed with Dijkstra over the travel graph and the expedition's
   rules. Score: 1,000 at par, minus 150 per step over, with a minimum of 100. Stars: 3 at par, 2
   within par + 2, and 1 for finishing.
-- Quick journeys pick a pair with par 5–9. The 8 expeditions add rules: countries to avoid,
-  coastal-only routes, and waypoints to visit.
+- Quick journeys pick a pair with par 5–9. The 11 expeditions add rules: countries to avoid,
+  coastal-only routes, and waypoints to visit. A test checks that every one can be finished.
+- Start and goal are labelled on the globe, and each arrival pulses.
+- Expedition stars become **stamps** in the Passport.
 
 ## Daily World
 
@@ -163,7 +172,10 @@ show in the HUD, and personal bests are kept per setup.
   the version, and a golden test guards it.
 - **Daily Five** (the main daily, which drives the streak): find a tier 1–2 country, name a tier
   2–3 country, a Rare Earth category, a tier 2–4 capital, and a tier 4–5 finale. Saturdays are
-  played at night, and Sundays end on a micro-state. One attempt, scored out of 5,000.
+  played at night, and Sundays end on a micro-state. One attempt, scored out of 5,000. Each round
+  shows a one-line chip saying how it works.
+- **One attempt** means one: every puzzle is saved after each move, and leaving part-way resumes it
+  rather than starting over.
 - **Bonus dailies:** a Mystery Country (Normal) and a World Route (a quick journey, World).
 - **Hub:** the streak (a day without the Daily Five breaks it; yesterday still counts until
   today's puzzle is played), a countdown, a four-week calendar and a score distribution.
@@ -220,7 +232,12 @@ show in the HUD, and personal bests are kept per setup.
   Explorer (60), Navigator (100), Cartographer (150), Atlas (197).
 - **XP per game:** 60 + 140 × performance + 20 per newly mastered country + 50 per achievement
   - 50 for a daily. Level L needs 100 × L × (L − 1) XP in total.
-- **Cosmetics** (pin colours and atmosphere glows) unlock by level and are purely visual.
+- **Looks** (28 in all) are purely visual. Pin colours, pin shapes, arc trails (dashed, comet,
+  rainbow) and atmosphere glows unlock by level or by particular achievements. Titles are earned
+  by achievements.
+- **Toasts** announce achievements, level-ups, new looks and countries mastered mid-game.
+- **Next goal:** the home screen names the nearest target: completing a region, the next explorer
+  rank, or the next level.
 - **Achievements:** 34 pure checks over the profile and the finished game.
 - **Challenge links** encode the mode, setup, seed and score in the URL hash, so a friend plays
   the same game against your score.
@@ -236,6 +253,12 @@ show in the HUD, and personal bests are kept per setup.
 - Keyboard play: arrow keys turn the globe, +/− zoom, Space drops a pin at the screen centre,
   Enter confirms.
 - Phones get a bottom-sheet layout, a wider field of view in portrait, and 4096-wide textures.
+  The answer panel stays above the on-screen keyboard.
+- **Globe scenes** hold paints, pins, arcs, labelled markers (capitals, journey ends) and brief
+  country pulses. The player's own pins and arcs carry their chosen looks.
+- **Tour:** new players are offered a one-minute guided game, which teaches spinning, zooming,
+  placing and confirming with tips that suit touch, mouse or crosshair. It can be replayed from
+  Settings.
 
 ## Out of scope for v1 (possible later)
 
