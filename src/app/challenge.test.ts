@@ -22,4 +22,24 @@ describe('challenge links', () => {
       ),
     ).toBeNull()
   })
+
+  it('rejects modes that do not exist, including inherited object keys', () => {
+    for (const mode of ['constructor', 'toString', '__proto__', 'chess']) {
+      const token = encodeChallenge({ mode: mode as 'rush', seed: 's', config: {}, score: 1 })
+      expect(decodeChallenge(token)).toBeNull()
+    }
+  })
+
+  it('rejects impossible scores', () => {
+    for (const score of [-1, Infinity, NaN, 1e12]) {
+      const token = encodeChallenge({ mode: 'rush', seed: 's', config: {}, score })
+      expect(decodeChallenge(token)).toBeNull()
+    }
+  })
+
+  it('encode large setups without overflowing the stack', () => {
+    const config = { notes: 'x'.repeat(300_000) }
+    const token = encodeChallenge({ mode: 'pinpoint', seed: 's', config, score: 5 })
+    expect(decodeChallenge(token)?.config).toEqual(config)
+  })
 })

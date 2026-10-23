@@ -186,7 +186,7 @@ function PlayMode({ mode, ...props }: GameProps & { mode: ModeKey }) {
 function ChallengeRoute({ token, onHome }: { token: string; onHome: () => void }) {
   const [accepted, setAccepted] = useState(false)
   const link = decodeChallenge(token)
-  const mode = link && link.mode in SCREENS ? SCREENS[link.mode] : null
+  const mode = link ? SCREENS[link.mode] : null
   if (!link || !mode) {
     return (
       <>

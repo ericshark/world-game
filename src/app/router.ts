@@ -15,7 +15,7 @@ export type Route =
   | { name: 'daily-play'; puzzle: DailyPuzzle }
   | { name: 'settings' }
 
-const MODE_KEYS: readonly ModeKey[] = [
+export const MODE_KEYS: readonly ModeKey[] = [
   'pinpoint',
   'rush',
   'rare-earth',

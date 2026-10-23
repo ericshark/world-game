@@ -1,5 +1,5 @@
 import { createContext, useContext } from 'react'
-import { routeHash, type ModeKey } from './router'
+import { MODE_KEYS, routeHash, type ModeKey } from './router'
 
 /**
  * A shareable challenge: the same mode, setup and seed, so a friend plays the identical game,
@@ -12,13 +12,16 @@ export interface ChallengeLink {
   score: number
 }
 
+/** Comfortably above any real score; anything larger came from an edited link. */
+const MAX_SCORE = 1_000_000
+
 export function encodeChallenge(link: ChallengeLink): string {
   const json = JSON.stringify({ m: link.mode, s: link.seed, c: link.config, p: link.score })
   const bytes = new TextEncoder().encode(json)
-  return btoa(String.fromCharCode(...bytes))
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_')
-    .replace(/=+$/, '')
+  // Byte by byte: spreading a long array into fromCharCode can overflow the call stack.
+  let binary = ''
+  for (const byte of bytes) binary += String.fromCharCode(byte)
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
 }
 
 /** The challenge in a link, or null if it is damaged. The config still needs sanitising. */
@@ -27,10 +30,11 @@ export function decodeChallenge(token: string): ChallengeLink | null {
     const base64 = token.replace(/-/g, '+').replace(/_/g, '/')
     const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0))
     const data = JSON.parse(new TextDecoder().decode(bytes)) as Record<string, unknown>
-    if (typeof data.m !== 'string' || typeof data.s !== 'string' || typeof data.p !== 'number') {
-      return null
-    }
-    return { mode: data.m as ModeKey, seed: data.s, config: data.c ?? {}, score: data.p }
+    const mode = MODE_KEYS.find((key) => key === data.m)
+    const score = data.p
+    if (!mode || typeof data.s !== 'string' || typeof score !== 'number') return null
+    if (!Number.isFinite(score) || score < 0 || score > MAX_SCORE) return null
+    return { mode, seed: data.s, config: data.c ?? {}, score: Math.round(score) }
   } catch {
     return null
   }
