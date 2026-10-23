@@ -13,6 +13,7 @@ import { HowToPlay, type HowToStep } from '../../ui/HowToPlay'
 import { Hud } from '../../ui/Hud'
 import { ResultCard } from '../../ui/ResultCard'
 import { ResultsScreen } from '../../ui/ResultsScreen'
+import { CoachMark, type CoachStep } from '../../ui/CoachMark'
 import { TimerBar } from '../../ui/TimerBar'
 import { useGameKeys } from '../../ui/useGameKeys'
 import { useApp } from '../AppContext'
@@ -34,6 +35,14 @@ import { detailOf, roundRow, verdictOf } from './text'
 
 /** Auto-submits a timed round's pin this long before time runs out. */
 const AUTO_SUBMIT_LEAD_MS = 150
+
+/** Where the player is in a round, for guided-tour tips. */
+export interface CoachMoment {
+  round: number
+  phase: RoundsState<Challenge>['phase']
+  hasPin: boolean
+  challenge: Challenge
+}
 
 /** Any mode that plays as a sequence of rounds. */
 export interface RoundModeState {
@@ -64,6 +73,8 @@ export interface RoundGameProps<Config, State extends RoundModeState> {
   daily?: DailyGame
   /** A one-line reminder of how to play this round, for games that mix kinds of round. */
   roundTip?: (challenge: Challenge, round: number) => string
+  /** Guided-tour tips for each moment of the game, with a way to leave the tour. */
+  coach?: { stepFor: (moment: CoachMoment) => CoachStep | null; onSkip: () => void }
   tiles: (results: RoundResult[], units: Units) => { label: string; value: string }[]
   onChangeSetup: () => void
   onHome: () => void
@@ -81,7 +92,7 @@ export function RoundGame<Config, State extends RoundModeState>(
   const app = useApp()
   const { geo, preferences } = app
   const stage = useGameStage({ night: props.night })
-  const intro = useIntro(props.introKey)
+  const intro = useIntro(props.introKey, props.howTo.length > 0)
   const [draftPin, setDraftPin] = useState<LonLat | null>(null)
   const draftRef = useRef<LonLat | null>(null)
   const [answerId, setAnswerId] = useState<string | null>(null)
@@ -282,6 +293,13 @@ export function RoundGame<Config, State extends RoundModeState>(
   if (!challenge) return null
 
   const used = new Set(results.flatMap((r) => (r.kind === 'category' ? [r.answerId] : [])))
+  const coachStep =
+    props.coach?.stepFor({
+      round: rounds.round,
+      phase: rounds.phase,
+      hasPin: draftPin !== null,
+      challenge,
+    }) ?? null
   const timer = roundTimeMs !== null && open && rounds.deadline !== null && (
     <TimerBar deadline={rounds.deadline} totalMs={roundTimeMs} pausedAt={rounds.pausedAt} tick />
   )
@@ -293,7 +311,7 @@ export function RoundGame<Config, State extends RoundModeState>(
         progress={`Round ${rounds.round + 1} / ${rounds.challenges.length}`}
         score={score}
         streak={trailingHits(results)}
-        onHelp={intro.show}
+        onHelp={props.howTo.length > 0 ? intro.show : undefined}
         onQuit={props.onHome}
       />
 
@@ -323,6 +341,7 @@ export function RoundGame<Config, State extends RoundModeState>(
       <Crosshair active={placing && open} />
 
       <div className="action-bar">
+        {coachStep && <CoachMark step={coachStep} onSkip={props.coach!.onSkip} />}
         {result ? (
           <ResultCard
             grade={gradeOf(result)}
@@ -347,7 +366,7 @@ export function RoundGame<Config, State extends RoundModeState>(
             hintUsed={hintUsed}
             suggestions={suggestions}
             usedAnswers={used}
-            coach={firstGame && rounds.round === 0}
+            coach={!props.coach && firstGame && rounds.round === 0}
             onAnswer={(id) => {
               if (challenge.kind === 'identify') submit({ answerId: id })
               else {

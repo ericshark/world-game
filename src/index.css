@@ -1279,9 +1279,75 @@ input {
   color: var(--accent);
 }
 
+.goal--tour {
+  padding: 4px 4px 4px 12px;
+  border-color: rgb(90 169 255 / 0.4);
+  background: rgb(90 169 255 / 0.08);
+  cursor: default;
+}
+
+.goal--tour .icon {
+  color: #5aa9ff;
+}
+
+.goal__main {
+  flex: 1;
+  padding: 6px 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
 .goal__label {
   color: var(--text);
   font-weight: 700;
+}
+
+/* Guided tour */
+.coach {
+  position: relative;
+  margin: 0 0 10px;
+  padding: 12px 16px;
+  border: 1px solid rgb(90 169 255 / 0.5);
+  border-radius: var(--radius-sm);
+  background: rgb(12 22 44 / 0.94);
+  box-shadow: var(--shadow);
+  animation: rise-in 0.3s ease-out;
+}
+
+.coach::after {
+  position: absolute;
+  bottom: -7px;
+  left: 50%;
+  width: 12px;
+  height: 12px;
+  border-right: 1px solid rgb(90 169 255 / 0.5);
+  border-bottom: 1px solid rgb(90 169 255 / 0.5);
+  background: rgb(12 22 44 / 0.94);
+  content: '';
+  transform: translateX(-50%) rotate(45deg);
+}
+
+.coach__title {
+  margin: 0;
+  color: #9fd0ff;
+  font-weight: 700;
+}
+
+.coach__text {
+  margin: 2px 0 0;
+  color: var(--text);
+  font-size: 14px;
+}
+
+.coach__skip {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  font-size: 12px;
 }
 
 /* Toasts */

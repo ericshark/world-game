@@ -34,6 +34,7 @@ import { RareEarthSetup } from './rareEarth/RareEarthSetup'
 import { loadRushConfig, rushSubtitle, sanitizeRushConfig } from './rush/config'
 import { RushGame } from './rush/RushGame'
 import { RushSetup } from './rush/RushSetup'
+import { TutorialGame } from './tutorial/TutorialGame'
 
 interface SetupProps {
   onClose: () => void
@@ -161,6 +162,8 @@ export function Routes({ route }: { route: Route }) {
       )
     case 'passport':
       return <PassportScreen onClose={home} />
+    case 'tour':
+      return <TutorialGame onHome={home} />
     case 'settings':
       return (
         <>

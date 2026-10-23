@@ -1,6 +1,7 @@
 import { useState, type CSSProperties } from 'react'
 import { useApp } from '../app/AppContext'
 import { MODES } from '../app/modes'
+import { TOUR_KEY } from '../app/tutorial/TutorialGame'
 import { todayKey } from '../app/today'
 import { useGlobeShift } from '../app/useLayoutShift'
 import { cosmeticById, TITLES } from '../game/profile/cosmetics'
@@ -12,12 +13,13 @@ import { Icon } from '../ui/Icon'
 import { formatNumber } from './format'
 
 export function HomeScreen() {
-  const { navigate, profile, geo } = useApp()
+  const { navigate, profile, geo, preferences } = useApp()
   useGlobeShift({ x: 0.14, y: 0 }, { x: 0, y: 0.2 })
   const counts = countByMastery(profile, geo.playableIds)
   const found = counts.found + counts.mastered
   const rank = explorerRank(counts.mastered)
   const title = cosmeticById(TITLES, profile.cosmetics.title)
+  const showTour = profile.history.length === 0 && !preferences.seenIntros.includes(TOUR_KEY)
 
   return (
     <div className="screen screen--home">
@@ -28,7 +30,7 @@ export function HomeScreen() {
         <p className="home__tagline">Know the world. One borderless Earth, many ways to play.</p>
 
         <DailyCard />
-        <NextGoal />
+        {showTour ? <TourCard /> : <NextGoal />}
 
         <div className="mode-grid">
           {MODES.map((mode) => (
@@ -136,5 +138,26 @@ function NextGoal() {
         <span className="goal__label">Next goal</span> {text}
       </span>
     </button>
+  )
+}
+
+/** New players are offered a short guided game before anything else. */
+function TourCard() {
+  const { navigate, preferences, setPreferences } = useApp()
+  return (
+    <div className="goal goal--tour">
+      <Icon name="compass" size={16} />
+      <button type="button" className="goal__main" onClick={() => navigate({ name: 'tour' })}>
+        <span className="goal__label">New here?</span> Take the one-minute tour
+      </button>
+      <button
+        type="button"
+        className="icon-button"
+        aria-label="No thanks"
+        onClick={() => setPreferences({ seenIntros: [...preferences.seenIntros, TOUR_KEY] })}
+      >
+        <Icon name="close" size={16} />
+      </button>
+    </div>
   )
 }

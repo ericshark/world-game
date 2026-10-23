@@ -6,7 +6,7 @@ import { Choice, Switch } from '../ui/controls'
 import { Sheet } from '../ui/Sheet'
 
 export function SettingsScreen({ onClose }: { onClose: () => void }) {
-  const { preferences, setPreferences, resetProfile, profile, restore } = useApp()
+  const { preferences, setPreferences, resetProfile, profile, restore, navigate } = useApp()
   const [restoreMessage, setRestoreMessage] = useState<string | null>(null)
 
   const exportBackup = () => {
@@ -131,6 +131,13 @@ export function SettingsScreen({ onClose }: { onClose: () => void }) {
           onClick={() => setPreferences({ seenIntros: [] })}
         >
           Show “How to play” again
+        </button>
+        <button
+          type="button"
+          className="button button--ghost"
+          onClick={() => navigate({ name: 'tour' })}
+        >
+          Take the tour again
         </button>
         <button type="button" className="button button--danger" onClick={reset}>
           Reset all progress
