@@ -30,7 +30,17 @@ test('Daily World: five rounds once a day, then share', async ({ page }) => {
   await dismissIntro(page)
 
   const confirm = () => page.getByRole('button', { name: 'Confirm' }).click()
-  const next = () => page.getByRole('button', { name: /^(Next|See results)$/ }).click()
+  // The server answers each move, so wait for the round to change before acting on the next.
+  const next = async () => {
+    const before = (await snapshot(page)).round
+    await page.getByRole('button', { name: /^(Next|See results)$/ }).click()
+    await expect
+      .poll(async () => {
+        const after = await snapshot(page).catch(() => null)
+        return after === null || after.round !== before || after.phase === 'finished'
+      })
+      .toBe(true)
+  }
 
   await pinTarget(page) // 1: find
   await confirm()
