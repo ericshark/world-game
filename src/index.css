@@ -2738,3 +2738,26 @@ input {
   flex: 1 1 200px;
   margin: 0;
 }
+
+.practice-tag,
+.daily-problem {
+  position: fixed;
+  top: calc(46px + var(--safe-top, 0px));
+  left: 50%;
+  z-index: 30;
+  transform: translateX(-50%);
+  margin: 0;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: rgb(10 14 26 / 0.85);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.daily-problem {
+  top: calc(72px + var(--safe-top, 0px));
+  background: rgb(120 30 30 / 0.92);
+  color: #fff;
+}

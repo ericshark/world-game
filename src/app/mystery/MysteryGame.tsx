@@ -33,7 +33,7 @@ import { useTestHook } from '../testHook'
 import { useGameStage } from '../useGameStage'
 import { useIntro } from '../useIntro'
 import { useRecordedGame } from '../useRecordedGame'
-import { useLocalSession } from '../useLocalSession'
+import { useGameSession } from '../useGameSession'
 import { Crosshair } from '../Crosshair'
 import { useGameKeys } from '../../ui/useGameKeys'
 import { heatOf, heatPaint } from './heat'
@@ -62,7 +62,7 @@ export function MysteryGame({ config, seed, daily, onChangeSetup, onHome }: Myst
   const [showSummary, setShowSummary] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
 
-  const session = useLocalSession(
+  const session = useGameSession(
     mystery,
     geo,
     {
@@ -70,6 +70,7 @@ export function MysteryGame({ config, seed, daily, onChangeSetup, onHome }: Myst
       onFinish: record,
     },
     { config, seed, resume: daily?.saved as MysteryState | undefined },
+    daily?.remote,
   )
   const state = session.state
   useSaveDailyProgress(daily, state)
@@ -89,9 +90,9 @@ export function MysteryGame({ config, seed, daily, onChangeSetup, onHome }: Myst
     )
   })
 
-  const guess = (fields: { answerId?: string; pin?: LonLat }) => {
+  const guess = async (fields: { answerId?: string; pin?: LonLat }) => {
     if (!state || finished) return
-    const next = session.send({
+    const next = await session.send({
       type: 'submit',
       playerId: LOCAL_PLAYER,
       submission: { ...fields, at: Date.now() },

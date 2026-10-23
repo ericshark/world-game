@@ -19,6 +19,7 @@ import { useGameKeys } from '../../ui/useGameKeys'
 import { useApp } from '../AppContext'
 import { Crosshair } from '../Crosshair'
 import { useChallenge } from '../challenge'
+import type { Crowd } from '../../game/modes/daily'
 import { useSaveDailyProgress, type DailyGame } from '../daily/dailyGame'
 import { useStagePicking, useStageScene } from '../globeStage'
 import { trailingHits } from '../streaks'
@@ -26,7 +27,8 @@ import { useTestHook } from '../testHook'
 import { useGameStage } from '../useGameStage'
 import { useIntro } from '../useIntro'
 import { useRecordedGame } from '../useRecordedGame'
-import { useLocalSession, usePauseWhile } from '../useLocalSession'
+import { useGameSession } from '../useGameSession'
+import { usePauseWhile } from '../useLocalSession'
 import { Prompt } from './Prompt'
 import { RoundInput } from './RoundInput'
 import { roundScene } from './scene'
@@ -48,6 +50,8 @@ export interface CoachMoment {
 export interface RoundModeState {
   seed: string
   rounds: RoundsState<Challenge>
+  /** How other players answered a Rare Earth round, in ranked dailies. */
+  crowd?: Crowd | null
 }
 
 export interface RoundGameProps<Config, State extends RoundModeState> {
@@ -100,7 +104,7 @@ export function RoundGame<Config, State extends RoundModeState>(
   const { recorded, record, clear: clearRecorded } = useRecordedGame({ daily })
   const [firstGame] = useState(() => app.profile.history.length === 0)
 
-  const session = useLocalSession(
+  const session = useGameSession(
     rules,
     geo,
     {
@@ -108,6 +112,7 @@ export function RoundGame<Config, State extends RoundModeState>(
       onFinish: record,
     },
     { config, stats, seed, resume: daily?.saved as State | undefined },
+    daily?.remote,
   )
   usePauseWhile(session, intro.open)
   const state = session.state
@@ -166,8 +171,8 @@ export function RoundGame<Config, State extends RoundModeState>(
     }
   })
 
-  const submit = (fields: { pin?: LonLat; answerId?: string }, at = Date.now()) => {
-    const next = session.send({
+  const submit = async (fields: { pin?: LonLat; answerId?: string }, at = Date.now()) => {
+    const next = await session.send({
       type: 'submit',
       playerId: LOCAL_PLAYER,
       submission: { ...fields, hintUsed, at },
@@ -196,9 +201,9 @@ export function RoundGame<Config, State extends RoundModeState>(
     }
   }
 
-  const next = () => {
+  const next = async () => {
     if (rounds?.phase !== 'revealed') return
-    const after = session.send({ type: 'next', at: Date.now() })
+    const after = await session.send({ type: 'next', at: Date.now() })
     resetRound()
     if (after?.rounds.phase === 'open') play('next')
   }
@@ -241,7 +246,7 @@ export function RoundGame<Config, State extends RoundModeState>(
   })
 
   const score = results.reduce((sum, r) => sum + r.points, 0)
-  const rematch = useChallenge(state?.seed, score)
+  const rematch = useChallenge(daily ? undefined : state?.seed, score)
 
   useTestHook({
     snapshot: () => ({
@@ -352,7 +357,13 @@ export function RoundGame<Config, State extends RoundModeState>(
             onNext={next}
           >
             {challenge.kind === 'category' ? (
-              <AnswerSpread category={challenge.category} geo={geo} />
+              <AnswerSpread
+                category={challenge.category}
+                geo={geo}
+                crowd={state.crowd}
+                named={result.kind === 'category' ? result.answerId : null}
+                estimated={Boolean(daily?.remote)}
+              />
             ) : (
               <FactCard geo={geo} id={challenge.countryId} units={units} />
             )}

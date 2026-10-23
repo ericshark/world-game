@@ -32,7 +32,7 @@ import { useTestHook } from '../testHook'
 import { useGameStage } from '../useGameStage'
 import { useIntro } from '../useIntro'
 import { useRecordedGame } from '../useRecordedGame'
-import { useLocalSession } from '../useLocalSession'
+import { useGameSession } from '../useGameSession'
 import { journeyScene } from './scene'
 
 interface JourneyGameProps {
@@ -56,7 +56,7 @@ export function JourneyGame({ config, seed, daily, onChangeSetup, onHome }: Jour
   const [showSummary, setShowSummary] = useState(false)
   const [typing, setTyping] = useState(false)
 
-  const session = useLocalSession(
+  const session = useGameSession(
     journey,
     geo,
     {
@@ -64,6 +64,7 @@ export function JourneyGame({ config, seed, daily, onChangeSetup, onHome }: Jour
       onFinish: record,
     },
     { config, seed, resume: daily?.saved as JourneyState | undefined },
+    daily?.remote,
   )
   const state = session.state
   useSaveDailyProgress(daily, state)
@@ -78,9 +79,11 @@ export function JourneyGame({ config, seed, daily, onChangeSetup, onHome }: Jour
   })
 
   /** Travels to the country under the pin, or to one typed by name. */
-  const move = (fields: { pin?: LonLat; answerId?: string } = { pin: draftPin ?? undefined }) => {
+  const move = async (
+    fields: { pin?: LonLat; answerId?: string } = { pin: draftPin ?? undefined },
+  ) => {
     if (!state || finished || (!fields.pin && !fields.answerId)) return
-    const next = session.send({
+    const next = await session.send({
       type: 'submit',
       playerId: LOCAL_PLAYER,
       submission: { ...fields, at: Date.now() },

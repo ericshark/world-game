@@ -89,27 +89,18 @@ Where the three-phase launch roadmap stands, and how to carry on. The full plan 
     `/api/dev/mailbox`), Google and GitHub through `arctic` (on only when their env vars are set,
     tested against a mock), versioned profile sync with a keep-cloud or use-device choice, and a
     Settings account section with sign out and "delete my online data".
-  - In dev, set `PUBLIC_ORIGIN` to the Vite address so emailed links open the app.
-
-## Still to do
+  - In dev, set `PUBLIC_ORIGIN` to the Vite address so emailed links open the app.- **Ranked dailies** (`server/daily.ts`, `src/app/useRemoteSession.ts`, `useGameSession.ts`):
+  - `ModeRules.viewFor` for the Daily Five, Mystery and Journey; `daily.start` takes its seed from
+    its params. Server sessions are stored in `daily_sessions`, with timing flags and counts of
+    Rare Earth answers (`daily_answers`); the reveal shows real "% of players" from 30 answers.
+  - Games `await session.send(...)`, so a local or remote host works the same way. Without a
+    server the daily is "Offline practice — not ranked". The e2e daily tests now play today's
+    real date, because the server checks it.
 
 Work through these in order. Each item should end with tests and a focused commit.
 
 ### Phase 2
 
-3. **Ranked dailies.**
-   - Seeds come from `HMAC(DAILY_SECRET, number)`. `daily.start` must take the seed from its
-     start params; today it calls `dailySeed()` internally.
-   - Add a `viewFor` to `ModeRules` that redacts later rounds, open category answers, the seed,
-     and Mystery's `targetId` until the game is solved. The hint needs the target's region.
-   - Daily sessions are played over HTTP and stored in SQLite: one attempt each, local dates
-     within ±1 day of the server's, and answers under 300 ms flagged.
-   - Client:
-     - Refactor `RoundGame`, `MysteryGame` and `JourneyGame` to react to state changes instead
-       of using the return value of `session.send()`, so a remote host works like
-       `useLocalSession`.
-     - Without a server, fall back to local play labelled "Offline practice — not ranked".
-   - Count Daily Rare Earth answers, and show real "% of players" from 30 answers on.
 4. **Quick Duel.**
    - A matchmaking queue whose rating window widens over time.
    - After 20 s, an offer of a labelled, unrated bot.

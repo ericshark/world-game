@@ -109,10 +109,7 @@ export function useLocalSession<Config, State, Event extends { type: string } = 
 }
 
 /** Stops a game's clock while `paused`, such as while the rules are open over it. */
-export function usePauseWhile<Event>(
-  session: Pick<LocalSession<unknown, unknown, Event>, 'send'>,
-  paused: boolean,
-) {
+export function usePauseWhile<Event>(session: { send(event: Event): unknown }, paused: boolean) {
   const { send } = session
   useEffect(() => {
     if (!paused) return

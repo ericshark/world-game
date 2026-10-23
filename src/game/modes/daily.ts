@@ -25,6 +25,9 @@ export interface DailyConfig {
 /** A weekly variation: Saturdays at night, Sundays end on a micro-state. */
 export type DailyTwist = 'night' | 'micro' | null
 
+/** Real "% of players" is shown only once this many have answered, so it means something. */
+export const CROWD_MINIMUM = 30
+
 /** How many players named each country in a Rare Earth round, for the reveal. */
 export interface Crowd {
   total: number

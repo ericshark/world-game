@@ -38,7 +38,7 @@ export function DailyScreen({
   onPlay: (puzzle: DailyPuzzle) => void
   onClose: () => void
 }) {
-  const { profile } = useApp()
+  const { profile, account } = useApp()
   const [now, setNow] = useState(() => Date.now())
   useGlobeShift({ x: 0.14, y: 0 }, { x: 0, y: 0.25 })
   useEffect(() => {
@@ -85,6 +85,12 @@ export function DailyScreen({
           {twist === 'night' && <span className="tag">Night edition</span>}
           {twist === 'micro' && <span className="tag">Micro-state finale</span>}
         </p>
+
+        {account.status === 'offline' && (
+          <p className="field__hint">
+            There is no game server here, so dailies are offline practice and are not ranked.
+          </p>
+        )}
 
         <div className="mode-grid daily__puzzles">
           {PUZZLES.map(({ puzzle, title, text, icon }) => {

@@ -59,3 +59,16 @@ player chooses which to keep (`planSync` in `src/net/profileSync.ts`).
 Magic links open the web app (`/#/signin/<token>`), which then posts the token. Opening the link
 does nothing by itself, so mail scanners that prefetch links cannot use them up. Writes must send
 JSON, which a form on another site cannot, and cookies are `SameSite=Lax`.
+
+## Ranked dailies are hosted by the server (2026-10-23)
+
+With a game server, the three dailies are played over HTTP (`POST /api/daily/:puzzle/start` and
+`/send`). The server runs the same pure rules, stamps every move with its own clock, stores the
+state in SQLite and sends back `viewFor` snapshots: no seed, no later rounds, no open category
+answers, and Mystery's country only once it is over. Seeds are `HMAC(DAILY_SECRET, puzzle:number)`.
+A puzzle is one attempt per player; reopening it resumes. The local date must be within a day of
+the server's UTC date. Moves under 300 ms after the previous one set a `flagged` mark (kept off
+leaderboards later). Without a server the daily is local practice, labelled as such.
+
+Limits: a player can clear their cookie to become a new guest and play again; that guest is a
+separate leaderboard entry. Name It rounds still reveal the country's shape.

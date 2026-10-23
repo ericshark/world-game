@@ -4,7 +4,7 @@ import type { LonLat } from '../src/geo/coords'
 import type { GeoData } from '../src/geo/facts'
 import type { ModeRules } from '../src/game/core/mode'
 import { LOCAL_PLAYER, type DailyPuzzle, type Submission } from '../src/game/core/types'
-import { daily, type Crowd, type DailyState } from '../src/game/modes/daily'
+import { CROWD_MINIMUM, daily, type Crowd, type DailyState } from '../src/game/modes/daily'
 import { journey } from '../src/game/modes/journey'
 import { mystery } from '../src/game/modes/mystery'
 import { dailyNumber } from '../src/game/profile/daily'
@@ -17,8 +17,6 @@ const GENERATOR_VERSION = 1
 const DATE_TOLERANCE_DAYS = 1
 /** A guess sooner than this after the previous move is faster than a person can play. */
 export const SUSPICIOUS_MS = 300
-/** Real "% of players" is shown only once this many have answered, so it means something. */
-export const CROWD_MINIMUM = 30
 
 const PUZZLES: readonly DailyPuzzle[] = ['five', 'mystery', 'route']
 type EventType = 'submit' | 'next' | 'hint' | 'giveUp'
