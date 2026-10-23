@@ -14,8 +14,8 @@
     "CPV": ["Cape Verde"],
     "TUR": ["Türkiye", "Turkiye"],
     "NLD": ["Holland", "The Netherlands"],
-    "KOR": ["Korea Republic", "ROK"],
-    "PRK": ["DPRK"],
+    "KOR": ["Korea Republic", "ROK", "S Korea"],
+    "PRK": ["DPRK", "N Korea"],
     "VAT": ["Holy See", "Vatican"],
     "FSM": ["FSM", "Federated States of Micronesia"],
     "PSX": ["Palestinian Territories", "State of Palestine"],
@@ -43,7 +43,8 @@
     "NZL": ["Aotearoa"],
     "RUS": ["Russian Federation"],
     "SVK": ["Slovak Republic"],
-    "DOM": ["Dominican Rep"]
+    "DOM": ["Dominican Rep"],
+    "SDS": ["S Sudan", "S. Sudan"]
   },
   "ambiguous": {
     "Congo": ["COG", "COD"],

@@ -43,6 +43,21 @@ const SUBREGION_LABELS: Record<string, string> = {
   'Central America': 'Central America (including Mexico)',
 }
 
+/** Countries a reasonable person would also call part of a UN subregion. */
+const SUBREGION_LENIENT: Record<string, string[]> = {
+  'Eastern Europe': ['EST', 'LVA', 'LTU'],
+  'Northern Europe': ['POL'],
+  'Southern Europe': ['CYP'],
+  'Western Europe': ['GBR', 'IRL'],
+  'Northern Africa': ['MRT'],
+}
+
+/** The same for the continent-wide landlocked and island categories. */
+const REGION_LENIENT: Record<string, string[]> = {
+  'island:Europe': ['CYP'],
+  'landlocked:Europe': ['ARM', 'AZE'],
+}
+
 const POPULATION_UNDER = [100_000, 500_000, 1_000_000, 2_000_000]
 const POPULATION_OVER = [50_000_000, 100_000_000, 200_000_000]
 const AREA_UNDER = [1_000, 10_000, 30_000]
@@ -70,6 +85,7 @@ export function buildCategories(geo: GeoData): Category[] {
       kind: 'subregion',
       prompt: `Name a country in ${SUBREGION_LABELS[subregion] ?? subregion}`,
       valid: ids.filter((id) => facts(id).subregion === subregion),
+      lenient: SUBREGION_LENIENT[subregion],
     })
   }
 
@@ -80,22 +96,30 @@ export function buildCategories(geo: GeoData): Category[] {
       kind: 'landlocked',
       prompt: `Name a landlocked country in ${r}`,
       valid: inRegion.filter((id) => facts(id).landlocked),
+      lenient: REGION_LENIENT[`landlocked:${r}`],
     })
     add({
       id: `island:${r}`,
       kind: 'island',
       prompt: `Name an island nation in ${r === 'North America' ? 'North America and the Caribbean' : r}`,
       valid: inRegion.filter((id) => facts(id).island),
+      lenient: REGION_LENIENT[`island:${r}`],
     })
   }
 
   for (const id of ids) {
     if (facts(id).neighbors.length < MIN_ANSWERS) continue
+    // A border only through an overseas department (French Guiana) is true but surprising, so
+    // it is accepted without being asked for or counted as a rare find.
+    const overseas = new Set(
+      geo.journeyExclusions.flatMap(([a, b]) => (a === id ? [b] : b === id ? [a] : [])),
+    )
     add({
       id: `borders:${id}`,
       kind: 'borders',
       prompt: `Name a country that borders ${name(id)}`,
-      valid: facts(id).neighbors,
+      valid: facts(id).neighbors.filter((other) => !overseas.has(other)),
+      lenient: facts(id).neighbors.filter((other) => overseas.has(other)),
     })
   }
 
