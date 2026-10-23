@@ -101,11 +101,6 @@ Work through these in order. Each item should end with tests and a focused commi
 
 ### Phase 2
 
-5. **Leaderboards screen.**
-   - Daily: today's top 100, your rank and your percentile.
-   - Duel ladder: at least 5 games played.
-   - All-time Daily: average over at least 7 plays.
-   - With no server, the screen explains itself and never shows fake data.
 6. **E2E.**
    - Quick Duel between two contexts.
    - A ranked Daily, and a second attempt refused.

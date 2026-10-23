@@ -15,6 +15,7 @@ export type Route =
   | { name: 'daily-play'; puzzle: DailyPuzzle }
   | { name: 'settings' }
   | { name: 'tour' }
+  | { name: 'leaderboards' }
   | { name: 'signin'; token: string }
 
 export const MODE_KEYS: readonly ModeKey[] = [
@@ -45,7 +46,7 @@ export function parseRoute(hash: string): Route {
   }
   // "stats" was the Passport's old name.
   if (first === 'passport' || first === 'stats') return { name: 'passport' }
-  if (first === 'settings' || first === 'tour') return { name: first }
+  if (first === 'settings' || first === 'tour' || first === 'leaderboards') return { name: first }
   return { name: 'home' }
 }
 

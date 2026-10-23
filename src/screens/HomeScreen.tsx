@@ -71,6 +71,17 @@ export function HomeScreen() {
           <button
             type="button"
             className="link-tile"
+            onClick={() => navigate({ name: 'leaderboards' })}
+          >
+            <Icon name="trophy" size={18} />
+            <span>
+              Leaderboards
+              <small>Daily, duel ladder, all-time</small>
+            </span>
+          </button>
+          <button
+            type="button"
+            className="link-tile"
             onClick={() => navigate({ name: 'settings' })}
           >
             <Icon name="gear" size={18} />

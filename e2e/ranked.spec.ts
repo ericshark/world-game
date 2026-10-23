@@ -60,3 +60,31 @@ test('the server never sends tomorrow’s answers to the browser', async ({ page
     true,
   )
 })
+
+test('a finished ranked daily shows up on the leaderboard', async ({ page }) => {
+  await openGame(page, '/#/daily')
+  await page.getByRole('button', { name: /^Daily Route/ }).click()
+  const gotIt = page.getByRole('button', { name: 'Got it' })
+  if (await gotIt.isVisible()) await gotIt.click()
+  await page.getByRole('button', { name: 'Give up' }).click()
+  await page.getByRole('button', { name: 'See results' }).click()
+  await expect(page.getByTestId('rank-line')).toContainText(/Ranked #\d+ of \d+/)
+
+  await page.goto('/#/leaderboards')
+  await page.getByRole('radio', { name: 'Route' }).click()
+  await expect(page.getByTestId('leaderboard-me')).toContainText(/You are #\d+ of \d+/)
+  await expect(page.getByTestId('leaderboard').getByText('(you)')).toBeVisible()
+  await page.getByRole('radio', { name: 'Duel ladder' }).click()
+  await expect(
+    page.getByText(/rated duels to be ranked|Nobody has been ranked/).first(),
+  ).toBeVisible()
+})
+
+test('without a server the leaderboards explain themselves and show nothing made up', async ({
+  page,
+}) => {
+  await page.route('**/api/**', (route) => route.abort())
+  await openGame(page, '/#/leaderboards')
+  await expect(page.getByText('Leaderboards need the game server')).toBeVisible()
+  await expect(page.getByTestId('leaderboard')).toHaveCount(0)
+})

@@ -57,6 +57,15 @@ const PUZZLE_RULES: Record<DailyPuzzle, Puzzle> = {
   ]),
 }
 
+/** Whether the date a player says it is could be today where they are. */
+export function dateAllowed(dateKey: string, now: number): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateKey) || Number.isNaN(Date.parse(`${dateKey}T00:00:00Z`))) {
+    return false
+  }
+  const today = Math.floor(now / 86_400_000) * 86_400_000
+  return Math.abs(Date.parse(`${dateKey}T00:00:00Z`) - today) / 86_400_000 <= DATE_TOLERANCE_DAYS
+}
+
 export interface DailyView {
   number: number
   status: 'open' | 'finished'
@@ -93,15 +102,8 @@ export class DailyService {
       .digest('hex')
   }
 
-  /** Whether the date a player says it is could be today where they are. */
   dateAllowed(dateKey: string): boolean {
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(dateKey) || Number.isNaN(Date.parse(`${dateKey}T00:00:00Z`))) {
-      return false
-    }
-    const days =
-      (Date.parse(`${dateKey}T00:00:00Z`) - Math.floor(this.now() / 86_400_000) * 86_400_000) /
-      86_400_000
-    return Math.abs(days) <= DATE_TOLERANCE_DAYS
+    return dateAllowed(dateKey, this.now())
   }
 
   private load(playerId: string, number: number, puzzleId: DailyPuzzle): Row | null {

@@ -2767,3 +2767,35 @@ input {
   font-weight: 600;
   text-align: center;
 }
+
+.board {
+  display: grid;
+  gap: 4px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.board li {
+  display: grid;
+  grid-template-columns: 2.5em 1fr auto;
+  align-items: baseline;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  background: rgb(255 255 255 / 0.05);
+}
+
+.board li.is-you {
+  background: rgb(255 213 74 / 0.18);
+}
+
+.board__rank {
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.board__value {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}

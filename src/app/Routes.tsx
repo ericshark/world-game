@@ -5,6 +5,7 @@ import { formatNumber } from '../screens/format'
 import { Sheet } from '../ui/Sheet'
 import { HomeScreen } from '../screens/HomeScreen'
 import { SignInLink } from '../screens/account/SignInLink'
+import { LeaderboardScreen } from '../screens/LeaderboardScreen'
 import { SettingsScreen } from '../screens/SettingsScreen'
 import { PassportScreen } from '../screens/passport/PassportScreen'
 import { useApp } from './AppContext'
@@ -165,6 +166,13 @@ export function Routes({ route }: { route: Route }) {
       return <PassportScreen onClose={home} />
     case 'tour':
       return <TutorialGame onHome={home} />
+    case 'leaderboards':
+      return (
+        <>
+          <HomeScreen />
+          <LeaderboardScreen onClose={home} />
+        </>
+      )
     case 'signin':
       return <SignInLink token={route.token} />
     case 'settings':

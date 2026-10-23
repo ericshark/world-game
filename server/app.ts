@@ -5,6 +5,7 @@ import { serveStatic } from '@hono/node-server/serve-static'
 import type { ServerConfig } from './config'
 import { authRoutes } from './auth/routes'
 import { dailyRoutes } from './daily'
+import { leaderboardRoutes } from './leaderboards'
 import type { GeoData } from '../src/geo/facts'
 import type { Mail, Mailer } from './auth/mail'
 import type { OAuthProvider, OAuthProviderId } from './auth/oauth'
@@ -32,6 +33,7 @@ export function createApp(context: AppContext) {
   const api = new Hono()
   const auth = authRoutes(api, context)
   dailyRoutes(api, context, auth)
+  leaderboardRoutes(api, context, auth)
   app.route('/api', api)
   app.all('/api/*', (c) => c.json({ error: 'Not found.' }, 404))
 

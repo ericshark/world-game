@@ -7,6 +7,7 @@ import type { RecordedSession } from '../../game/profile/record'
 import { dailyShareText } from '../../game/profile/share'
 import { ApiError } from '../../net/api'
 import { startRankedDaily } from '../../net/daily'
+import { fetchDailyBoard } from '../../net/leaderboards'
 import { formatNumber } from '../../screens/format'
 import { Sheet } from '../../ui/Sheet'
 import { ShareButton } from '../../ui/ShareButton'
@@ -150,7 +151,9 @@ function DailyGameView({
   const dailyGame = useMemo<DailyGame>(
     () => ({
       record: { dateKey, puzzle },
-      share: (recorded) => <DailyShare dateKey={dateKey} recorded={recorded} />,
+      share: (recorded) => (
+        <DailyShare dateKey={dateKey} recorded={recorded} ranked={remote ? puzzle : undefined} />
+      ),
       saved: remote ? null : loadDailyProgress(dateKey, puzzle, seed),
       save: (state) => saveDailyProgress(dateKey, puzzle, state),
       remote,
@@ -237,7 +240,39 @@ function DailyPuzzleGame({
   }
 }
 
-function DailyShare({ dateKey, recorded }: { dateKey: string; recorded: RecordedSession }) {
+/** After a ranked puzzle: where the score stands among today's players. */
+function RankLine({ puzzle, dateKey }: { puzzle: DailyPuzzle; dateKey: string }) {
+  const [text, setText] = useState<string | null>(null)
+  useEffect(() => {
+    let current = true
+    fetchDailyBoard(puzzle, dateKey)
+      .then(({ me, total }) => {
+        if (!current || !me) return
+        const beat =
+          me.percentile === undefined ? '' : ` · you beat ${me.percentile}% of players today`
+        setText(`Ranked #${me.rank} of ${total}${beat}`)
+      })
+      .catch(() => {})
+    return () => {
+      current = false
+    }
+  }, [puzzle, dateKey])
+  return text ? (
+    <p className="rating-line" data-testid="rank-line">
+      {text}
+    </p>
+  ) : null
+}
+
+function DailyShare({
+  dateKey,
+  recorded,
+  ranked,
+}: {
+  dateKey: string
+  recorded: RecordedSession
+  ranked?: DailyPuzzle
+}) {
   const day = recorded.profile.daily[dateKey] ?? {}
   const url = `${window.location.origin}${window.location.pathname}#/daily`
   // The streak as of the moment the puzzle was finished.
@@ -245,6 +280,7 @@ function DailyShare({ dateKey, recorded }: { dateKey: string; recorded: Recorded
   const text = dailyShareText(dateKey, day, dailyStreak(recorded.profile, finishedAt), url)
   return (
     <div className="daily-share">
+      {ranked && <RankLine puzzle={ranked} dateKey={dateKey} />}
       <pre className="daily-share__text">{text}</pre>
       <ShareButton text={text} label="Share today's results" />
     </div>
