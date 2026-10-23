@@ -9,8 +9,8 @@ Where the three-phase launch roadmap stands, and how to carry on. The full plan 
 | Phase                                              | Status          | Git                         |
 | -------------------------------------------------- | --------------- | --------------------------- |
 | 1. Single-player platform                          | Done            | `phase-1-start` → `phase-1` |
-| 2. Multiplayer, identity, leaderboards, Quick Duel | About half done | from `phase-2-start`        |
-| 3. Production polish and launch preparation        | Not started     | —                           |
+| 2. Multiplayer, identity, leaderboards, Quick Duel | Done            | `phase-2-start` → `phase-2` |
+| 3. Production polish and launch preparation        | Done (prepared) | `phase-3-start` → `phase-3` |
 
 ## Decisions already made with the owner
 
@@ -50,7 +50,7 @@ Where the three-phase launch roadmap stands, and how to carry on. The full plan 
 - **Tour:** a guided first game (`src/game/modes/tutorial.ts`, `#/tour`).
 - **Shared code:** `useRecordedGame` and `Crosshair`.
 
-### Phase 2 (done so far)
+### Phase 2 (tag `phase-2`)
 
 - **Server correctness:**
   - An unknown answer id no longer crashes the server.
@@ -108,16 +108,7 @@ Where the three-phase launch roadmap stands, and how to carry on. The full plan 
     all-time Daily Five averages (7 or more plays). Flagged results are excluded. Without a server
     the screen says why it is empty. The Daily results show "Ranked #N … you beat X%".
 
-## Still to do
-
-Work through these in order. Each item should end with tests and a focused commit.
-
-### Phase 2
-
-6. **Full checks and tag.** The e2e specs are written (`account`, `ranked`, `quickduel`). Run the
-   whole suite, then tag `phase-2`.
-
-### Phase 3
+### Phase 3 (tag `phase-3`)
 
 - **Performance.** Done (see [performance](performance.md)): code splitting with a lazy 3D
   chunk, on-demand rendering, a 2048 overlay with incremental paint on phones, hashed and brotli
@@ -154,6 +145,18 @@ Work through these in order. Each item should end with tests and a focused commi
   CI workflow and the WebKit project (Docker and WebKit's system libraries are not available here).
   The browser tests do pass against the production build served by the production server.
 
+## Still to do
+
+Nothing is left in the roadmap. What remains is the owner's, and nothing below has been done:
+
+- Buy hosting, register a domain, create the R2 bucket, the Resend account and (optionally) the
+  Google and GitHub OAuth apps; see the checklist in [deployment](deployment.md).
+- Run what could not be run here: build the Docker image, do the Litestream restore drill, let CI
+  run once there is a remote, and run the WebKit tests.
+- Set `VITE_PRIVACY_CONTACT`, and have the privacy page reviewed.
+- Revisit scoring, the GeoRush ramp, Journey par bands and Duel damage with real player data.
+- Run the `security-review` skill once the repository has a remote.
+
 ## Working rules
 
 - Commit focused changes when checks pass. Don't push or rewrite history.
@@ -163,6 +166,8 @@ Work through these in order. Each item should end with tests and a focused commi
   server's is 8788. Stop everything you start, and check the ports are free.
 - Running e2e specs side by side starves the CPU, because every page renders WebGL in software.
   Close browser contexts after multi-player tests (see `e2e/online.spec.ts`).
+- To test the production build: `VITE_E2E=1 npm run build`, then `E2E_PRODUCTION=1 PW_HEADLESS=true
+npx playwright test` (one port, the built server). Rebuild without `VITE_E2E` afterwards.
 - Vite's `ws proxy error: ECONNRESET` log lines during e2e are harmless noise.
 
 ## Known gaps
