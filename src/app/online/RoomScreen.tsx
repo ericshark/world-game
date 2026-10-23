@@ -3,7 +3,7 @@ import { play } from '../../audio/sound'
 import { battle } from '../../game/modes/battle'
 import { cosmeticById, PIN_SKINS, pinShapeOf, TITLES } from '../../game/profile/cosmetics'
 import type { RecordedSession } from '../../game/profile/record'
-import { MAX_PLAYERS, type RoomSettings, type RoomView } from '../../net/protocol'
+import { MAX_PLAYERS, type ActiveQueue, type RoomSettings, type RoomView } from '../../net/protocol'
 import { BATTLE_ROUND_CHOICES_MS } from '../../game/modes/battle'
 import { RegionChoice } from '../../ui/SetupSheet'
 import { Choice } from '../../ui/controls'
@@ -16,6 +16,9 @@ import { BattleGame, type MatchHost } from '../battle/BattleGame'
 import { FORMAT_LABELS } from '../battle/setup'
 import { celebrates } from '../celebrate'
 import { loadSeat, useRoomConnection } from './useRoomConnection'
+
+/** The address that means "find me an opponent" rather than a room. */
+export const QUICK_CODE = 'QUICK'
 
 /**
  * A private online room: the lobby while people gather, then the battle, run by the server.
@@ -81,14 +84,15 @@ function ConnectedRoom({ code, onHome }: { code: string; onHome: () => void }) {
     ...(profile.cosmetics.title !== 'none' && { title: profile.cosmetics.title }),
   }
   // The room this screen belongs to, once known; reconnects rejoin it rather than making another.
-  const joined = useRef<string | null>(code === 'NEW' ? null : code)
+  const quick = code === QUICK_CODE
+  const joined = useRef<string | null>(code === 'NEW' || quick ? null : code)
   const connection = useRoomConnection((send) => {
     const target = joined.current
-    if (!target) return send({ t: 'create', ...me })
+    if (!target) return send(quick ? { t: 'queue', ...me } : { t: 'create', ...me })
     const seat = loadSeat()
     send({ t: 'join', code: target, ...me, token: seat?.code === target ? seat.token : undefined })
   })
-  const { room, playerId, error, send } = connection
+  const { room, playerId, error, send, queue, rating } = connection
   useEffect(() => {
     if (room) joined.current = room.code
   }, [room])
@@ -102,7 +106,12 @@ function ConnectedRoom({ code, onHome }: { code: string; onHome: () => void }) {
   // Leaving on purpose gives the seat up straight away, rather than holding it for a return.
   const leave = () => {
     send({ t: 'leave' })
+    send({ t: 'queue-leave' })
     onHome()
+  }
+
+  if (!room && !playerId && quick && queue) {
+    return <Searching queue={queue} send={send} onCancel={leave} />
   }
 
   if (!room || !playerId) {
@@ -145,13 +154,53 @@ function ConnectedRoom({ code, onHome }: { code: string; onHome: () => void }) {
       <BattleGame
         host={host}
         recorded={recorded}
-        onPlayAgain={() => send({ t: 'lobby' })}
+        rating={quick ? rating : undefined}
+        onPlayAgain={quick ? undefined : () => send({ t: 'lobby' })}
         onHome={leave}
       />
     )
   }
 
   return <Lobby room={room} playerId={playerId} error={error} send={send} onLeave={leave} />
+}
+
+/** Waiting for a Quick Duel opponent: a timer, and after a while the offer of a bot. */
+function Searching({
+  queue,
+  send,
+  onCancel,
+}: {
+  queue: ActiveQueue
+  send: ReturnType<typeof useRoomConnection>['send']
+  onCancel: () => void
+}) {
+  const offered = queue.status === 'offer-bot'
+  // The server reports the wait now and then; count the seconds in between locally.
+  const [seconds, setSeconds] = useState(Math.floor(queue.waitedMs / 1000))
+  useEffect(() => {
+    const start = Date.now() - queue.waitedMs
+    const timer = window.setInterval(() => setSeconds(Math.floor((Date.now() - start) / 1000)), 500)
+    return () => window.clearInterval(timer)
+  }, [queue.waitedMs])
+  return (
+    <div className="screen screen--center">
+      <section className="panel waiting waiting--column" aria-labelledby="searching-title">
+        <p className="eyebrow">Quick Duel · rating {queue.rating}</p>
+        <h2 id="searching-title">Looking for an opponent…</h2>
+        <p role="status">Waiting {seconds} s. The search widens to nearby ratings as you wait.</p>
+        {offered && (
+          <div className="settings__actions">
+            <button type="button" className="button" onClick={() => send({ t: 'queue-bot' })}>
+              Play a bot instead (unrated)
+            </button>
+          </div>
+        )}
+        <button type="button" className="button button--ghost" onClick={onCancel}>
+          Cancel
+        </button>
+      </section>
+    </div>
+  )
 }
 
 /** Records the finished online game in the profile, once. */

@@ -36,7 +36,7 @@ export function parseRoute(hash: string): Route {
   if (first === 'challenge' && second) return { name: 'challenge', token: second }
   if (first === 'online') return { name: 'online' }
   if (first === 'signin' && second) return { name: 'signin', token: second }
-  if (first === 'room' && /^[A-Za-z]{3,4}$/.test(second ?? '')) {
+  if (first === 'room' && /^[A-Za-z]{3,5}$/.test(second ?? '')) {
     return { name: 'room', code: second.toUpperCase() }
   }
   if (first === 'daily') {

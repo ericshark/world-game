@@ -80,3 +80,23 @@ describe('parseClientMessage', () => {
     expect(parse({ t: 'configure', settings: { ...base, roundMs: 1 } })).toBeNull()
   })
 })
+
+describe('Quick Duel messages', () => {
+  it('parses queue requests with a cleaned name and looks', () => {
+    expect(
+      parseClientMessage('{"t":"queue","name":"  Ana  ","color":"#ff6b6b","shape":"ring"}'),
+    ).toEqual({
+      t: 'queue',
+      name: 'Ana',
+      color: '#ff6b6b',
+      shape: 'ring',
+    })
+    expect(parseClientMessage('{"t":"queue-leave"}')).toEqual({ t: 'queue-leave' })
+    expect(parseClientMessage('{"t":"queue-bot"}')).toEqual({ t: 'queue-bot' })
+  })
+
+  it('rejects queue requests without a usable name or colour', () => {
+    expect(parseClientMessage('{"t":"queue","name":"","color":"#ff6b6b"}')).toBeNull()
+    expect(parseClientMessage('{"t":"queue","name":"Ana","color":"red"}')).toBeNull()
+  })
+})

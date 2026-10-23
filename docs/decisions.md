@@ -72,3 +72,17 @@ leaderboards later). Without a server the daily is local practice, labelled as s
 
 Limits: a player can clear their cookie to become a new guest and play again; that guest is a
 separate leaderboard entry. Name It rounds still reveal the country's shape.
+
+## Quick Duel: Glicko-2, and what is allowed to move a rating (2026-10-23)
+
+The public queue pairs players inside a rating window that starts at ±100 and widens by 25 each
+second (either player's window may bridge the gap). After 20 s a labelled bot match is offered;
+it never changes a rating. A match runs as an ordinary `Room` playing Duel with mixed rounds, so
+all the battle rules and reconnection behaviour are reused. Ratings are Glicko-2, each match its
+own rating period, and the code is tested against the worked example in Glickman's paper.
+
+A finished match leaves ratings alone when both players share an IP or an account, or when the
+same pair has already been rated three times in 24 hours. A player who left and did not return
+within the 30 s seat grace loses. Ratings notes are sent to the connection that was seated when
+the game ended, so a player who reconnects after the end may not see theirs (the rating itself
+is saved).

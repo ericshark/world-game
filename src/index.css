@@ -2761,3 +2761,9 @@ input {
   background: rgb(120 30 30 / 0.92);
   color: #fff;
 }
+
+.rating-line {
+  margin: 0 0 12px;
+  font-weight: 600;
+  text-align: center;
+}

@@ -1,5 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { ClientMessage, RoomView, ServerMessage } from '../../net/protocol'
+import type {
+  ActiveQueue,
+  ClientMessage,
+  RatingNote,
+  RoomView,
+  ServerMessage,
+} from '../../net/protocol'
 
 /** Where this tab's seat is kept, so a reload or a dropped connection rejoins as the same player. */
 const SEAT_KEY = 'world-game:room-seat'
@@ -44,6 +50,10 @@ export interface RoomConnection {
   kicked: boolean
   room: RoomView | null
   playerId: string | null
+  /** Where this player stands in the Quick Duel queue, if they joined it. */
+  queue: ActiveQueue | null
+  /** How the Quick Duel changed this player's rating, once known. */
+  rating: RatingNote | null
   error: string | null
   /** Server clock minus this clock, measured with pings. */
   clockOffset: number
@@ -63,6 +73,8 @@ export function useRoomConnection(
   const [error, setError] = useState<string | null>(null)
   const [clockOffset, setClockOffset] = useState(0)
   const [kicked, setKicked] = useState(false)
+  const [queue, setQueue] = useState<ActiveQueue | null>(null)
+  const [rating, setRating] = useState<RatingNote | null>(null)
   const socketRef = useRef<WebSocket | null>(null)
   const onOpenRef = useRef(onOpen)
   useEffect(() => {
@@ -106,11 +118,18 @@ export function useRoomConnection(
         switch (message.t) {
           case 'welcome':
             setPlayerId(message.playerId)
+            setQueue(null)
             setError(null)
             saveSeat({ code: message.code, token: message.token })
             break
           case 'room':
             setRoom(message.room)
+            break
+          case 'queue':
+            setQueue(message.state.status === 'idle' ? null : message.state)
+            break
+          case 'rating':
+            setRating(message.note)
             break
           case 'pong': {
             // Assume the reply took as long to come back as the request took to arrive; the
@@ -158,5 +177,5 @@ export function useRoomConnection(
     }
   }, [send])
 
-  return { status, kicked, room, playerId, error, clockOffset, send }
+  return { status, kicked, room, playerId, queue, rating, error, clockOffset, send }
 }

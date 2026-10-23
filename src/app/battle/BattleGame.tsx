@@ -20,6 +20,7 @@ import { gradeOf } from '../../ui/grades'
 import { HowToPlay } from '../../ui/HowToPlay'
 import { Hud } from '../../ui/Hud'
 import { Icon } from '../../ui/Icon'
+import type { RatingNote } from '../../net/protocol'
 import { ResultsScreen } from '../../ui/ResultsScreen'
 import { TimerBar } from '../../ui/TimerBar'
 import { useGameKeys } from '../../ui/useGameKeys'
@@ -53,6 +54,8 @@ export interface MatchHost {
 interface BattleGameProps {
   host: MatchHost
   recorded: RecordedSession | null
+  /** Set for Quick Duels: how the game changed the player's rating. */
+  rating?: RatingNote | null
   onPlayAgain?: () => void
   onHome: () => void
 }
@@ -65,7 +68,7 @@ interface Draft {
   hintUsed: boolean
 }
 
-export function BattleGame({ host, recorded, onPlayAgain, onHome }: BattleGameProps) {
+export function BattleGame({ host, recorded, rating, onPlayAgain, onHome }: BattleGameProps) {
   const { geo } = useApp()
   const stage = useGameStage()
   const intro = useIntro('battle')
@@ -223,7 +226,9 @@ export function BattleGame({ host, recorded, onPlayAgain, onHome }: BattleGamePr
         onPlayAgain={onPlayAgain}
         onChangeSetup={onHome}
         onHome={onHome}
-      />
+      >
+        {rating !== undefined && <RatingLine note={rating} />}
+      </ResultsScreen>
     )
   }
   if (!challenge) return null
@@ -465,4 +470,23 @@ function standingDetail(view: BattleState, s: ReturnType<typeof standings>[numbe
 
 function titleLabel(id: string): string {
   return TITLES.find((title) => title.id === id)?.label ?? ''
+}
+
+const UNRATED_REASONS = {
+  bot: 'Games against bots are not rated.',
+  'same-network': 'Players on the same network or account are not rated.',
+  'repeat-pairing': 'You have played this opponent for rating three times today.',
+  forfeit: 'A player left, so this game was not rated.',
+} as const
+
+/** The rating change from a Quick Duel, or why there was none. */
+function RatingLine({ note }: { note: RatingNote | null }) {
+  if (!note) return <p className="field__hint">Working out your rating…</p>
+  return (
+    <p className="rating-line" data-testid="rating-note">
+      {note.rated
+        ? `Rating ${note.before} → ${note.after} (${note.after >= note.before ? '+' : ''}${note.after - note.before})`
+        : `Unrated · rating stays ${note.rating}. ${UNRATED_REASONS[note.reason]}`}
+    </p>
+  )
 }

@@ -101,12 +101,6 @@ Work through these in order. Each item should end with tests and a focused commi
 
 ### Phase 2
 
-4. **Quick Duel.**
-   - A matchmaking queue whose rating window widens over time.
-   - After 20 s, an offer of a labelled, unrated bot.
-   - Glicko-2 ratings, checked against the paper's worked example.
-   - Same-IP or same-account pairs are not rated, and any pair is rated at most 3 times a day.
-   - Matches run as a `Room` playing Duel with mixed content.
 5. **Leaderboards screen.**
    - Daily: today's top 100, your rank and your percentile.
    - Duel ladder: at least 5 games played.

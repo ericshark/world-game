@@ -6,7 +6,7 @@ import { HomeScreen } from '../../screens/HomeScreen'
 
 /** Start a private room, or join a friend's with their code. */
 export function OnlineScreen({ onClose }: { onClose: () => void }) {
-  const { navigate, preferences, setPreferences } = useApp()
+  const { navigate, preferences, setPreferences, account } = useApp()
   const [code, setCode] = useState('')
   const validCode = code.length === ROOM_CODE_LENGTH
 
@@ -36,6 +36,16 @@ export function OnlineScreen({ onClose }: { onClose: () => void }) {
         >
           Create a room
         </button>
+        {account.status === 'ready' && (
+          <button
+            type="button"
+            className="button button--large"
+            disabled={!preferences.playerName.trim()}
+            onClick={() => navigate({ name: 'room', code: 'QUICK' })}
+          >
+            Quick Duel · find an opponent
+          </button>
+        )}
         <form
           className="join-form"
           onSubmit={(event) => {

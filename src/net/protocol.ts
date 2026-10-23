@@ -95,6 +95,9 @@ export type QueueState =
   | { status: 'offer-bot'; waitedMs: number; rating: number }
   | { status: 'idle' }
 
+/** A queue state with someone waiting in it. */
+export type ActiveQueue = Exclude<QueueState, { status: 'idle' }>
+
 /** How a Quick Duel changed a player's rating, or why it did not count. */
 export type RatingNote =
   | { rated: true; before: number; after: number }
