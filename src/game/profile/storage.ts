@@ -35,3 +35,13 @@ export function removeKey(key: string, storage = browserStorage()): void {
     // See writeJson.
   }
 }
+
+/** Storage that lives only as long as the page or process; for checking data without saving it. */
+export function memoryStorage(): JsonStorage {
+  const data = new Map<string, string>()
+  return {
+    getItem: (key) => data.get(key) ?? null,
+    setItem: (key, value) => void data.set(key, value),
+    removeItem: (key) => void data.delete(key),
+  }
+}

@@ -1,6 +1,6 @@
 import { loadProfile, saveProfile, type Profile } from './profile'
 import { loadPreferences, savePreferences, type Preferences } from './settings'
-import type { JsonStorage } from './storage'
+import { memoryStorage } from './storage'
 
 const FORMAT = 'world-game-backup'
 
@@ -29,17 +29,8 @@ export function readBackup(text: string): { profile: Profile; preferences: Prefe
     return null
   }
   const { profile, preferences } = data as { profile?: unknown; preferences?: unknown }
-  const scratch = memory()
+  const scratch = memoryStorage()
   saveProfile(profile as Profile, scratch)
   savePreferences(preferences as Preferences, scratch)
   return { profile: loadProfile(scratch), preferences: loadPreferences(scratch) }
-}
-
-function memory(): JsonStorage {
-  const data = new Map<string, string>()
-  return {
-    getItem: (key) => data.get(key) ?? null,
-    setItem: (key, value) => void data.set(key, value),
-    removeItem: (key) => void data.delete(key),
-  }
 }

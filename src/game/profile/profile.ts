@@ -1,6 +1,6 @@
 import type { ModeId, Skill } from '../core/types'
 import type { CountryStats, StatsByCountry } from './stats'
-import { readJson, removeKey, writeJson, type JsonStorage } from './storage'
+import { memoryStorage, readJson, removeKey, writeJson, type JsonStorage } from './storage'
 
 const PROFILE_KEY = 'world-game:profile:v2'
 /** Per-country "find it" stats from before modes existed; migrated on first load. */
@@ -95,6 +95,13 @@ export function loadProfile(storage?: JsonStorage): Profile {
     }
   }
   return migrateLegacyStats(readJson<unknown>(LEGACY_STATS_KEY, null, storage))
+}
+
+/** Runs unknown data through the same checks as loading from storage. */
+export function normalizeProfile(raw: unknown): Profile {
+  const scratch = memoryStorage()
+  saveProfile(raw as Profile, scratch)
+  return loadProfile(scratch)
 }
 
 export function saveProfile(profile: Profile, storage?: JsonStorage): void {

@@ -7,6 +7,8 @@ import { serve } from '@hono/node-server'
 import { CountryIndex, type CountryCollection } from '../src/geo/countries'
 import { GeoData, type FactsFile } from '../src/geo/facts'
 import { createApp } from './app'
+import { DevMailer, ResendMailer, type Mailer } from './auth/mail'
+import { configuredProviders, type OAuthProvider, type OAuthProviderId } from './auth/oauth'
 import { DEFAULT_PORT, loadConfig, type ServerConfig } from './config'
 import { openDatabase } from './db'
 import { attachRealtime } from './realtime'
@@ -31,10 +33,33 @@ export interface RunningServer {
 export async function startServer({
   config = loadConfig(),
   geo = loadServerGeo(),
-}: { config?: ServerConfig; geo?: GeoData } = {}): Promise<RunningServer> {
+  now = Date.now,
+  mailer,
+  oauth = configuredProviders(config),
+}: {
+  config?: ServerConfig
+  geo?: GeoData
+  now?: () => number
+  mailer?: Mailer
+  oauth?: Map<OAuthProviderId, OAuthProvider>
+} = {}): Promise<RunningServer> {
   const db = openDatabase(config.databasePath)
   let realtime: ReturnType<typeof attachRealtime> | null = null
-  const app = createApp({ config, db, roomCount: () => realtime?.roomCount() ?? 0 })
+  const dev = mailer ?? (config.resendApiKey || config.production ? null : new DevMailer())
+  const app = createApp({
+    config,
+    db,
+    roomCount: () => realtime?.roomCount() ?? 0,
+    now,
+    mailer:
+      dev ??
+      new ResendMailer(
+        config.resendApiKey!,
+        process.env.MAIL_FROM ?? 'World Game <noreply@localhost>',
+      ),
+    devMailbox: dev instanceof DevMailer ? dev.outbox : null,
+    oauth,
+  })
 
   const http = await new Promise<Server>((resolve, reject) => {
     const server = serve({ fetch: app.fetch, port: config.port, hostname: config.host }, () => {

@@ -3,6 +3,9 @@ import { relative, resolve } from 'node:path'
 import { Hono } from 'hono'
 import { serveStatic } from '@hono/node-server/serve-static'
 import type { ServerConfig } from './config'
+import { authApi } from './auth/routes'
+import type { Mail, Mailer } from './auth/mail'
+import type { OAuthProvider, OAuthProviderId } from './auth/oauth'
 import type { Database } from './db'
 
 export interface AppContext {
@@ -10,6 +13,11 @@ export interface AppContext {
   db: Database
   /** For /health: how many battle rooms are open. */
   roomCount: () => number
+  now: () => number
+  mailer: Mailer
+  /** Sent emails, only when mail is going to the development mailbox. */
+  devMailbox: Mail[] | null
+  oauth: Map<OAuthProviderId, OAuthProvider>
 }
 
 /** The HTTP side: the JSON API, health check and the built site. */
@@ -18,7 +26,7 @@ export function createApp(context: AppContext) {
 
   app.get('/health', (c) => c.text(`ok ${context.roomCount()} rooms`))
 
-  const api = new Hono()
+  const api = authApi(context)
   app.route('/api', api)
   app.all('/api/*', (c) => c.json({ error: 'Not found.' }, 404))
 
