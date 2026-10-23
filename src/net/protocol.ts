@@ -81,7 +81,24 @@ export type ClientMessage =
   /** After a game: back to the lobby for another. */
   | { t: 'lobby' }
   | { t: 'leave' }
+  /** Joins the public Quick Duel queue. */
+  | ({ t: 'queue'; name: string } & Looks)
+  | { t: 'queue-leave' }
+  /** After waiting a while: play a computer opponent instead (unrated). */
+  | { t: 'queue-bot' }
   | { t: 'ping'; sentAt: number }
+
+/** Where a player is in the Quick Duel queue. */
+export type QueueState =
+  | { status: 'searching'; waitedMs: number; rating: number }
+  /** Nobody suitable yet: a bot match is on offer. */
+  | { status: 'offer-bot'; waitedMs: number; rating: number }
+  | { status: 'idle' }
+
+/** How a Quick Duel changed a player's rating, or why it did not count. */
+export type RatingNote =
+  | { rated: true; before: number; after: number }
+  | { rated: false; rating: number; reason: 'bot' | 'same-network' | 'repeat-pairing' | 'forfeit' }
 
 export type ServerErrorCode =
   /** The room is gone: it expired, or the server restarted. */
@@ -95,6 +112,8 @@ export type ServerMessage =
   | { t: 'welcome'; playerId: string; token: string; code: string }
   | { t: 'room'; room: RoomView; serverTime: number }
   | { t: 'pong'; sentAt: number; serverTime: number }
+  | { t: 'queue'; state: QueueState }
+  | { t: 'rating'; note: RatingNote }
   | { t: 'error'; message: string; code?: ServerErrorCode }
 
 const FORMATS: BattleFormat[] = ['duel', 'party', 'survival', 'teams']
@@ -175,12 +194,19 @@ export function parseClientMessage(raw: string): ClientMessage | null {
         hintUsed: data.hintUsed === true,
       }
     }
+    case 'queue': {
+      const name = parseName(data.name)
+      const looks = parseLooks(data)
+      return name && looks ? { t: 'queue', name, ...looks } : null
+    }
     case 'ping':
       return typeof data.sentAt === 'number' ? { t: 'ping', sentAt: data.sentAt } : null
     case 'start':
     case 'ready':
     case 'lobby':
     case 'leave':
+    case 'queue-leave':
+    case 'queue-bot':
       return { t: data.t }
     default:
       return null

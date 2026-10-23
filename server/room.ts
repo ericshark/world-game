@@ -2,6 +2,7 @@ import type { GeoData } from '../src/geo/facts'
 import {
   battle,
   battleViewFor,
+  standings,
   type BattleConfig,
   type BattlePlayer,
   type BattleState,
@@ -19,6 +20,14 @@ import {
 } from '../src/net/protocol'
 
 type Send = (message: ServerMessage) => void
+
+/** How a game that someone is waiting on ended, for rating it. Member ids are the room's. */
+export interface MatchReport {
+  /** The people who came first (more than one for a draw). */
+  winnerIds: string[]
+  /** People who left and did not return within the grace period. */
+  forfeitedIds: string[]
+}
 
 interface Member extends Looks {
   id: string
@@ -52,6 +61,8 @@ export class Room {
   settings: RoomSettings = DEFAULT_ROOM_SETTINGS
   phase: RoomView['phase'] = 'lobby'
   lastActivity: number
+  /** Called once when the first game ends; used by matchmaking to rate it. */
+  onFinish: ((report: MatchReport) => void) | null = null
   private readonly members: Member[] = []
   private battle: BattleState | null = null
   private timer: ReturnType<typeof setTimeout> | null = null
@@ -168,14 +179,7 @@ export class Room {
         if (!isHost || !inLobby) return
         const problem = this.startProblem()
         if (problem) return send({ t: 'error', message: problem })
-        this.battle = battle.start({
-          config: this.battleConfig(),
-          seed: randomSeed(),
-          now: this.now(),
-          geo: this.geo,
-          players: [],
-        })
-        this.phase = 'playing'
+        this.begin()
         break
       }
       case 'submit': {
@@ -210,6 +214,31 @@ export class Room {
         return
     }
     this.afterChange()
+  }
+
+  /** Ids of the people in the room, in the order they joined. */
+  get memberIds(): string[] {
+    return this.members.map((m) => m.id)
+  }
+
+  /** Starts a game straight away with these settings, for matches made by the queue. */
+  startMatch(settings: RoomSettings) {
+    this.settings = settings
+    this.guarded(() => {
+      this.begin()
+      this.afterChange()
+    })
+  }
+
+  private begin() {
+    this.battle = battle.start({
+      config: this.battleConfig(),
+      seed: randomSeed(),
+      now: this.now(),
+      geo: this.geo,
+      players: [],
+    })
+    this.phase = 'playing'
   }
 
   /** Sends ticks so timers and bots move the game on without anyone acting. */
@@ -290,12 +319,30 @@ export class Room {
           }
         }
       }
-      if (battle.isFinished(this.battle!)) this.phase = 'finished'
+      if (battle.isFinished(this.battle!) && this.phase !== 'finished') {
+        this.phase = 'finished'
+        this.reportFinish()
+      }
     }
     this.electHost()
     this.assignSides()
     this.schedule()
     this.broadcast()
+  }
+
+  private reportFinish() {
+    const report = this.onFinish
+    this.onFinish = null
+    if (!report || !this.battle) return
+    const humans = new Set(this.members.map((m) => m.id))
+    report({
+      winnerIds: standings(this.battle)
+        .filter((s) => s.place === 1 && humans.has(s.id))
+        .map((s) => s.id),
+      forfeitedIds: this.members
+        .filter((m) => !m.send && m.leftAt !== null && this.now() - m.leftAt > SEAT_GRACE_MS)
+        .map((m) => m.id),
+    })
   }
 
   /** In a team game everyone is always on a side: the smaller one, until they pick. */

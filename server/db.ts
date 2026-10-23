@@ -62,6 +62,25 @@ export const MIGRATIONS: readonly string[] = [
      count INTEGER NOT NULL,
      PRIMARY KEY (number, country_id)
    );`,
+  `CREATE TABLE ratings (
+     player_id TEXT PRIMARY KEY REFERENCES players(id) ON DELETE CASCADE,
+     rating REAL NOT NULL,
+     rd REAL NOT NULL,
+     vol REAL NOT NULL,
+     games INTEGER NOT NULL DEFAULT 0,
+     updated INTEGER NOT NULL
+   );
+   CREATE INDEX ratings_ladder ON ratings (rating DESC);
+   CREATE TABLE matches (
+     id INTEGER PRIMARY KEY AUTOINCREMENT,
+     played INTEGER NOT NULL,
+     player_a TEXT REFERENCES players(id) ON DELETE SET NULL,
+     player_b TEXT REFERENCES players(id) ON DELETE SET NULL,
+     score_a REAL NOT NULL,
+     rated INTEGER NOT NULL,
+     reason TEXT
+   );
+   CREATE INDEX matches_pair ON matches (player_a, player_b, played);`,
 ]
 
 export function runMigrations(db: Database, migrations: readonly string[] = MIGRATIONS) {
