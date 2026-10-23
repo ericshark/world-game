@@ -3,8 +3,16 @@ import { useApp } from '../../app/AppContext'
 import { useGlobeStage, useStagePicking, useStageScene } from '../../app/globeStage'
 import { useGlobeShift } from '../../app/useLayoutShift'
 import { REGIONS } from '../../geo/countries'
+import { starsForScore } from '../../app/journey/config'
+import { EXPEDITIONS } from '../../game/modes/expeditions'
 import { ACHIEVEMENTS } from '../../game/profile/achievements'
-import { GLOWS, PIN_SKINS, type Cosmetic } from '../../game/profile/cosmetics'
+import {
+  COSMETICS,
+  isUnlocked,
+  type Cosmetic,
+  type CosmeticKind,
+} from '../../game/profile/cosmetics'
+import type { Cosmetics } from '../../game/profile/profile'
 import { dailyStreak } from '../../game/profile/daily'
 import { countByMastery, explorerRank, masteryOf } from '../../game/profile/mastery'
 import { levelForXp, xpForLevel } from '../../game/profile/xp'
@@ -17,7 +25,7 @@ import { formatDistance, formatNumber } from '../format'
 import { CountryTable } from './CountryTable'
 import { masteryPaint, MASTERY_STYLE } from './scene'
 
-type Tab = 'regions' | 'countries' | 'achievements' | 'looks'
+type Tab = 'regions' | 'countries' | 'achievements' | 'stamps' | 'looks'
 
 const SKILL_LABELS: Record<Skill, string> = {
   locate: 'Finding it',
@@ -125,6 +133,7 @@ export function PassportScreen({ onClose }: { onClose: () => void }) {
                 { value: 'regions', label: 'Regions' },
                 { value: 'countries', label: 'Countries' },
                 { value: 'achievements', label: 'Awards' },
+                { value: 'stamps', label: 'Stamps' },
                 { value: 'looks', label: 'Looks' },
               ]}
             />
@@ -132,6 +141,7 @@ export function PassportScreen({ onClose }: { onClose: () => void }) {
               {tab === 'regions' && <Regions onSelect={select} />}
               {tab === 'countries' && <CountryTable />}
               {tab === 'achievements' && <Achievements />}
+              {tab === 'stamps' && <Stamps />}
               {tab === 'looks' && <Looks level={level} />}
             </div>
           </>
@@ -241,24 +251,60 @@ function Achievements() {
   )
 }
 
+/** A stamp for every expedition travelled, with the best stars earned on it. */
+function Stamps() {
+  const { profile, geo } = useApp()
+  const stamped = EXPEDITIONS.filter((e) => starsForScore(profile.bests[`journey:${e.id}`]?.score))
+  return (
+    <>
+      <p className="passport__hint">
+        {stamped.length} of {EXPEDITIONS.length} expeditions completed
+      </p>
+      <ul className="stamps">
+        {EXPEDITIONS.map((expedition) => {
+          const stars = starsForScore(profile.bests[`journey:${expedition.id}`]?.score)
+          return (
+            <li key={expedition.id} className={stars > 0 ? 'is-stamped' : undefined}>
+              <span className="stamps__title">{expedition.title}</span>
+              <span className="stamps__route">
+                {geo.nameOf(expedition.from)} → {geo.nameOf(expedition.to)}
+              </span>
+              <span
+                className="stamps__stars"
+                aria-label={stars > 0 ? `${stars} of 3 stars` : 'Not travelled yet'}
+              >
+                {stars > 0 ? `${'★'.repeat(stars)}${'☆'.repeat(3 - stars)}` : 'Not yet'}
+              </span>
+            </li>
+          )
+        })}
+      </ul>
+    </>
+  )
+}
+
+const LOOK_SECTIONS: { kind: CosmeticKind; label: string; key: keyof Cosmetics }[] = [
+  { kind: 'pin', label: 'Pin colour', key: 'pin' },
+  { kind: 'shape', label: 'Pin shape', key: 'shape' },
+  { kind: 'trail', label: 'Arc trail', key: 'trail' },
+  { kind: 'glow', label: 'Atmosphere', key: 'glow' },
+  { kind: 'title', label: 'Title', key: 'title' },
+]
+
 function Looks({ level }: { level: number }) {
   const { profile, setCosmetics } = useApp()
   return (
     <>
-      <LookChoice
-        label="Your pin"
-        items={PIN_SKINS}
-        selected={profile.cosmetics.pin}
-        level={level}
-        onSelect={(pin) => setCosmetics({ pin })}
-      />
-      <LookChoice
-        label="Atmosphere"
-        items={GLOWS}
-        selected={profile.cosmetics.glow}
-        level={level}
-        onSelect={(glow) => setCosmetics({ glow })}
-      />
+      {LOOK_SECTIONS.map(({ kind, label, key }) => (
+        <LookChoice
+          key={kind}
+          label={label}
+          items={COSMETICS[kind]}
+          selected={profile.cosmetics[key]}
+          isUnlocked={(item) => isUnlocked(item, { level, achievements: profile.achievements })}
+          onSelect={(id) => setCosmetics({ [key]: id })}
+        />
+      ))}
     </>
   )
 }
@@ -267,7 +313,7 @@ function LookChoice(props: {
   label: string
   items: Cosmetic[]
   selected: string
-  level: number
+  isUnlocked: (item: Cosmetic) => boolean
   onSelect: (id: string) => void
 }) {
   return (
@@ -275,7 +321,8 @@ function LookChoice(props: {
       <p className="field__label">{props.label}</p>
       <div className="looks" role="radiogroup" aria-label={props.label}>
         {props.items.map((item) => {
-          const locked = item.level > props.level
+          const locked = !props.isUnlocked(item)
+          const hint = unlockHint(item)
           return (
             <button
               key={item.id}
@@ -285,15 +332,25 @@ function LookChoice(props: {
               disabled={locked}
               className="look"
               onClick={() => props.onSelect(item.id)}
-              title={locked ? `Unlocks at level ${item.level}` : item.label}
+              title={locked ? hint : item.label}
             >
-              <span className="look__swatch" style={{ background: item.color }} />
+              {item.kind !== 'title' && (
+                <span className="look__swatch" style={{ background: item.color }} />
+              )}
               {item.label}
-              {locked && <small>Level {item.level}</small>}
+              {locked && <small>{hint}</small>}
             </button>
           )
         })}
       </div>
     </div>
   )
+}
+
+function unlockHint(item: Cosmetic): string {
+  if ('level' in item.unlock) return `Level ${item.unlock.level}`
+  const achievement = ACHIEVEMENTS.find(
+    (a) => 'achievement' in item.unlock && a.id === item.unlock.achievement,
+  )
+  return `Award: ${achievement?.title ?? 'secret'}`
 }

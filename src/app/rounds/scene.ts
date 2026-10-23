@@ -105,7 +105,7 @@ export function pinAndArc(
 ): Pick<GlobeScene, 'pins' | 'arcs'> {
   return {
     pins: [ownPin(guess), ...(missed ? [{ at: answer, color: TARGET_COLOR }] : [])],
-    arcs: missed ? [{ from: guess, to: answer }] : [],
+    arcs: missed ? [{ from: guess, to: answer, own: true }] : [],
   }
 }
 

@@ -24,6 +24,9 @@ const PATHS = {
   crosshair: 'M12 3v5m0 8v5M3 12h5m8 0h5m-9-3a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z',
   trophy: 'M8 4h8v5a4 4 0 0 1-8 0V4Zm0 2H4v1a4 4 0 0 0 4 4m8-5h4v1a4 4 0 0 1-4 4m-4 2v4m-4 2h8',
   play: 'M8 5v14l11-7L8 5Z',
+  star: 'M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.3-4.1 5.9-.9L12 3.5Z',
+  palette:
+    'M12 3a9 9 0 0 0 0 18c1.2 0 1.8-.8 1.8-1.7 0-1.2-1-1.6-1-2.6 0-1 .8-1.7 1.8-1.7H17a4 4 0 0 0 4-4C21 6.6 17 3 12 3Zm-4.5 9.5h.01M8.5 7.5h.01M13 6h.01M17 9h.01',
 } as const
 
 export type IconName = keyof typeof PATHS

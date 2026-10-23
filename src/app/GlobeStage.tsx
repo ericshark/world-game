@@ -5,6 +5,16 @@ import { CameraRig, type CameraFocus } from '../globe/CameraRig'
 import { CountryPaintLayer } from '../globe/CountryPaintLayer'
 import { Globe, type ViewShift } from '../globe/Globe'
 import { Markers } from '../globe/Markers'
+import {
+  cosmeticById,
+  GLOWS,
+  PIN_SHAPES,
+  PIN_SKINS,
+  TRAILS,
+  type PinShape,
+  type TrailStyle,
+} from '../game/profile/cosmetics'
+import type { Cosmetics } from '../game/profile/profile'
 import { EMPTY_SCENE, type CountryPaint, type PulseSpec } from '../globe/scene'
 import type { Surface } from '../globe/textures'
 import { GlobeStageContext, type GlobeStage } from './globeStage'
@@ -12,20 +22,15 @@ import { GlobeStageContext, type GlobeStage } from './globeStage'
 interface GlobeStageProviderProps {
   geo: GeoData | null
   showGrid: boolean
-  /** The player's chosen colour for their own pins. */
-  pinColor: string
-  /** The atmosphere's glow colour. */
-  glow: string
+  /** The player's chosen pin, trail and glow. */
+  looks: Cosmetics
   children: ReactNode
 }
 
-export function GlobeStageProvider({
-  geo,
-  showGrid,
-  pinColor,
-  glow,
-  children,
-}: GlobeStageProviderProps) {
+export function GlobeStageProvider({ geo, showGrid, looks, children }: GlobeStageProviderProps) {
+  const pinColor = cosmeticById(PIN_SKINS, looks.pin).color
+  const pinShape = cosmeticById(PIN_SHAPES, looks.shape).id as PinShape
+  const trail = cosmeticById(TRAILS, looks.trail).id as TrailStyle
   const [scene, setSceneState] = useState(EMPTY_SCENE)
   const [surface, setSurface] = useState<Surface>('day')
   const [autoRotate, setAutoRotate] = useState(true)
@@ -68,7 +73,7 @@ export function GlobeStageProvider({
           surface={surface}
           centerRef={centerRef}
           shift={shift}
-          glow={glow}
+          glow={cosmeticById(GLOWS, looks.glow).color}
         >
           <CameraRig focus={focus} />
           {geo && <CountryPaintLayer countries={geo.countries} paints={scene.paints} />}
@@ -80,8 +85,15 @@ export function GlobeStageProvider({
             />
           )}
           <Markers
-            pins={scene.pins.map((pin) => (pin.own ? { ...pin, color: pinColor } : pin))}
-            arcs={scene.arcs}
+            pins={scene.pins.map((pin) =>
+              pin.own ? { ...pin, color: pinColor, shape: pinShape } : pin,
+            )}
+            // A comet trail takes the colour of the pin it flies from.
+            arcs={scene.arcs.map((arc) =>
+              arc.own
+                ? { ...arc, style: trail, color: trail === 'comet' ? pinColor : arc.color }
+                : arc,
+            )}
             markers={scene.markers ?? []}
           />
         </Globe>

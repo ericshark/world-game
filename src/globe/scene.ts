@@ -1,4 +1,5 @@
 import type { LonLat } from '../geo/coords'
+import type { PinShape, TrailStyle } from '../game/profile/cosmetics'
 
 /** A country drawn on the overlay. Later entries are drawn on top of earlier ones. */
 export interface CountryPaint {
@@ -11,8 +12,9 @@ export interface CountryPaint {
 export interface PinSpec {
   at: LonLat
   color: string
-  /** The local player's own pin, drawn in the pin colour they picked. */
+  /** The local player's own pin, drawn in the colour and shape they picked. */
   own?: boolean
+  shape?: PinShape
 }
 
 export interface ArcSpec {
@@ -21,6 +23,9 @@ export interface ArcSpec {
   color?: string
   /** Ends in an arrowhead, for pointing somewhere rather than joining two places. */
   arrow?: boolean
+  /** From the local player's own pin, drawn in the trail they picked. */
+  own?: boolean
+  style?: TrailStyle
 }
 
 /** A labelled point: a capital city, or where a journey starts and ends. */

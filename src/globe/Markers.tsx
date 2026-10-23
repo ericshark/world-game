@@ -2,7 +2,8 @@ import { Html, Line } from '@react-three/drei'
 import { useFrame } from '@react-three/fiber'
 import { geoDistance, geoInterpolate } from 'd3-geo'
 import { useMemo, useRef, type ComponentRef } from 'react'
-import { Group, Mesh, Quaternion, Vector3 } from 'three'
+import { Color, DoubleSide, Group, Mesh, Quaternion, Vector3 } from 'three'
+import type { PinShape, TrailStyle } from '../game/profile/cosmetics'
 import type { LonLat } from '../geo/coords'
 import { easeOutCubic, useReducedMotion } from '../ui/motion'
 import { MAX_CAMERA_DISTANCE } from './constants'
@@ -33,12 +34,20 @@ export function Markers({
   return (
     <>
       {pins.map((pin) => (
-        <Pin key={`pin-${pin.at.join(',')}-${pin.color}`} at={pin.at} color={pin.color} />
+        <Pin
+          key={`pin-${pin.at.join(',')}-${pin.color}-${pin.shape}`}
+          at={pin.at}
+          color={pin.color}
+          shape={pin.shape ?? 'classic'}
+        />
       ))}
       {arcs
         .filter((arc) => geoDistance(arc.from, arc.to) > 1e-4)
         .map((arc) => (
-          <Arc key={`arc-${arc.from.join(',')}-${arc.to.join(',')}-${arc.color}`} {...arc} />
+          <Arc
+            key={`arc-${arc.from.join(',')}-${arc.to.join(',')}-${arc.color}-${arc.style}`}
+            {...arc}
+          />
         ))}
       {markers.map((marker) => (
         <PlaceMarker key={`marker-${marker.kind}-${marker.at.join(',')}`} {...marker} />
@@ -83,7 +92,7 @@ function PlaceMarker({ at, label, kind }: MarkerSpec) {
  * A pin standing on the surface. It drops in with a little bounce, and shrinks as the camera
  * zooms in so it stays readable.
  */
-function Pin({ at, color }: { at: LonLat; color: string }) {
+function Pin({ at, color, shape }: { at: LonLat; color: string; shape: PinShape }) {
   const group = useRef<Group>(null)
   const placedAt = useRef<number | null>(null)
   const reducedMotion = useReducedMotion()
@@ -109,19 +118,51 @@ function Pin({ at, color }: { at: LonLat; color: string }) {
         <cylinderGeometry args={[0.0025, 0.0025, 0.04, 8]} />
         <meshBasicMaterial color="#f5f5f5" />
       </mesh>
-      <mesh position={[0, 0.045, 0]} raycast={() => null}>
-        <sphereGeometry args={[0.011, 16, 12]} />
-        <meshBasicMaterial color={color} toneMapped={false} />
-      </mesh>
+      <PinHead shape={shape} color={color} />
     </group>
   )
+}
+
+/** The top of a pin, in the shape the player picked. */
+function PinHead({ shape, color }: { shape: PinShape; color: string }) {
+  const material = <meshBasicMaterial color={color} toneMapped={false} side={DoubleSide} />
+  switch (shape) {
+    case 'diamond':
+      return (
+        <mesh position={[0, 0.048, 0]} scale={[1, 1.4, 1]} raycast={() => null}>
+          <octahedronGeometry args={[0.012]} />
+          {material}
+        </mesh>
+      )
+    case 'ring':
+      return (
+        <mesh position={[0, 0.05, 0]} raycast={() => null}>
+          <torusGeometry args={[0.01, 0.0035, 10, 24]} />
+          {material}
+        </mesh>
+      )
+    case 'flag':
+      return (
+        <mesh position={[0.011, 0.034, 0]} raycast={() => null}>
+          <planeGeometry args={[0.02, 0.013]} />
+          {material}
+        </mesh>
+      )
+    default:
+      return (
+        <mesh position={[0, 0.045, 0]} raycast={() => null}>
+          <sphereGeometry args={[0.011, 16, 12]} />
+          {material}
+        </mesh>
+      )
+  }
 }
 
 /**
  * Great-circle arc that lifts off the surface in proportion to its length and draws itself.
  * An arrow arc stays low and ends in an arrowhead once drawn.
  */
-function Arc({ from, to, color = '#ffffff', arrow = false }: ArcSpec) {
+function Arc({ from, to, color = '#ffffff', arrow = false, style = 'solid' }: ArcSpec) {
   const line = useRef<ComponentRef<typeof Line>>(null)
   const head = useRef<Mesh>(null)
   const drawnFrom = useRef<number | null>(null)
@@ -154,10 +195,22 @@ function Arc({ from, to, color = '#ffffff', arrow = false }: ArcSpec) {
       .normalize()
     return { points, tip, tipQuaternion: new Quaternion().setFromUnitVectors(UP, direction) }
   }, [from, to, arrow])
+  const vertexColors = useMemo(() => trailColors(style, color), [style, color])
 
   return (
     <>
-      <Line ref={line} points={points} color={color} lineWidth={2} transparent opacity={0.9} />
+      <Line
+        ref={line}
+        points={points}
+        color={vertexColors ? '#ffffff' : color}
+        vertexColors={vertexColors ?? undefined}
+        lineWidth={style === 'comet' ? 3 : 2}
+        dashed={style === 'dashed'}
+        dashSize={0.02}
+        gapSize={0.014}
+        transparent
+        opacity={0.9}
+      />
       {arrow && (
         <mesh ref={head} position={tip} quaternion={tipQuaternion} raycast={() => null}>
           <coneGeometry args={[0.012, 0.03, 12]} />
@@ -166,6 +219,20 @@ function Arc({ from, to, color = '#ffffff', arrow = false }: ArcSpec) {
       )}
     </>
   )
+}
+
+/** Per-point colours for the fancier trails: a comet brightens towards its head. */
+function trailColors(style: TrailStyle, color: string): [number, number, number][] | null {
+  if (style !== 'comet' && style !== 'rainbow') return null
+  const base = new Color(color)
+  return Array.from({ length: ARC_SAMPLES + 1 }, (_, i) => {
+    const t = i / ARC_SAMPLES
+    const point =
+      style === 'comet'
+        ? base.clone().multiplyScalar(0.15 + 0.85 * t)
+        : new Color().setHSL(t * 0.8, 0.9, 0.62)
+    return [point.r, point.g, point.b]
+  })
 }
 
 /** Ease-out with a small bounce at the end, for pins landing. */

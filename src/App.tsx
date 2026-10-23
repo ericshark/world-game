@@ -3,16 +3,17 @@ import { AppContext, useStoredState, type AppServices } from './app/AppContext'
 import { GlobeStageProvider } from './app/GlobeStage'
 import { useRoute } from './app/router'
 import { Routes } from './app/Routes'
-import { cosmeticById, GLOWS, PIN_SKINS } from './game/profile/cosmetics'
 import { loadGeoData, type GeoData } from './geo/facts'
 import { LoadingOverlay } from './screens/LoadingOverlay'
 import { ReducedMotionContext, useResolvedReducedMotion } from './ui/motion'
+import { Toasts, useToasts } from './ui/Toasts'
 
 export default function App() {
   const [geo, setGeo] = useState<GeoData | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [route, navigate] = useRoute()
-  const stored = useStoredState(geo)
+  const toasts = useToasts()
+  const stored = useStoredState(geo, toasts.push)
   const reducedMotion = useResolvedReducedMotion(stored.preferences.motion)
 
   useEffect(() => {
@@ -32,8 +33,7 @@ export default function App() {
         <GlobeStageProvider
           geo={geo}
           showGrid={stored.preferences.showGrid}
-          pinColor={cosmeticById(PIN_SKINS, stored.profile.cosmetics.pin).color}
-          glow={cosmeticById(GLOWS, stored.profile.cosmetics.glow).color}
+          looks={stored.profile.cosmetics}
         >
           {services && (
             <AppContext.Provider value={services}>
@@ -41,6 +41,7 @@ export default function App() {
             </AppContext.Provider>
           )}
         </GlobeStageProvider>
+        <Toasts toasts={toasts.toasts} onDismiss={toasts.dismiss} />
         <LoadingOverlay dataReady={geo !== null} error={loadError} />
       </div>
     </ReducedMotionContext.Provider>

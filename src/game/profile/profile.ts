@@ -30,7 +30,10 @@ export interface DailyRecord {
 /** Looks the player has picked from what they have unlocked. */
 export interface Cosmetics {
   pin: string
+  shape: string
+  trail: string
   glow: string
+  title: string
 }
 
 export type CountrySkills = Partial<Record<Skill, CountryStats>>
@@ -51,7 +54,13 @@ export interface Profile {
   cosmetics: Cosmetics
 }
 
-export const DEFAULT_COSMETICS: Cosmetics = { pin: 'coral', glow: 'classic' }
+export const DEFAULT_COSMETICS: Cosmetics = {
+  pin: 'coral',
+  shape: 'classic',
+  trail: 'solid',
+  glow: 'classic',
+  title: 'none',
+}
 
 export function emptyProfile(): Profile {
   return {

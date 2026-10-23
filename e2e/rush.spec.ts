@@ -27,6 +27,7 @@ test('GeoRush sudden death ends on the first miss', async ({ page }) => {
   await placePin(page, [-150, -40])
   await expect(page.getByTestId('summary-total')).toContainText('100')
   await expect(page.getByText('Your first score in this setup')).toBeVisible()
+  await expect(page.locator('.toast')).toContainText('First steps')
 
   // The miss can be looked at again on the globe.
   await page.getByRole('button', { name: 'Review the one you missed' }).click()

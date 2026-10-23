@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { unlockedAt } from '../game/profile/cosmetics'
+import { unlockedAt, unlockedBy } from '../game/profile/cosmetics'
 import type { RecordedSession } from '../game/profile/record'
 import { levelForXp, xpForLevel } from '../game/profile/xp'
 import { formatNumber } from '../screens/format'
@@ -160,11 +160,12 @@ function Rewards({
   const progress = (xp - floor) / (xpForLevel(level + 1) - floor)
   const shownXp = useCountUp(recorded.xpGained, 900)
   const levelledUp = recorded.levelAfter > recorded.levelBefore
-  const unlocks = levelledUp
-    ? Array.from({ length: recorded.levelAfter - recorded.levelBefore }, (_, i) =>
-        unlockedAt(recorded.levelBefore + i + 1),
-      ).flat()
-    : []
+  const unlocks = [
+    ...Array.from({ length: recorded.levelAfter - recorded.levelBefore }, (_, i) =>
+      unlockedAt(recorded.levelBefore + i + 1),
+    ).flat(),
+    ...unlockedBy(recorded.achievements.map((a) => a.id)),
+  ]
 
   return (
     <div className="rewards">
@@ -175,9 +176,9 @@ function Rewards({
         </span>
         <span className="rewards__gain">+{formatNumber(shownXp)} XP</span>
       </div>
-      {levelledUp && (
+      {(levelledUp || unlocks.length > 0) && (
         <p className="rewards__note">
-          <Icon name="trophy" size={16} /> Level up!
+          <Icon name="trophy" size={16} /> {levelledUp && 'Level up!'}
           {unlocks.length > 0 && ` Unlocked: ${unlocks.map((u) => u.label).join(', ')}`}
         </p>
       )}

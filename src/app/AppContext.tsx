@@ -10,8 +10,10 @@ import {
   type Cosmetics,
   type Profile,
 } from '../game/profile/profile'
+import { unlockedAt, unlockedBy } from '../game/profile/cosmetics'
 import { recordOutcomes, recordSession, type RecordedSession } from '../game/profile/record'
 import { loadPreferences, savePreferences, type Preferences } from '../game/profile/settings'
+import type { Toast } from '../ui/Toasts'
 import type { Route } from './router'
 
 /** What every screen and mode needs from the app. */
@@ -38,8 +40,11 @@ export function useApp(): AppServices {
   return services
 }
 
-/** Profile and preferences, kept in React state and saved to browser storage on change. */
-export function useStoredState(geo: GeoData | null) {
+/**
+ * Profile and preferences, kept in React state and saved to browser storage on change. New
+ * achievements, levels, looks and mastered countries are announced through `notify`.
+ */
+export function useStoredState(geo: GeoData | null, notify: (toast: Omit<Toast, 'id'>) => void) {
   const [profile, setProfile] = useState(() => loadProfile())
   const profileRef = useRef(profile)
   const [preferences, setPreferencesState] = useState(() => loadPreferences())
@@ -60,12 +65,25 @@ export function useStoredState(geo: GeoData | null) {
     () => ({
       profile,
       preferences,
-      recordOutcomes: (outcomes: CountryOutcome[]) =>
-        commitProfile(recordOutcomes(profileRef.current, outcomes, Date.now())),
+      recordOutcomes: (outcomes: CountryOutcome[]) => {
+        const before = profileRef.current
+        const next = recordOutcomes(before, outcomes, Date.now())
+        commitProfile(next)
+        for (const id of Object.keys(next.masteredAt)) {
+          if (!(id in before.masteredAt) && geo) {
+            notify({
+              icon: 'check',
+              title: `${geo.nameOf(id)} mastered`,
+              text: 'Gold on your globe',
+            })
+          }
+        }
+      },
       finishSession: (summary: SessionSummary) => {
         if (!geo) throw new Error('Geography is not loaded yet')
         const recorded = recordSession(profileRef.current, summary, geo)
         commitProfile(recorded.profile)
+        for (const toast of rewardToasts(recorded)) notify(toast)
         return recorded
       },
       setCosmetics: (update: Partial<Cosmetics>) =>
@@ -90,6 +108,34 @@ export function useStoredState(geo: GeoData | null) {
         savePreferences(next)
       },
     }),
-    [profile, preferences, commitProfile, geo],
+    [profile, preferences, commitProfile, geo, notify],
   )
+}
+
+/** Notices for what a finished game earned: achievements, a new level, and new looks. */
+function rewardToasts(recorded: RecordedSession): Omit<Toast, 'id'>[] {
+  const toasts: Omit<Toast, 'id'>[] = recorded.achievements.map((achievement) => ({
+    icon: 'trophy',
+    title: achievement.title,
+    text: achievement.description,
+  }))
+  if (recorded.levelAfter > recorded.levelBefore) {
+    toasts.push({ icon: 'star', title: `Level ${recorded.levelAfter}!` })
+  }
+  const levels = Array.from(
+    { length: recorded.levelAfter - recorded.levelBefore },
+    (_, i) => recorded.levelBefore + i + 1,
+  )
+  const looks = [
+    ...levels.flatMap(unlockedAt),
+    ...unlockedBy(recorded.achievements.map((a) => a.id)),
+  ]
+  if (looks.length > 0) {
+    toasts.push({
+      icon: 'palette',
+      title: 'New looks unlocked',
+      text: `${looks.map((look) => look.label).join(', ')} · in your Passport`,
+    })
+  }
+  return toasts
 }

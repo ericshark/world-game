@@ -3,10 +3,13 @@ import { useApp } from '../app/AppContext'
 import { MODES } from '../app/modes'
 import { todayKey } from '../app/today'
 import { useGlobeShift } from '../app/useLayoutShift'
+import { cosmeticById, TITLES } from '../game/profile/cosmetics'
 import { dailyNumber, dailyStreak } from '../game/profile/daily'
+import { nextGoal } from '../game/profile/goals'
 import { countByMastery, explorerRank } from '../game/profile/mastery'
 import { levelForXp } from '../game/profile/xp'
 import { Icon } from '../ui/Icon'
+import { formatNumber } from './format'
 
 export function HomeScreen() {
   const { navigate, profile, geo } = useApp()
@@ -14,6 +17,7 @@ export function HomeScreen() {
   const counts = countByMastery(profile, geo.playableIds)
   const found = counts.found + counts.mastered
   const rank = explorerRank(counts.mastered)
+  const title = cosmeticById(TITLES, profile.cosmetics.title)
 
   return (
     <div className="screen screen--home">
@@ -24,6 +28,7 @@ export function HomeScreen() {
         <p className="home__tagline">Know the world. One borderless Earth, many ways to play.</p>
 
         <DailyCard />
+        <NextGoal />
 
         <div className="mode-grid">
           {MODES.map((mode) => (
@@ -55,6 +60,7 @@ export function HomeScreen() {
             <Icon name="globe" size={18} />
             <span>
               {rank.title} · Level {levelForXp(profile.xp)}
+              {title.id !== 'none' && ` · “${title.label}”`}
               <small>
                 Your World: {found} / {geo.playableIds.length} found
               </small>
@@ -109,6 +115,26 @@ function DailyCard() {
           {streak}
         </span>
       )}
+    </button>
+  )
+}
+
+/** One reachable target, so every visit has something to aim for. */
+function NextGoal() {
+  const { navigate, profile, geo } = useApp()
+  const goal = nextGoal(profile, geo)
+  const text =
+    goal.kind === 'region'
+      ? `Find ${goal.left} more ${goal.left === 1 ? 'country' : 'countries'} to complete ${goal.region}`
+      : goal.kind === 'rank'
+        ? `Master ${goal.left} more ${goal.left === 1 ? 'country' : 'countries'} to become a ${goal.title}`
+        : `${formatNumber(goal.xpLeft)} XP to reach level ${goal.level}`
+  return (
+    <button type="button" className="goal" onClick={() => navigate({ name: 'passport' })}>
+      <Icon name="star" size={16} />
+      <span>
+        <span className="goal__label">Next goal</span> {text}
+      </span>
     </button>
   )
 }
