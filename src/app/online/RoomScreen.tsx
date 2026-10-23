@@ -96,13 +96,15 @@ export function RoomScreen({ code, onHome }: { code: string; onHome: () => void 
 function useFinishedGame(room: RoomView | null, playerId: string | null) {
   const app = useApp()
   const [recorded, setRecorded] = useState<RecordedSession | null>(null)
-  const recordedSeed = useRef<string | null>(null)
+  const recordedGame = useRef<string | null>(null)
   const view = room?.battle
   const finished = room?.phase === 'finished'
   useEffect(() => {
-    if (!view || !playerId || !finished || recordedSeed.current === view.seed) return
-    recordedSeed.current = view.seed
-    const summary = battle.summarize(view, playerId)
+    if (!view || !playerId || !finished || recordedGame.current === view.gameId) return
+    recordedGame.current = view.gameId
+    // Online games keep their own personal bests, apart from games against bots.
+    const local = battle.summarize(view, playerId)
+    const summary = { ...local, bestKey: `${local.bestKey}:online` }
     app.recordOutcomes(summary.outcomes)
     const result = app.finishSession(summary)
     setRecorded(result)

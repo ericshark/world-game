@@ -27,6 +27,9 @@ interface Member {
   send: Send | null
 }
 
+/** Never wait less than this for a deadline, so an overdue one cannot spin the CPU. */
+const MIN_WAIT_MS = 5
+
 const BOT_NAMES = ['Magellan', 'Ibn Battuta', 'Amelia', 'Zheng He', 'Nellie', 'Humboldt', 'Freya']
 const BOT_COLORS = ['#5ad1ff', '#6be38a', '#b98aff', '#ff9a4a', '#ff7ad9', '#4fd1c5', '#a3e635']
 
@@ -47,11 +50,18 @@ export class Room {
 
   private readonly geo: GeoData
   private readonly now: () => number
+  private readonly onError: (error: unknown) => void
 
-  constructor(code: string, geo: GeoData, now: () => number = Date.now) {
+  constructor(
+    code: string,
+    geo: GeoData,
+    now: () => number = Date.now,
+    onError: (error: unknown) => void = (error) => console.error(`Room ${code}:`, error),
+  ) {
     this.code = code
     this.geo = geo
     this.now = now
+    this.onError = onError
     this.lastActivity = now()
   }
 
@@ -155,7 +165,20 @@ export class Room {
 
   /** Sends ticks so timers and bots move the game on without anyone acting. */
   tick() {
-    if (this.battle) this.step({ type: 'tick', at: this.now() })
+    if (this.battle) this.guarded(() => this.step({ type: 'tick', at: this.now() }))
+  }
+
+  /**
+   * Runs a change to the game. A bug in the rules must not take down the whole server, so a
+   * failure is logged, and the room carries on with its last good state.
+   */
+  guarded(change: () => void) {
+    try {
+      change()
+    } catch (error) {
+      this.onError(error)
+      this.schedule()
+    }
   }
 
   dispose() {
@@ -165,7 +188,11 @@ export class Room {
   private step(event: Parameters<typeof battle.reduce>[1]) {
     if (!this.battle) return
     const next = battle.reduce(this.battle, event, this.geo)
-    if (next === this.battle) return
+    if (next === this.battle) {
+      // A timer can fire a moment before its deadline; nothing is due yet, so wait again.
+      this.schedule()
+      return
+    }
     this.battle = next
     this.afterChange()
   }
@@ -196,7 +223,7 @@ export class Room {
     this.timer = null
     const deadline = this.battle && this.phase === 'playing' ? battle.deadline(this.battle) : null
     if (deadline === null) return
-    this.timer = setTimeout(() => this.tick(), Math.max(0, deadline - this.now()))
+    this.timer = setTimeout(() => this.tick(), Math.max(MIN_WAIT_MS, deadline - this.now()))
   }
 
   private broadcast() {
@@ -248,7 +275,8 @@ export class Room {
     const robots: BattlePlayer[] = Array.from({ length: bots }, (_, i) => ({
       id: `bot-${i}`,
       name: BOT_NAMES[i],
-      color: colors[i % colors.length],
+      // With every bot colour taken by people, bots share them rather than going colourless.
+      color: colors.length > 0 ? colors[i % colors.length] : BOT_COLORS[i % BOT_COLORS.length],
       bot: botSkill,
     }))
     const roster = [...humans, ...robots]

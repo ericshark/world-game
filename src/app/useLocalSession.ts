@@ -29,6 +29,9 @@ interface InitialGame<Config, State> extends StartOptions {
   resume?: State | null
 }
 
+/** Never wait less than this for a deadline, so an overdue one cannot spin the CPU. */
+const MIN_WAIT_MS = 15
+
 /**
  * Hosts a game in this browser: runs the mode's rules for the local player, feeds them the clock
  * (events and timer ticks) and reports outcomes. A server will host multiplayer games the same way.
@@ -85,17 +88,22 @@ export function useLocalSession<Config, State, Event extends { type: string } = 
 
   const end = useCallback(() => commit(null), [commit])
 
-  // Timers live in the rules as deadlines; wake up when the next one is due.
+  // Timers live in the rules as deadlines; wake up when the next one is due. A timer can fire
+  // a moment early, leaving nothing due and the deadline unchanged, so each wake-up re-arms.
   const deadline = state ? rules.deadline(state) : null
+  const [wakeups, setWakeups] = useState(0)
   useEffect(() => {
     if (deadline === null) return
     const timeout = window.setTimeout(
-      // Every mode's events include SessionEvent's tick.
-      () => send({ type: 'tick', at: Date.now() } as SessionEvent as unknown as Event),
-      Math.max(0, deadline - Date.now()),
+      () => {
+        // Every mode's events include SessionEvent's tick.
+        send({ type: 'tick', at: Date.now() } as SessionEvent as unknown as Event)
+        setWakeups((count) => count + 1)
+      },
+      Math.max(MIN_WAIT_MS, deadline - Date.now()),
     )
     return () => window.clearTimeout(timeout)
-  }, [deadline, send])
+  }, [deadline, send, wakeups])
 
   return { state, start, send, end }
 }

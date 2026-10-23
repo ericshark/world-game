@@ -57,7 +57,8 @@ export type ServerMessage =
   | { t: 'welcome'; playerId: string; token: string; code: string }
   | { t: 'room'; room: RoomView; serverTime: number }
   | { t: 'pong'; sentAt: number; serverTime: number }
-  | { t: 'error'; message: string }
+  /** `no-room`: the room is gone (it expired, or the server restarted). */
+  | { t: 'error'; message: string; code?: 'no-room' }
 
 const FORMATS: BattleFormat[] = ['duel', 'party', 'survival', 'teams']
 const SKILLS: BotSkill[] = ['novice', 'traveller', 'explorer', 'cartographer']

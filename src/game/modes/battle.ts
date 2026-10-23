@@ -2,7 +2,7 @@ import type { GeoData } from '../../geo/facts'
 import { MAX_POINTS } from '../../geo/scoring'
 import { evaluateChallenge, skillOf } from '../core/evaluate'
 import type { ModeRules, SessionEvent } from '../core/mode'
-import { createRandom, type Random } from '../core/random'
+import { createRandom, hashString, type Random } from '../core/random'
 import {
   advanceRound,
   expireRound,
@@ -60,7 +60,10 @@ export interface BattleReport {
 
 export interface BattleState {
   config: BattleConfig
+  /** Generates every round and every bot answer: only the host ever sees it. */
   seed: string
+  /** Names this game to players without giving away the seed. */
+  gameId: string
   startedAt: number
   endedAt: number | null
   rounds: RoundsState<Challenge>
@@ -99,6 +102,7 @@ export const battle: ModeRules<BattleConfig, BattleState, BattleEvent> = {
     return {
       config,
       seed,
+      gameId: hashString(`game:${seed}`).toString(36),
       startedAt: now,
       endedAt: null,
       rounds: startRounds(battleChallenges(geo, config, createRandom(seed)), {
@@ -194,7 +198,7 @@ export const battle: ModeRules<BattleConfig, BattleState, BattleEvent> = {
     return {
       mode: 'battle',
       bestKey: battleBestKey(state.config),
-      seed: state.seed,
+      seed: state.gameId,
       startedAt: state.startedAt,
       endedAt: state.endedAt ?? state.startedAt,
       score: totalPoints(state, playerId),
@@ -214,7 +218,8 @@ export const battle: ModeRules<BattleConfig, BattleState, BattleEvent> = {
 /**
  * What one player may see. A server sends each player only this, so nothing in it can be used
  * to cheat: other players' answers stay hidden until the reveal, later rounds are not sent at
- * all, and an open Rare Earth round does not carry its list of valid answers.
+ * all, an open Rare Earth round does not carry its list of valid answers, and the seed (from
+ * which every round and bot answer could be worked out) is left out.
  */
 export function battleViewFor(state: BattleState, playerId: PlayerId): BattleState {
   const rounds = roundsViewFor(state.rounds, playerId)
@@ -225,7 +230,7 @@ export function battleViewFor(state: BattleState, playerId: PlayerId): BattleSta
         ? { ...challenge, category: { ...challenge.category, valid: [], lenient: [] } }
         : challenge,
     )
-  return { ...state, rounds: { ...rounds, challenges } }
+  return { ...state, seed: '', rounds: { ...rounds, challenges } }
 }
 
 /** Points a player has scored so far (after shared answers were split). */

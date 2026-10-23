@@ -68,16 +68,20 @@ export async function startServer({
         return send({ t: 'pong', sentAt: message.sentAt, serverTime: Date.now() })
       }
       if (message.t === 'create' || message.t === 'join') {
-        room?.disconnect(send)
         const target = message.t === 'create' ? createRoom(rooms, geo) : rooms.get(message.code)
-        if (!target) return send({ t: 'error', message: 'No room with that code.' })
+        if (!target) {
+          return send({ t: 'error', message: 'No room with that code.', code: 'no-room' })
+        }
         const token = message.t === 'join' ? message.token : undefined
         const problem = target.join(message.name, message.color, token, send)
+        // A failed join keeps the seat this player already has.
         if (problem) return send({ t: 'error', message: problem })
+        if (room && room !== target) room.disconnect(send)
         room = target
         return
       }
-      room?.handle(send, message)
+      const current = room
+      current?.guarded(() => current.handle(send, message))
     })
 
     socket.on('close', () => room?.disconnect(send))

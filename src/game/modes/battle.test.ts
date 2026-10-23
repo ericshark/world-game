@@ -101,10 +101,21 @@ describe('battle', () => {
       { type: 'submit', playerId: 'ana', submission: { pin: [0, 0], at: 1 } },
       geo,
     )
-    expect(battleViewFor(state, 'ben').rounds.submissions[0]).toEqual({})
-    expect(battleViewFor(state, 'ana').rounds.submissions[0]).toHaveProperty('ana')
+    // Ben sees that Ana answered (for the "answered" badge), but not where.
+    expect(battleViewFor(state, 'ben').rounds.submissions[0]).toEqual({ ana: { at: 1 } })
+    expect(battleViewFor(state, 'ana').rounds.submissions[0]).toEqual({
+      ana: { pin: [0, 0], at: 1 },
+    })
     // The first answer hurries everyone else.
     expect(state.rounds.deadline).toBe(1 + BATTLE_HURRY_MS)
+  })
+
+  it('never sends the seed that every round and bot answer come from', () => {
+    const state = start({ format: 'party', content: 'mixed', roster: [human('ana'), human('ben')] })
+    const view = battleViewFor(state, 'ana')
+    expect(view.seed).toBe('')
+    expect(JSON.stringify(view)).not.toContain(state.seed)
+    expect(view.gameId).toBe(state.gameId)
   })
 
   it('does not reveal later rounds or the answers to an open Rare Earth round', () => {

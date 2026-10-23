@@ -93,7 +93,8 @@ describe('battle server', () => {
       (room) => (room.battle?.rounds.deadline ?? Infinity) < playing.battle!.rounds.deadline!,
       mark,
     )
-    expect(afterAna.battle!.rounds.submissions[0]).toEqual({})
+    expect(afterAna.battle!.rounds.submissions[0]).toEqual({ [anaId]: { at: expect.any(Number) } })
+    expect(afterAna.battle!.seed).toBe('')
 
     ben.send({ t: 'submit', round: 0, pin: [-150, -40] })
     const revealed = await ana.room((room) => room.battle?.rounds.phase === 'revealed')

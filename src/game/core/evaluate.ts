@@ -35,9 +35,15 @@ const CATEGORY_PLACEMENT_FLOOR = 0.25
 export function evaluateChallenge(
   geo: GeoData,
   challenge: Challenge,
-  submission: Submission | undefined,
+  given: Submission | undefined,
   options: ScoringOptions,
 ): RoundResult {
+  // Answers arrive from players (and, online, from the network): one naming no known place
+  // counts as no answer rather than reaching code that expects a real country.
+  const submission =
+    given?.answerId && !geo.countries.get(given.answerId)
+      ? { ...given, answerId: undefined }
+      : given
   switch (challenge.kind) {
     case 'locate':
       return submission?.pin

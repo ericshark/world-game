@@ -172,8 +172,8 @@ export function totalPoints<C extends Challenge>(
 }
 
 /**
- * What one player may see: other players' submissions stay hidden while a round is open, so
- * nobody can copy a pin before the simultaneous reveal.
+ * What one player may see: while a round is open, other players' submissions show only that
+ * they answered (and when), never the pin or answer, so nobody can copy before the reveal.
  */
 export function roundsViewFor<C extends Challenge>(
   state: RoundsState<C>,
@@ -181,7 +181,12 @@ export function roundsViewFor<C extends Challenge>(
 ): RoundsState<C> {
   if (state.phase !== 'open') return state
   const open = state.submissions[state.round]
-  const visible = open[playerId] ? { [playerId]: open[playerId] } : {}
+  const visible = Object.fromEntries(
+    Object.entries(open).map(([id, submission]) => [
+      id,
+      id === playerId ? submission : { at: submission.at },
+    ]),
+  )
   return { ...state, submissions: [...state.submissions.slice(0, -1), visible] }
 }
 

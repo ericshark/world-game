@@ -20,6 +20,14 @@ export function loadSeat(): Seat | null {
   }
 }
 
+function clearSeat() {
+  try {
+    sessionStorage.removeItem(SEAT_KEY)
+  } catch {
+    // Nothing saved, nothing to clear.
+  }
+}
+
 function saveSeat(seat: Seat) {
   try {
     sessionStorage.setItem(SEAT_KEY, JSON.stringify(seat))
@@ -98,6 +106,12 @@ export function useRoomConnection(
             break
           case 'error':
             setError(message.message)
+            // The room is gone: forget it and the seat in it, rather than show a frozen game.
+            if (message.code === 'no-room') {
+              setRoom(null)
+              setPlayerId(null)
+              clearSeat()
+            }
             break
         }
       }

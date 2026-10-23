@@ -93,7 +93,7 @@ export function BattleGame({ host, recorded, onPlayAgain, onHome }: BattleGamePr
   const shot = useRef<string | null>(null)
   useEffect(() => {
     if (!view || !rounds || rounds.phase === 'finished') return
-    const key = `${view.seed}:${rounds.round}:${rounds.phase}`
+    const key = `${view.gameId}:${rounds.round}:${rounds.phase}`
     if (shot.current === key) return
     shot.current = key
     const current = rounds.challenges[rounds.round]
@@ -115,7 +115,7 @@ export function BattleGame({ host, recorded, onPlayAgain, onHome }: BattleGamePr
   const announced = useRef<string | null>(null)
   useEffect(() => {
     if (!view || rounds?.phase !== 'revealed') return
-    const key = `${view.seed}:${rounds.round}`
+    const key = `${view.gameId}:${rounds.round}`
     if (announced.current === key) return
     announced.current = key
     const mine = rounds.results[rounds.round][me]

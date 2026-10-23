@@ -117,13 +117,13 @@ describe('rounds engine', () => {
     expect(submitRound(state, 'ana', pin(1, 101), evaluate)).toBe(state)
   })
 
-  it('hides other players’ submissions until the reveal', () => {
+  it('shows who has answered, but not their answers, until the reveal', () => {
     let state = startRounds(challenges, { players: ['ana', 'ben', 'cy'], now: 0 })
-    state = submitRound(state, 'ana', pin(1), evaluate)
-    state = submitRound(state, 'ben', pin(2), evaluate)
+    state = submitRound(state, 'ana', pin(1, 4), evaluate)
+    state = submitRound(state, 'ben', pin(2, 6), evaluate)
 
-    expect(Object.keys(roundsViewFor(state, 'ana').submissions[0])).toEqual(['ana'])
-    expect(Object.keys(roundsViewFor(state, 'cy').submissions[0])).toEqual([])
+    expect(roundsViewFor(state, 'ana').submissions[0]).toEqual({ ana: pin(1, 4), ben: { at: 6 } })
+    expect(roundsViewFor(state, 'cy').submissions[0]).toEqual({ ana: { at: 4 }, ben: { at: 6 } })
 
     state = submitRound(state, 'cy', pin(3), evaluate)
     expect(Object.keys(roundsViewFor(state, 'cy').submissions[0])).toHaveLength(3)
