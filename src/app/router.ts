@@ -16,6 +16,8 @@ export type Route =
   | { name: 'settings' }
   | { name: 'tour' }
   | { name: 'leaderboards' }
+  | { name: 'privacy' }
+  | { name: 'credits' }
   /** Development only: throws, to check the crash screen. */
   | { name: 'crash' }
   | { name: 'signin'; token: string }
@@ -37,7 +39,8 @@ export function parseRoute(hash: string): Route {
   const mode = MODE_KEYS.find((key) => key === second)
   if ((first === 'setup' || first === 'play') && mode) return { name: first, mode }
   if (first === 'challenge' && second) return { name: 'challenge', token: second }
-  if (import.meta.env.DEV && first === 'crash') return { name: 'crash' }
+  if ((import.meta.env.DEV || import.meta.env.VITE_E2E) && first === 'crash')
+    return { name: 'crash' }
   if (first === 'online') return { name: 'online' }
   if (first === 'signin' && second) return { name: 'signin', token: second }
   if (first === 'room' && /^[A-Za-z]{3,5}$/.test(second ?? '')) {
@@ -49,7 +52,15 @@ export function parseRoute(hash: string): Route {
   }
   // "stats" was the Passport's old name.
   if (first === 'passport' || first === 'stats') return { name: 'passport' }
-  if (first === 'settings' || first === 'tour' || first === 'leaderboards') return { name: first }
+  if (
+    first === 'settings' ||
+    first === 'tour' ||
+    first === 'leaderboards' ||
+    first === 'privacy' ||
+    first === 'credits'
+  ) {
+    return { name: first }
+  }
   return { name: 'home' }
 }
 

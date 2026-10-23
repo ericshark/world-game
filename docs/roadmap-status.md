@@ -145,12 +145,14 @@ Work through these in order. Each item should end with tests and a focused commi
   writes and the socket, per-address connection, room, join and message limits, five-letter room
   codes, session rotation on sign-in, body limits, and an all-formats anti-cheat test. The
   `security-review` skill could not run without a remote, so the diff was reviewed by hand.
-- **Operations.**
-  - Docker and docker-compose, with Litestream tested against MinIO.
-  - CI with a WebKit project.
-  - `scripts/loadtest.ts`.
-  - A privacy page.
-  - `docs/deployment.md` with the runbook and re-checked prices.
+- **Operations.** Prepared, not executed (see [deployment](deployment.md)): the server builds to
+  `dist-server/` and `npm start` runs it (JSON logs, `/health/ready`, a token-guarded
+  `/admin/counters`), a `Dockerfile`, `docker-compose.yml` and Litestream config, `.env.example`,
+  CI with a WebKit project, `scripts/loadtest.ts` (300 players: 21% of a core on average), a privacy
+  page and a credits page, and a deployment runbook with prices checked on 2026-10-23.
+  **Not verified:** the Docker image, the Litestream backup and restore drill against MinIO, the
+  CI workflow and the WebKit project (Docker and WebKit's system libraries are not available here).
+  The browser tests do pass against the production build served by the production server.
 
 ## Working rules
 

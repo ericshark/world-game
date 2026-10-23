@@ -21,6 +21,12 @@ import { loadRushConfig, rushSubtitle, sanitizeRushConfig } from './rush/config'
 const SignInLink = lazy(() =>
   import('../screens/account/SignInLink').then((m) => ({ default: m.SignInLink })),
 )
+const PrivacyScreen = lazy(() =>
+  import('../screens/LegalScreens').then((m) => ({ default: m.PrivacyScreen })),
+)
+const CreditsScreen = lazy(() =>
+  import('../screens/LegalScreens').then((m) => ({ default: m.CreditsScreen })),
+)
 const LeaderboardScreen = lazy(() =>
   import('../screens/LeaderboardScreen').then((m) => ({ default: m.LeaderboardScreen })),
 )
@@ -214,6 +220,10 @@ function CurrentRoute({ route }: { route: Route }) {
       return <TutorialGame onHome={home} />
     case 'crash':
       throw new Error('Crash test (development only)')
+    case 'privacy':
+      return <PrivacyScreen onClose={home} />
+    case 'credits':
+      return <CreditsScreen onClose={home} />
     case 'leaderboards':
       return (
         <>

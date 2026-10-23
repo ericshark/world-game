@@ -1,0 +1,43 @@
+# Runs the production image locally, the way the server will run: docker compose up --build
+# Add the backup drill with: docker compose --profile backup up --build
+# (see docs/deployment.md for the restore drill against MinIO).
+services:
+  app:
+    build: .
+    ports:
+      - '8789:8788'
+    environment:
+      PUBLIC_ORIGIN: ${PUBLIC_ORIGIN:-http://localhost:8789}
+      DAILY_SECRET: ${DAILY_SECRET:?set DAILY_SECRET in .env (openssl rand -hex 32)}
+      METRICS_TOKEN: ${METRICS_TOKEN:-}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      MAIL_FROM: ${MAIL_FROM:-}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-}
+      GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:-}
+      LITESTREAM_REPLICA_URL: ${LITESTREAM_REPLICA_URL:-}
+      LITESTREAM_ENDPOINT: ${LITESTREAM_ENDPOINT:-}
+      LITESTREAM_ACCESS_KEY_ID: ${LITESTREAM_ACCESS_KEY_ID:-}
+      LITESTREAM_SECRET_ACCESS_KEY: ${LITESTREAM_SECRET_ACCESS_KEY:-}
+    volumes:
+      - data:/data
+    restart: unless-stopped
+
+  # A local S3 stand-in for trying backups and restores without a cloud account.
+  minio:
+    profiles: ['backup']
+    image: minio/minio
+    command: server /minio-data --console-address ':9001'
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - '9000:9000'
+      - '9001:9001'
+    volumes:
+      - minio:/minio-data
+
+volumes:
+  data:
+  minio:

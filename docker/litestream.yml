@@ -1,0 +1,13 @@
+# Replicates the game's SQLite database to S3-compatible storage (Cloudflare R2, MinIO, S3).
+# Values come from the environment (see .env.example).
+dbs:
+  - path: ${DATABASE_PATH}
+    replica:
+      url: ${LITESTREAM_REPLICA_URL}
+      endpoint: ${LITESTREAM_ENDPOINT}
+      access-key-id: ${LITESTREAM_ACCESS_KEY_ID}
+      secret-access-key: ${LITESTREAM_SECRET_ACCESS_KEY}
+      # R2 and MinIO address buckets by path and have no regions.
+      force-path-style: true
+      sync-interval: 10s
+      retention: 72h

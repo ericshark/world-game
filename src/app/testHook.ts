@@ -26,7 +26,8 @@ declare global {
 
 export function useTestHook(hook: TestHook) {
   useEffect(() => {
-    if (!import.meta.env.DEV) return
+    // Present while developing, and in builds made for end-to-end tests (VITE_E2E=1).
+    if (!import.meta.env.DEV && !import.meta.env.VITE_E2E) return
     window.__worldGame = hook
     return () => {
       delete window.__worldGame

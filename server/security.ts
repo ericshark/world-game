@@ -5,6 +5,7 @@ import type { ServerConfig } from './config'
 /** The headers every response carries, including a content security policy for the page. */
 export function securityHeaders(config: ServerConfig): MiddlewareHandler {
   const socketOrigin = config.publicOrigin.replace(/^http/, 'ws')
+  const https = config.publicOrigin.startsWith('https:')
   const policy = [
     "default-src 'self'",
     // Built scripts are all files from this site; there are no inline scripts.
@@ -20,9 +21,9 @@ export function securityHeaders(config: ServerConfig): MiddlewareHandler {
     "base-uri 'self'",
     "form-action 'self'",
     "frame-ancestors 'none'",
-    ...(config.production ? ['upgrade-insecure-requests'] : []),
+    // Only on an https site: asking a plain-http one (a local production test) to upgrade breaks it.
+    ...(config.production && https ? ['upgrade-insecure-requests'] : []),
   ].join('; ')
-  const https = config.publicOrigin.startsWith('https:')
 
   return async (c, next) => {
     await next()

@@ -26,6 +26,10 @@ export interface ServerConfig {
   allowedOrigins: string[]
   /** Believe `X-Forwarded-For` and `CF-Connecting-IP`; only set this behind a trusted proxy. */
   trustProxy: boolean
+  /** Opens `/admin/counters` to whoever sends this as a bearer token; null keeps it closed. */
+  metricsToken: string | null
+  /** Write a log line for each API request (on by default in production). */
+  logRequests: boolean
   /** New guest sessions one address may start per hour. */
   newSessionsPerIpPerHour: number
   /** Sign-in emails one address may ask for per hour. */
@@ -64,6 +68,8 @@ export function loadConfig(env: Env = process.env, overrides: Partial<ServerConf
       .map((origin) => origin.trim().replace(/\/$/, ''))
       .filter(Boolean),
     trustProxy: env.TRUST_PROXY === '1',
+    metricsToken: env.METRICS_TOKEN || null,
+    logRequests: env.LOG_REQUESTS ? env.LOG_REQUESTS === '1' : production,
     newSessionsPerIpPerHour: Number(env.NEW_SESSIONS_PER_IP_PER_HOUR ?? 120),
     magicLinksPerIpPerHour: Number(env.MAGIC_LINKS_PER_IP_PER_HOUR ?? 10),
     production,

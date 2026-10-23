@@ -93,7 +93,8 @@ export function HomeScreen() {
         </nav>
       </section>
       <footer className="credit">
-        Imagery: NASA Blue Marble & Black Marble · Borders: Natural Earth
+        Imagery: NASA Blue Marble & Black Marble · Borders: Natural Earth ·{' '}
+        <a href="#/privacy">Privacy</a> · <a href="#/credits">Credits</a>
       </footer>
     </div>
   )

@@ -82,6 +82,15 @@ describe('security headers', () => {
     expect(policy).toContain('upgrade-insecure-requests')
   })
 
+  it('do not ask a plain-http production site to upgrade itself', async () => {
+    await boot(
+      { publicOrigin: 'http://localhost:8788' },
+      { NODE_ENV: 'production', DAILY_SECRET: 'secret' },
+    )
+    const policy = (await fetch(`${base()}/health`)).headers.get('content-security-policy')!
+    expect(policy).not.toContain('upgrade-insecure-requests')
+  })
+
   it('keep API answers out of shared caches', async () => {
     await boot()
     const response = await fetch(`${base()}/api/nothing`)

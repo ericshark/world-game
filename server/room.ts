@@ -1,4 +1,5 @@
 import type { GeoData } from '../src/geo/facts'
+import { describeError, log } from './log'
 import {
   battle,
   battleViewFor,
@@ -76,7 +77,8 @@ export class Room {
     code: string,
     geo: GeoData,
     now: () => number = Date.now,
-    onError: (error: unknown) => void = (error) => console.error(`Room ${code}:`, error),
+    onError: (error: unknown) => void = (error) =>
+      log('error', 'room.error', { room: code, ...describeError(error) }),
   ) {
     this.code = code
     this.geo = geo

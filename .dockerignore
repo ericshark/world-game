@@ -1,0 +1,15 @@
+node_modules
+dist
+dist-server
+data-local
+.git
+.github
+.env
+e2e
+test-results
+playwright-report
+docs
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+.cache

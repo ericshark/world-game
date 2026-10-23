@@ -11,6 +11,7 @@ import { DevMailer, ResendMailer, type Mailer } from './auth/mail'
 import { configuredProviders, type OAuthProvider, type OAuthProviderId } from './auth/oauth'
 import { DEFAULT_PORT, loadConfig, type ServerConfig } from './config'
 import { openDatabase } from './db'
+import { describeError, log } from './log'
 import { AuthStore } from './auth/store'
 import { attachRealtime } from './realtime'
 
@@ -54,6 +55,7 @@ export async function startServer({
     geo,
     db,
     roomCount: () => realtime?.roomCount() ?? 0,
+    stats: () => realtime?.stats() ?? { rooms: 0, sockets: 0, queued: 0 },
     now,
     mailer:
       dev ??
@@ -108,11 +110,20 @@ async function startOnFreePort(config: ServerConfig): Promise<RunningServer> {
 
 if (process.argv[1] && import.meta.url === new URL(`file://${process.argv[1]}`).href) {
   const server = await startOnFreePort(loadConfig())
-  console.log(`World Game server on port ${server.port} (site, /api and ws path /ws)`)
+  log('info', 'start', { port: server.port, production: server.config.production })
   const stop = async () => {
+    log('info', 'stop')
     await server.close()
     process.exit(0)
   }
+  // A crash should leave a line in the log for whoever looks next; the supervisor restarts us.
+  process.on('uncaughtException', (error) => {
+    log('error', 'uncaught', describeError(error))
+    process.exit(1)
+  })
+  process.on('unhandledRejection', (reason) =>
+    log('error', 'unhandled-rejection', describeError(reason)),
+  )
   process.on('SIGINT', stop)
   process.on('SIGTERM', stop)
 }

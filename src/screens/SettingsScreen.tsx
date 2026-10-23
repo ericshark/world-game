@@ -163,7 +163,21 @@ export function SettingsScreen({ onClose }: { onClose: () => void }) {
         </button>
       </div>
       <p className="settings__credit">
-        Imagery: NASA Blue Marble and Black Marble. Borders: Natural Earth. Both public domain.
+        Imagery: NASA Blue Marble and Black Marble. Borders: Natural Earth. Both public domain.{' '}
+        <button
+          type="button"
+          className="button button--link"
+          onClick={() => navigate({ name: 'privacy' })}
+        >
+          Privacy
+        </button>{' '}
+        <button
+          type="button"
+          className="button button--link"
+          onClick={() => navigate({ name: 'credits' })}
+        >
+          Credits
+        </button>
       </p>
     </Sheet>
   )

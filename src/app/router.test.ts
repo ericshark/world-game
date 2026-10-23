@@ -17,6 +17,12 @@ describe('router', () => {
     ['#/online', { name: 'online' }],
     ['#/room/abcd', { name: 'room', code: 'ABCD' }],
     ['#/room/new', { name: 'room', code: 'NEW' }],
+    ['#/room/quick', { name: 'room', code: 'QUICK' }],
+    ['#/privacy', { name: 'privacy' }],
+    ['#/credits', { name: 'credits' }],
+    ['#/leaderboards', { name: 'leaderboards' }],
+    ['#/signin/tok_en-1', { name: 'signin', token: 'tok_en-1' }],
+    ['#/settings?signin=ok', { name: 'settings' }],
     ['#/play/unknown', { name: 'home' }],
     ['#/nonsense', { name: 'home' }],
   ])('parses %s', (hash, route) => {

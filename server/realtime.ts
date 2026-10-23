@@ -39,6 +39,7 @@ const CODE_LETTERS = 'ABCDEFGHJKLMNPQRSTUVWXYZ'
 
 export interface Realtime {
   roomCount(): number
+  stats(): { rooms: number; sockets: number; queued: number }
   close(): void
 }
 
@@ -195,6 +196,7 @@ export function attachRealtime(
 
   return {
     roomCount: () => rooms.size,
+    stats: () => ({ rooms: rooms.size, sockets: sockets.clients.size, queued: matchmaker.waiting }),
     close() {
       clearInterval(sweeper)
       clearInterval(heartbeat)

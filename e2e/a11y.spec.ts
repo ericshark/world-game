@@ -33,6 +33,8 @@ test.describe('accessibility', () => {
       ['/#/settings', 'settings'],
       ['/#/leaderboards', 'leaderboards'],
       ['/#/online', 'online'],
+      ['/#/privacy', 'privacy'],
+      ['/#/credits', 'credits'],
     ] as const) {
       await page.goto(path)
       await page.getByRole('heading').first().waitFor()

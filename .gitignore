@@ -36,3 +36,4 @@ playwright-report
 *.sqlite-shm
 data-local
 .env
+dist-server

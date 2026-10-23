@@ -156,6 +156,46 @@ describe('battle server', () => {
 })
 
 describe('http', () => {
+  it('reports readiness, and keeps its counters closed without a token', async () => {
+    const base = `http://127.0.0.1:${server.port}`
+    expect(await (await fetch(`${base}/health/ready`)).json()).toEqual({ status: 'ready' })
+    expect((await fetch(`${base}/admin/counters`)).status).toBe(404)
+    expect(
+      (await fetch(`${base}/admin/counters`, { headers: { authorization: 'Bearer guess' } }))
+        .status,
+    ).toBe(404)
+  })
+
+  it('shows its counters to the holder of the token', async () => {
+    const guarded = await startServer({
+      config: loadConfig(
+        {},
+        {
+          port: 0,
+          host: '127.0.0.1',
+          databasePath: ':memory:',
+          distDir: null,
+          metricsToken: 'sesame',
+        },
+      ),
+      geo,
+    })
+    try {
+      const base = `http://127.0.0.1:${guarded.port}`
+      expect(
+        (await fetch(`${base}/admin/counters`, { headers: { authorization: 'Bearer nope!' } }))
+          .status,
+      ).toBe(404)
+      const counters = await (
+        await fetch(`${base}/admin/counters`, { headers: { authorization: 'Bearer sesame' } })
+      ).json()
+      expect(counters).toMatchObject({ rooms: 0, sockets: 0, queued: 0, players: 0, matches: 0 })
+      expect(counters.memoryMB).toBeGreaterThan(0)
+    } finally {
+      await guarded.close()
+    }
+  })
+
   it('answers the health check and unknown API paths', async () => {
     const base = `http://127.0.0.1:${server.port}`
     expect(await (await fetch(`${base}/health`)).text()).toMatch(/^ok \d+ rooms$/)

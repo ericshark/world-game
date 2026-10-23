@@ -1,3 +1,4 @@
+import { timingSafeEqual } from 'node:crypto'
 import { existsSync, readFileSync } from 'node:fs'
 import { extname, relative, resolve } from 'node:path'
 import { Hono } from 'hono'
@@ -7,6 +8,7 @@ import type { ServerConfig } from './config'
 import { authRoutes } from './auth/routes'
 import { dailyRoutes } from './daily'
 import { leaderboardRoutes } from './leaderboards'
+import { log } from './log'
 import { precompressed } from './precompressed'
 import { originGuard, securityHeaders } from './security'
 import type { GeoData } from '../src/geo/facts'
@@ -23,6 +25,8 @@ export interface AppContext {
   db: Database
   /** For /health: how many battle rooms are open. */
   roomCount: () => number
+  /** Live figures for the counters endpoint. */
+  stats: () => { rooms: number; sockets: number; queued: number }
   now: () => number
   mailer: Mailer
   /** Sent emails, only when mail is going to the development mailbox. */
@@ -44,7 +48,52 @@ export function createApp(context: AppContext) {
     }),
   )
 
+  app.use('*', async (c, next) => {
+    const started = Date.now()
+    await next()
+    if (!context.config.logRequests || !c.req.path.startsWith('/api/')) return
+    // The path only, never the query: it can hold sign-in codes.
+    log(c.res.status >= 500 ? 'error' : 'info', 'http', {
+      method: c.req.method,
+      path: c.req.path,
+      status: c.res.status,
+      ms: Date.now() - started,
+    })
+  })
+
+  // Liveness: the process is up. Readiness: it can also reach its database.
   app.get('/health', (c) => c.text(`ok ${context.roomCount()} rooms`))
+  app.get('/health/ready', (c) => {
+    try {
+      context.db.prepare('SELECT 1').get()
+      return c.json({ status: 'ready' })
+    } catch {
+      return c.json({ status: 'database unavailable' }, 503)
+    }
+  })
+
+  const startedAt = Date.now()
+  app.get('/admin/counters', (c) => {
+    const expected = context.config.metricsToken
+    const given = (c.req.header('authorization') ?? '').replace(/^Bearer\s+/i, '')
+    const same =
+      expected !== null &&
+      given.length === expected.length &&
+      timingSafeEqual(Buffer.from(given), Buffer.from(expected))
+    // Closed unless a token is set; and the same answer for a wrong token as for no endpoint.
+    if (!same) return c.json({ error: 'Not found.' }, 404)
+    const count = (table: string) =>
+      Number((context.db.prepare(`SELECT COUNT(*) AS n FROM ${table}`).get() as { n: number }).n)
+    return c.json({
+      uptimeSeconds: Math.round((Date.now() - startedAt) / 1000),
+      ...context.stats(),
+      players: count('players'),
+      accounts: count('accounts'),
+      dailySessions: count('daily_sessions'),
+      matches: count('matches'),
+      memoryMB: Math.round(process.memoryUsage().rss / 1e6),
+    })
+  })
 
   const api = new Hono()
   const auth = authRoutes(api, context)

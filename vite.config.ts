@@ -18,7 +18,7 @@ function assetVersion(): string {
 }
 
 // https://vite.dev/config/
-export default defineConfig({
+export default defineConfig(({ isSsrBuild }) => ({
   plugins: [react()],
   define: { 'import.meta.env.VITE_ASSET_VERSION': JSON.stringify(assetVersion()) },
   // Default + 1; Vite moves to the next free port if this one is taken.
@@ -39,6 +39,8 @@ export default defineConfig({
     },
   },
   build: {
+    // The server build is only code; the site's files are served from dist/.
+    copyPublicDir: !isSsrBuild,
     rolldownOptions: {
       output: {
         // three.js, react-three-fiber and drei are most of the weight and change rarely: one
@@ -61,4 +63,4 @@ export default defineConfig({
     environment: 'node',
     include: ['src/**/*.test.ts', 'server/**/*.test.ts'],
   },
-})
+}))
