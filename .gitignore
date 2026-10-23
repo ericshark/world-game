@@ -29,3 +29,10 @@ dist-ssr
 # Playwright
 test-results
 playwright-report
+
+# Local server data
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+data-local
+.env

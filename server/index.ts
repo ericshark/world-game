@@ -1,24 +1,17 @@
-// The World Battle server: private rooms for real-time games on your machine or local network.
-// Run with `npm run server`; the Vite dev server forwards /ws here.
+// The World Game server: one Node process serving the built site, the JSON API and the
+// real-time WebSocket (`/ws`). Run it with `npm run server`; the Vite dev server forwards
+// `/api` and `/ws` here.
 import { readFileSync } from 'node:fs'
-import { createServer, type Server } from 'node:http'
-import { WebSocketServer, type WebSocket } from 'ws'
+import type { Server } from 'node:http'
+import { serve } from '@hono/node-server'
 import { CountryIndex, type CountryCollection } from '../src/geo/countries'
 import { GeoData, type FactsFile } from '../src/geo/facts'
-import { parseClientMessage, ROOM_CODE_LENGTH, type ServerMessage } from '../src/net/protocol'
-import { Room } from './room'
+import { createApp } from './app'
+import { DEFAULT_PORT, loadConfig, type ServerConfig } from './config'
+import { openDatabase } from './db'
+import { attachRealtime } from './realtime'
 
-export const DEFAULT_PORT = 8788
-const MAX_MESSAGE_BYTES = 4096
-/** Each connection may send this many messages a second, with short bursts allowed. */
-const MESSAGES_PER_SECOND = 10
-const BURST = 20
-const IDLE_ROOM_MS = 30 * 60_000
-/** Sockets that miss a heartbeat are dead (a phone that lost signal, say) and are dropped. */
-const HEARTBEAT_MS = 15_000
-const SWEEP_MS = 5_000
-// No I or O: codes are read aloud and typed on phones.
-const CODE_LETTERS = 'ABCDEFGHJKLMNPQRSTUVWXYZ'
+export { DEFAULT_PORT }
 
 export function loadServerGeo(): GeoData {
   const read = <T>(file: string) =>
@@ -31,151 +24,59 @@ export function loadServerGeo(): GeoData {
 
 export interface RunningServer {
   port: number
+  config: ServerConfig
   close(): Promise<void>
 }
 
 export async function startServer({
-  port = DEFAULT_PORT,
-  host = '0.0.0.0',
+  config = loadConfig(),
   geo = loadServerGeo(),
-}: { port?: number; host?: string; geo?: GeoData } = {}): Promise<RunningServer> {
-  const rooms = new Map<string, Room>()
-  const http = createServer((request, response) => {
-    if (request.url === '/health') {
-      response.writeHead(200, { 'content-type': 'text/plain' }).end(`ok ${rooms.size} rooms`)
-    } else {
-      response.writeHead(404).end()
-    }
-  })
-  const sockets = new WebSocketServer({ server: http, path: '/ws', maxPayload: MAX_MESSAGE_BYTES })
+}: { config?: ServerConfig; geo?: GeoData } = {}): Promise<RunningServer> {
+  const db = openDatabase(config.databasePath)
+  let realtime: ReturnType<typeof attachRealtime> | null = null
+  const app = createApp({ config, db, roomCount: () => realtime?.roomCount() ?? 0 })
 
-  const alive = new WeakSet<WebSocket>()
-  const heartbeat = setInterval(() => {
-    for (const client of sockets.clients) {
-      if (!alive.has(client)) {
-        client.terminate()
-        continue
-      }
-      alive.delete(client)
-      client.ping()
-    }
-  }, HEARTBEAT_MS)
-
-  sockets.on('connection', (socket: WebSocket) => {
-    alive.add(socket)
-    socket.on('pong', () => alive.add(socket))
-    let room: Room | null = null
-    let tokens = BURST
-    let refilledAt = Date.now()
-    const send = (message: ServerMessage) => {
-      if (socket.readyState === socket.OPEN) socket.send(JSON.stringify(message))
-    }
-
-    socket.on('message', (data) => {
-      const now = Date.now()
-      tokens = Math.min(BURST, tokens + ((now - refilledAt) / 1000) * MESSAGES_PER_SECOND)
-      refilledAt = now
-      if (tokens < 1) return send({ t: 'error', message: 'Slow down.' })
-      tokens -= 1
-
-      const message = parseClientMessage(data.toString())
-      if (!message) return send({ t: 'error', message: 'Unrecognised message.' })
-
-      if (message.t === 'ping') {
-        return send({ t: 'pong', sentAt: message.sentAt, serverTime: Date.now() })
-      }
-      if (message.t === 'create' || message.t === 'join') {
-        const target = message.t === 'create' ? createRoom(rooms, geo) : rooms.get(message.code)
-        if (!target) {
-          return send({ t: 'error', message: 'No room with that code.', code: 'no-room' })
-        }
-        const token = message.t === 'join' ? message.token : undefined
-        const looks = { color: message.color, shape: message.shape, title: message.title }
-        const problem = target.join(message.name, looks, token, send)
-        // A failed join keeps the seat this player already has.
-        if (problem) return send({ t: 'error', message: problem })
-        if (room && room !== target) room.disconnect(send)
-        room = target
-        return
-      }
-      const current = room
-      current?.guarded(() => current.handle(send, message))
+  const http = await new Promise<Server>((resolve, reject) => {
+    const server = serve({ fetch: app.fetch, port: config.port, hostname: config.host }, () => {
+      server.off('error', reject)
+      resolve(server as Server)
     })
-
-    socket.on('close', () => room?.disconnect(send))
-    // Dropped connections (closed tabs, sleeping phones) reset sockets; 'close' handles them.
-    socket.on('error', () => {})
+    server.once('error', reject)
   })
+  realtime = attachRealtime(http, geo)
+  const address = http.address()
 
-  // Lobby seats left empty too long are freed, and rooms nobody has used for a while close.
-  const sweeper = setInterval(() => {
-    for (const [code, room] of rooms) {
-      room.guarded(() => room.prune())
-      if (room.connectedCount === 0 && Date.now() - room.lastActivity > IDLE_ROOM_MS) {
-        room.dispose()
-        rooms.delete(code)
-      }
-    }
-  }, SWEEP_MS)
-
-  const actualPort = await listen(http, port, host)
   return {
-    port: actualPort,
+    port: typeof address === 'object' && address ? address.port : config.port,
+    config,
     close: () =>
       new Promise((resolve) => {
-        clearInterval(sweeper)
-        clearInterval(heartbeat)
-        for (const room of rooms.values()) {
-          room.notifyRestart()
-          room.dispose()
-        }
-        for (const client of sockets.clients) client.terminate()
-        sockets.close()
-        http.close(() => resolve())
+        realtime?.close()
+        http.close(() => {
+          db.close()
+          resolve()
+        })
+        http.closeAllConnections()
       }),
   }
 }
 
-function createRoom(rooms: Map<string, Room>, geo: GeoData): Room {
-  let code: string
-  do {
-    code = Array.from(
-      { length: ROOM_CODE_LENGTH },
-      () => CODE_LETTERS[Math.floor(Math.random() * CODE_LETTERS.length)],
-    ).join('')
-  } while (rooms.has(code))
-  const room = new Room(code, geo)
-  rooms.set(code, room)
-  return room
-}
-
-function listen(server: Server, port: number, host: string): Promise<number> {
-  return new Promise((resolve, reject) => {
-    server.once('error', reject)
-    server.listen(port, host, () => {
-      server.off('error', reject)
-      const address = server.address()
-      resolve(typeof address === 'object' && address ? address.port : port)
-    })
-  })
-}
-
-/** Tries the port, then the next ones, until one is free. */
-async function startOnFreePort(first: number): Promise<RunningServer> {
-  for (let port = first; port < first + 20; port++) {
+/** Tries the port, then the next ones, until one is free (development only). */
+async function startOnFreePort(config: ServerConfig): Promise<RunningServer> {
+  const attempts = config.production ? 1 : 20
+  for (let port = config.port; port < config.port + attempts; port++) {
     try {
-      return await startServer({ port })
+      return await startServer({ config: { ...config, port } })
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== 'EADDRINUSE') throw error
     }
   }
-  throw new Error(`No free port from ${first}`)
+  throw new Error(`No free port from ${config.port}`)
 }
 
 if (process.argv[1] && import.meta.url === new URL(`file://${process.argv[1]}`).href) {
-  const requested = Number(process.env.PORT ?? DEFAULT_PORT)
-  const server = await startOnFreePort(requested)
-  console.log(`World Battle server on port ${server.port} (ws path /ws)`)
+  const server = await startOnFreePort(loadConfig())
+  console.log(`World Game server on port ${server.port} (site, /api and ws path /ws)`)
   const stop = async () => {
     await server.close()
     process.exit(0)

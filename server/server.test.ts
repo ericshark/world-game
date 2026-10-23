@@ -1,13 +1,17 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { WebSocket } from 'ws'
 import type { RoomView, ServerMessage } from '../src/net/protocol'
+import { loadConfig } from './config'
 import { loadServerGeo, startServer, type RunningServer } from './index'
 
 const geo = loadServerGeo()
 let server: RunningServer
 
 beforeAll(async () => {
-  server = await startServer({ port: 0, host: '127.0.0.1', geo })
+  server = await startServer({
+    config: loadConfig({}, { port: 0, host: '127.0.0.1', databasePath: ':memory:', distDir: null }),
+    geo,
+  })
 })
 afterAll(() => server.close())
 
@@ -148,5 +152,45 @@ describe('battle server', () => {
     const room = await solo.room((r) => r.phase === 'playing')
     expect(room.battle!.config.roster.map((p) => p.name)).toEqual(['Solo', 'Magellan'])
     solo.socket.close()
+  })
+})
+
+describe('http', () => {
+  it('answers the health check and unknown API paths', async () => {
+    const base = `http://127.0.0.1:${server.port}`
+    expect(await (await fetch(`${base}/health`)).text()).toMatch(/^ok \d+ rooms$/)
+    const missing = await fetch(`${base}/api/nothing`)
+    expect(missing.status).toBe(404)
+    expect(await missing.json()).toEqual({ error: 'Not found.' })
+  })
+
+  it('serves the built site from the same port, with a single-page fallback', async () => {
+    const { mkdtempSync, mkdirSync, rmSync, writeFileSync } = await import('node:fs')
+    const { tmpdir } = await import('node:os')
+    const { join } = await import('node:path')
+    const dist = mkdtempSync(join(tmpdir(), 'wg-dist-'))
+    mkdirSync(join(dist, 'assets'))
+    writeFileSync(join(dist, 'index.html'), '<title>World Game</title>')
+    writeFileSync(join(dist, 'assets', 'app-abc123.js'), 'console.log(1)')
+    const site = await startServer({
+      config: loadConfig(
+        {},
+        { port: 0, host: '127.0.0.1', databasePath: ':memory:', distDir: dist },
+      ),
+      geo,
+    })
+    try {
+      const base = `http://127.0.0.1:${site.port}`
+      const home = await fetch(base)
+      expect(await home.text()).toContain('World Game')
+      expect(home.headers.get('cache-control')).toBe('no-cache')
+      const script = await fetch(`${base}/assets/app-abc123.js`)
+      expect(script.headers.get('cache-control')).toMatch(/immutable/)
+      expect(await (await fetch(`${base}/some/deep/link`)).text()).toContain('World Game')
+      expect((await fetch(`${base}/api/nothing`)).status).toBe(404)
+    } finally {
+      await site.close()
+      rmSync(dist, { recursive: true, force: true })
+    }
   })
 })

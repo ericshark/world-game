@@ -7,8 +7,12 @@ export default defineConfig({
   // Default + 1; Vite moves to the next free port if this one is taken.
   server: {
     port: 5174,
-    // The battle server (npm run server); WG_SERVER_PORT lets tests use their own.
+    // The game server (npm run server); WG_SERVER_PORT lets tests use their own.
     proxy: {
+      '/api': {
+        target: `http://localhost:${process.env.WG_SERVER_PORT ?? 8788}`,
+        configure: (proxy) => proxy.on('error', () => {}),
+      },
       '/ws': {
         target: `ws://localhost:${process.env.WG_SERVER_PORT ?? 8788}`,
         ws: true,

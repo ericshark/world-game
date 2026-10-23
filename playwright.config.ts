@@ -28,7 +28,7 @@ export default defineConfig({
   webServer: [
     {
       command: 'npx tsx server/index.ts',
-      env: { PORT: String(BATTLE_SERVER_PORT) },
+      env: { PORT: String(BATTLE_SERVER_PORT), DATABASE_PATH: ':memory:' },
       url: `http://localhost:${BATTLE_SERVER_PORT}/health`,
       reuseExistingServer: false,
       timeout: 60_000,
