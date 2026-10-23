@@ -5,7 +5,7 @@ import { CameraRig, type CameraFocus } from '../globe/CameraRig'
 import { CountryPaintLayer } from '../globe/CountryPaintLayer'
 import { Globe, type ViewShift } from '../globe/Globe'
 import { Markers } from '../globe/Markers'
-import { CLICKED_COLOR, EMPTY_SCENE } from '../globe/scene'
+import { EMPTY_SCENE, type CountryPaint, type PulseSpec } from '../globe/scene'
 import type { Surface } from '../globe/textures'
 import { GlobeStageContext, type GlobeStage } from './globeStage'
 
@@ -72,16 +72,29 @@ export function GlobeStageProvider({
         >
           <CameraRig focus={focus} />
           {geo && <CountryPaintLayer countries={geo.countries} paints={scene.paints} />}
+          {geo && (
+            <CountryPaintLayer
+              countries={geo.countries}
+              paints={pulsePaints(scene.pulses)}
+              effect="pulse"
+            />
+          )}
           <Markers
-            // Scenes mark the player's own pins with the shared "clicked" colour.
-            pins={scene.pins.map((pin) =>
-              pin.color === CLICKED_COLOR ? { ...pin, color: pinColor } : pin,
-            )}
+            pins={scene.pins.map((pin) => (pin.own ? { ...pin, color: pinColor } : pin))}
             arcs={scene.arcs}
+            markers={scene.markers ?? []}
           />
         </Globe>
       </div>
       {children}
     </GlobeStageContext.Provider>
   )
+}
+
+const NO_PULSES: CountryPaint[] = []
+
+/** Pulses are drawn as bold outlines on a layer of their own, which then fades. */
+function pulsePaints(pulses: PulseSpec[] | undefined): CountryPaint[] {
+  if (!pulses || pulses.length === 0) return NO_PULSES
+  return pulses.map(({ id, color }) => ({ id, fill: `${color}33`, stroke: color, lineWidth: 6 }))
 }

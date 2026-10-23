@@ -13,17 +13,26 @@ const OVERLAY_RADIUS = 1.002
 /** Micro-states are invisible at globe scale, so they also get a ring of this radius. */
 const MICRO_RING_RADIUS_DEG = 1.2
 const FADE_IN_MS = 450
+/** Pulses are bold outlines, so a smaller overlay is plenty and saves memory. */
+const PULSE_OVERLAY_WIDTH = 2048
+const PULSE_RADIUS = 1.0025
+const PULSE_MS = 2400
+const PULSE_BEATS = 3
 
 interface CountryPaintLayerProps {
   countries: CountryIndex
   paints: CountryPaint[]
+  /** "fade": new paints fade in and stay. "pulse": they beat a few times, then fade away. */
+  effect?: 'fade' | 'pulse'
 }
 
-export function CountryPaintLayer({ countries, paints }: CountryPaintLayerProps) {
+export function CountryPaintLayer({ countries, paints, effect = 'fade' }: CountryPaintLayerProps) {
   const maxTextureSize = useThree((state) => state.gl.capabilities.maxTextureSize)
+  const pulse = effect === 'pulse'
   const surface = useMemo(
-    () => new PaintSurface(Math.min(MAX_OVERLAY_WIDTH, maxTextureSize)),
-    [maxTextureSize],
+    () =>
+      new PaintSurface(Math.min(pulse ? PULSE_OVERLAY_WIDTH : MAX_OVERLAY_WIDTH, maxTextureSize)),
+    [maxTextureSize, pulse],
   )
   useEffect(() => () => surface.dispose(), [surface])
 
@@ -36,12 +45,21 @@ export function CountryPaintLayer({ countries, paints }: CountryPaintLayerProps)
   })
   useFrame(() => {
     if (!material.current) return
-    const progress = reducedMotion ? 1 : (performance.now() - changedAt.current) / FADE_IN_MS
-    material.current.opacity = easeOutCubic(Math.min(1, Math.max(0, progress)))
+    const elapsed = performance.now() - changedAt.current
+    const opacity = pulse
+      ? pulseOpacity(elapsed / PULSE_MS, reducedMotion)
+      : easeOutCubic(reducedMotion ? 1 : Math.min(1, Math.max(0, elapsed / FADE_IN_MS)))
+    material.current.opacity = opacity
+    // A finished pulse costs nothing to draw.
+    material.current.visible = opacity > 0
   })
 
   return (
-    <mesh scale={OVERLAY_RADIUS} raycast={() => null} visible={paints.length > 0}>
+    <mesh
+      scale={pulse ? PULSE_RADIUS : OVERLAY_RADIUS}
+      raycast={() => null}
+      visible={paints.length > 0}
+    >
       <sphereGeometry args={[1, 128, 64]} />
       <meshBasicMaterial
         ref={material}
@@ -52,6 +70,13 @@ export function CountryPaintLayer({ countries, paints }: CountryPaintLayerProps)
       />
     </mesh>
   )
+}
+
+/** A few beats that die away; with reduced motion, a steady outline that then fades. */
+function pulseOpacity(t: number, reducedMotion: boolean): number {
+  if (t >= 1 || t < 0) return 0
+  if (reducedMotion) return 0.8 * (1 - easeOutCubic(t))
+  return Math.sin(Math.PI * PULSE_BEATS * t) ** 2 * (1 - t * 0.6)
 }
 
 /**

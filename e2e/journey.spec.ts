@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test'
 import { openGame, placePin } from './helpers'
 
-test('World Journey: moves, missteps and connections on an expedition', async ({ page }, info) => {
+test('World Journey: moves, missteps and connections on an expedition', async ({ page }) => {
   await openGame(page)
   await page.getByRole('button', { name: /^World Journey/ }).click()
   const setup = page.getByRole('dialog')
@@ -29,11 +29,12 @@ test('World Journey: moves, missteps and connections on an expedition', async ({
 
   await page.getByRole('button', { name: /Show connections/ }).click()
   await expect(page.locator('.prompt__sub')).toContainText('Steps 3')
-  await page.waitForTimeout(1200)
-  await page.screenshot({
-    path:
-      '/tmp/claude-1000/-home-eric-GitHub-world-game/0454089f-3b0d-41f0-86e3-1f7579fb7ace/scratchpad/shots/' +
-      info.project.name +
-      '-journey.png',
-  })
+
+  // Typing a country is the same as tapping it.
+  await page.getByRole('button', { name: 'Type a country instead' }).click()
+  const input = page.getByRole('combobox')
+  await input.fill('Zambia')
+  await input.press('Enter')
+  await expect(page.locator('.journey-panel__status')).toContainText('You are in Zambia')
+  await expect(page.locator('.prompt__sub')).toContainText('Steps 4')
 })

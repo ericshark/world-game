@@ -5,7 +5,6 @@ import { LOCAL_PLAYER } from '../../game/core/types'
 import { rush, RUSH_START_MS, type RushAnswer, type RushConfig } from '../../game/modes/rush'
 import { randomOverview } from '../../globe/framing'
 import {
-  CLICKED_COLOR,
   CLICKED_PAINT,
   EMPTY_SCENE,
   TARGET_COLOR,
@@ -28,6 +27,7 @@ import { useTestHook } from '../testHook'
 import { useGameStage } from '../useGameStage'
 import { useIntro } from '../useIntro'
 import { useRecordedGame } from '../useRecordedGame'
+import { pinAndArc } from '../rounds/scene'
 import { useLocalSession, usePauseWhile } from '../useLocalSession'
 
 /** How long the last answer stays painted on the globe. */
@@ -293,15 +293,12 @@ function flashScene(answer: RushAnswer): GlobeScene {
     answer.clickedId && answer.clickedId !== answer.targetId
       ? [{ id: answer.clickedId, ...CLICKED_PAINT }]
       : []
-  const missed = answer.outcome !== 'hit' && answer.guess && answer.nearest
+  const missed = answer.outcome !== 'hit'
   return {
     paints: [...clicked, { id: answer.targetId, ...TARGET_PAINT }],
-    pins: answer.guess
-      ? [
-          { at: answer.guess, color: CLICKED_COLOR },
-          ...(missed ? [{ at: answer.nearest!, color: TARGET_COLOR }] : []),
-        ]
-      : [],
-    arcs: missed ? [{ from: answer.guess!, to: answer.nearest! }] : [],
+    ...(answer.guess && answer.nearest
+      ? pinAndArc(answer.guess, answer.nearest, missed)
+      : { pins: [], arcs: [] }),
+    pulses: missed ? [{ id: answer.targetId, color: TARGET_COLOR }] : [],
   }
 }

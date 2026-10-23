@@ -1236,6 +1236,30 @@ input {
   transition: width 0.2s;
 }
 
+/* Labels on the globe */
+.globe-label {
+  display: inline-block;
+  transform: translate(-50%, -100%);
+  padding: 3px 9px;
+  border: 1px solid rgb(255 255 255 / 0.2);
+  border-radius: 999px;
+  background: rgb(6 10 22 / 0.8);
+  color: var(--text);
+  font-size: 0.78rem;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: opacity 0.2s;
+}
+
+.globe-label--goal {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.globe-label--start {
+  border-color: #bfe0ff;
+}
+
 /* Motion */
 
 @keyframes fade-in {

@@ -3,14 +3,17 @@ import type { GeoData } from '../../geo/facts'
 import { rarities, rarityTier } from '../../game/core/categories'
 import type { BattleState } from '../../game/modes/battle'
 import {
-  CLICKED_COLOR,
   EMPTY_SCENE,
+  ownPin,
   QUESTION_PAINT,
   TARGET_AREA_PAINT,
   TARGET_COLOR,
   TARGET_PAINT,
+  type ArcSpec,
   type CountryPaint,
   type GlobeScene,
+  type MarkerSpec,
+  type PinSpec,
 } from '../../globe/scene'
 import { TIER_COLORS } from '../rounds/scene'
 
@@ -35,7 +38,7 @@ export function battleScene(
     }
     const submitted = rounds.submissions[rounds.round][me]?.pin
     const pin = submitted ?? draftPin
-    return { ...EMPTY_SCENE, pins: pin ? [{ at: pin, color: CLICKED_COLOR }] : [] }
+    return { ...EMPTY_SCENE, pins: pin ? [ownPin(pin)] : [] }
   }
 
   const results = Object.entries(rounds.results[rounds.round])
@@ -62,15 +65,22 @@ export function battleScene(
     })
   }
 
-  const pins = []
-  const arcs = []
+  // Everyone's pins in their scoreboard colours, so the reveal reads like the standings.
+  const pins: PinSpec[] = []
+  const arcs: ArcSpec[] = []
   for (const [player, result] of results) {
     if (!('guess' in result)) continue
-    pins.push({ at: result.guess, color: player === me ? CLICKED_COLOR : colorOf(player) })
-    if (result.distanceKm > 0.5) arcs.push({ from: result.guess, to: result.nearest })
+    pins.push({ at: result.guess, color: colorOf(player) })
+    if (result.distanceKm > 0.5) {
+      arcs.push({ from: result.guess, to: result.nearest, color: colorOf(player) })
+    }
   }
+  const markers: MarkerSpec[] = []
   if (challenge.kind === 'capital') {
-    pins.push({ at: geo.factsOf(challenge.countryId).capitals[0].at, color: TARGET_COLOR })
+    const capital = geo.factsOf(challenge.countryId).capitals[0]
+    markers.push({ at: capital.at, label: capital.name, kind: 'city' })
   }
-  return { paints, pins, arcs }
+  const pulses =
+    challenge.kind === 'category' ? [] : [{ id: challenge.countryId, color: TARGET_COLOR }]
+  return { paints, pins, arcs, markers, pulses }
 }

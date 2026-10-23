@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { play, vibrate } from '../../audio/sound'
 import type { LonLat } from '../../geo/coords'
-import { compassPoint } from '../../geo/distance'
+import { compassPoint, destinationPoint } from '../../geo/distance'
+import type { GeoData } from '../../geo/facts'
 import { LOCAL_PLAYER } from '../../game/core/types'
 import {
   HINT_AFTER,
@@ -14,8 +15,8 @@ import {
   type MysteryGuess,
   type MysteryState,
 } from '../../game/modes/mystery'
-import { frameCountry, randomOverview } from '../../globe/framing'
-import { TARGET_PAINT, type GlobeScene } from '../../globe/scene'
+import { frameCountry, framePair, randomOverview } from '../../globe/framing'
+import { TARGET_COLOR, TARGET_PAINT, type GlobeScene } from '../../globe/scene'
 import { formatDistance } from '../../screens/format'
 import { AnswerInput } from '../../ui/AnswerInput'
 import { FactCard } from '../../ui/FactCard'
@@ -33,9 +34,14 @@ import { useGameStage } from '../useGameStage'
 import { useIntro } from '../useIntro'
 import { useRecordedGame } from '../useRecordedGame'
 import { useLocalSession } from '../useLocalSession'
+import { Crosshair } from '../Crosshair'
+import { useGameKeys } from '../../ui/useGameKeys'
 import { heatOf, heatPaint } from './heat'
 
 const LIST_SHOWN = 5
+/** The arrow from the latest guess is long enough to read, but never reaches the answer. */
+const ARROW_MIN_KM = 500
+const ARROW_MAX_KM = 1500
 
 interface MysteryGameProps {
   config: MysteryConfig
@@ -104,6 +110,11 @@ export function MysteryGame({ config, seed, daily, onChangeSetup, onHome }: Myst
     }
     setMessage(null)
     const last = next.guesses.at(-1)!
+    // A typed guess may be anywhere: turn the globe to show it and its arrow.
+    if (fields.answerId && !isSolved(next)) {
+      const arrow = guessArrow(last, geo)
+      stage.flyTo(framePair(arrow.from, arrow.to))
+    }
     if (isSolved(next)) {
       play('best')
       vibrate([12, 40, 12, 40, 12])
@@ -119,10 +130,20 @@ export function MysteryGame({ config, seed, daily, onChangeSetup, onHome }: Myst
     session.start(config)
   }
 
+  const guessAtCenter = () => {
+    const center = stage.center()
+    if (center) guess({ pin: center })
+  }
   useStagePicking(state && !finished && !intro.open ? (pin) => guess({ pin }) : null)
+  useGameKeys((event) => {
+    if (event.key === ' ' && state && !finished) {
+      event.preventDefault()
+      guessAtCenter()
+    }
+  })
   useStageScene(
     state
-      ? mysteryScene(state.guesses, finished ? state.targetId : null)
+      ? mysteryScene(state.guesses, finished ? state.targetId : null, geo)
       : { paints: [], pins: [], arcs: [] },
   )
 
@@ -210,6 +231,8 @@ export function MysteryGame({ config, seed, daily, onChangeSetup, onHome }: Myst
         )}
       </div>
 
+      <Crosshair active={!finished} />
+
       <div className="action-bar">
         {finished ? (
           <ResultCard
@@ -251,10 +274,19 @@ export function MysteryGame({ config, seed, daily, onChangeSetup, onHome }: Myst
               matcher={geo.names}
               nameOf={nameOf}
               suggestions={config.difficulty !== 'hard'}
-              placeholder="Type a country, or tap one"
+              placeholder={
+                preferences.placement === 'crosshair'
+                  ? 'Type a country, or aim at one'
+                  : 'Type a country, or tap one'
+              }
               submitLabel="Guess"
               onSubmit={(answerId) => guess({ answerId })}
             />
+            {preferences.placement === 'crosshair' && (
+              <button type="button" className="button button--block" onClick={guessAtCenter}>
+                Guess the country under the crosshair
+              </button>
+            )}
             {message && <p className="answer__message">{message}</p>}
             <div className="answer-panel__actions">
               {!state.hintUsed && state.guesses.length >= HINT_AFTER && (
@@ -325,14 +357,40 @@ function toneOf(guess: MysteryGuess) {
   return 'miss' as const
 }
 
-/** Each guess painted by how hot it is; the answer in gold once found. */
-function mysteryScene(guesses: MysteryGuess[], revealedId: string | null): GlobeScene {
+/**
+ * Each guess painted by how hot it is, with an arrow from the latest one pointing towards the
+ * mystery country; the answer in gold once found.
+ */
+function mysteryScene(
+  guesses: MysteryGuess[],
+  revealedId: string | null,
+  geo: GeoData,
+): GlobeScene {
   const paints = guesses
     .filter((g) => g.countryId !== revealedId)
     .map((g) => heatPaint(g.countryId, g.distanceKm))
-  return {
-    paints: revealedId ? [...paints, { id: revealedId, ...TARGET_PAINT }] : paints,
-    pins: [],
-    arcs: [],
+  const latest = guesses.at(-1)
+  if (revealedId) {
+    return {
+      paints: [...paints, { id: revealedId, ...TARGET_PAINT }],
+      pins: [],
+      arcs: [],
+      pulses: [{ id: revealedId, color: TARGET_COLOR }],
+    }
   }
+  if (!latest) return { paints, pins: [], arcs: [] }
+  const { color } = heatOf(latest.distanceKm)
+  return {
+    paints,
+    pins: [],
+    arcs: [{ ...guessArrow(latest, geo), color, arrow: true }],
+    pulses: [{ id: latest.countryId, color }],
+  }
+}
+
+/** From a guessed country towards the mystery country. */
+function guessArrow(guess: MysteryGuess, geo: GeoData): { from: LonLat; to: LonLat } {
+  const from = geo.factsOf(guess.countryId).label
+  const length = Math.min(ARROW_MAX_KM, Math.max(ARROW_MIN_KM, guess.distanceKm / 2))
+  return { from, to: destinationPoint(from, guess.bearing, length) }
 }

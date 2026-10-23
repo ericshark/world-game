@@ -2,9 +2,9 @@ import type { LonLat } from '../../geo/coords'
 import type { GeoData } from '../../geo/facts'
 import { connectionsFrom, type JourneyState } from '../../game/modes/journey'
 import {
-  CLICKED_COLOR,
   CLICKED_PAINT,
   CONTEXT_PAINT,
+  ownPin,
   TARGET_COLOR,
   type CountryPaint,
   type GlobeScene,
@@ -47,13 +47,15 @@ export function journeyScene(
   ]
   return {
     paints,
-    pins: [
-      { at: label(state.from), color: '#bfe0ff' },
-      { at: label(state.to), color: TARGET_COLOR },
-      ...(draftPin ? [{ at: draftPin, color: CLICKED_COLOR }] : []),
-    ],
+    pins: draftPin ? [ownPin(draftPin)] : [],
     arcs: state.route
       .slice(1)
-      .map((id, index) => ({ from: label(state.route[index]), to: label(id) })),
+      .map((id, index) => ({ from: label(state.route[index]), to: label(id), color: '#bfe0ff' })),
+    markers: [
+      { at: label(state.from), label: geo.nameOf(state.from), kind: 'start' },
+      { at: label(state.to), label: geo.nameOf(state.to), kind: 'goal' },
+    ],
+    // Each arrival pulses, so the eye follows the route as it grows.
+    pulses: state.endedAt === null ? [{ id: current, color: '#bfe0ff' }] : [],
   }
 }

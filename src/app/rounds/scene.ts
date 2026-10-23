@@ -4,10 +4,10 @@ import { rarities, rarityTier, type RarityTier } from '../../game/core/categorie
 import type { RoundsState } from '../../game/core/rounds'
 import { LOCAL_PLAYER, type Challenge } from '../../game/core/types'
 import {
-  CLICKED_COLOR,
   CLICKED_PAINT,
   CONTEXT_PAINT,
   EMPTY_SCENE,
+  ownPin,
   QUESTION_PAINT,
   TARGET_AREA_PAINT,
   TARGET_COLOR,
@@ -38,7 +38,7 @@ export function roundScene(
     if (challenge.kind === 'identify') {
       return { ...EMPTY_SCENE, paints: [{ id: challenge.countryId, ...QUESTION_PAINT }] }
     }
-    return { ...EMPTY_SCENE, pins: draftPin ? [{ at: draftPin, color: CLICKED_COLOR }] : [] }
+    return { ...EMPTY_SCENE, pins: draftPin ? [ownPin(draftPin)] : [] }
   }
 
   if (challenge.kind === 'category') {
@@ -58,6 +58,7 @@ export function roundScene(
     return {
       paints: [...answers.filter((p) => p.id !== result.answerId), yours],
       ...pinAndArc(result.guess, result.nearest, result.distanceKm > 0.5),
+      pulses: result.valid ? [{ id: result.answerId, color: TARGET_COLOR }] : [],
     }
   }
 
@@ -71,6 +72,7 @@ export function roundScene(
       return {
         ...EMPTY_SCENE,
         paints: [...neighbors, ...answered, { id: targetId, ...TARGET_PAINT }],
+        pulses: [{ id: targetId, color: TARGET_COLOR }],
       }
     }
     case 'locate':
@@ -81,10 +83,13 @@ export function roundScene(
           ? [{ id: result.clickedId, ...CLICKED_PAINT }]
           : []
       const target = { id: targetId, ...(isCapital ? TARGET_AREA_PAINT : TARGET_PAINT) }
-      // A capital is a point, so it always gets a pin; a country only when the guess missed.
+      // A capital is a labelled city; a country pulses so even a tiny one is easy to spot.
+      const capital = isCapital ? capitalNearest(geo, targetId, result.nearest) : null
       return {
         paints: [...neighbors, ...clicked, target],
-        ...pinAndArc(result.guess, result.nearest, isCapital || result.distanceKm > 0.5),
+        ...pinAndArc(result.guess, result.nearest, result.distanceKm > 0.5),
+        markers: capital ? [{ at: capital.at, label: capital.name, kind: 'city' }] : [],
+        pulses: isCapital ? [] : [{ id: targetId, color: TARGET_COLOR }],
       }
     }
     default:
@@ -92,14 +97,25 @@ export function roundScene(
   }
 }
 
-function pinAndArc(guess: LonLat, answer: LonLat, showAnswer: boolean): Omit<GlobeScene, 'paints'> {
+/** The player's pin and, when it missed, a pin on the answer with an arc between them. */
+export function pinAndArc(
+  guess: LonLat,
+  answer: LonLat,
+  missed: boolean,
+): Pick<GlobeScene, 'pins' | 'arcs'> {
   return {
-    pins: [
-      { at: guess, color: CLICKED_COLOR },
-      ...(showAnswer ? [{ at: answer, color: TARGET_COLOR }] : []),
-    ],
-    arcs: showAnswer ? [{ from: guess, to: answer }] : [],
+    pins: [ownPin(guess), ...(missed ? [{ at: answer, color: TARGET_COLOR }] : [])],
+    arcs: missed ? [{ from: guess, to: answer }] : [],
   }
+}
+
+/** The capital a guess was measured against (countries with several accept any of them). */
+function capitalNearest(geo: GeoData, countryId: string, nearest: LonLat) {
+  const capitals = geo.factsOf(countryId).capitals
+  const distance = (at: LonLat) => Math.hypot(at[0] - nearest[0], at[1] - nearest[1])
+  return capitals.reduce((best, capital) =>
+    distance(capital.at) < distance(best.at) ? capital : best,
+  )
 }
 
 function tierPaint(id: string, tier: RarityTier): CountryPaint {

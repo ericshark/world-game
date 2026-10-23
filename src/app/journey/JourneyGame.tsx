@@ -15,11 +15,14 @@ import {
   type JourneyStep,
 } from '../../game/modes/journey'
 import { frameMany } from '../../globe/framing'
+import { EMPTY_SCENE } from '../../globe/scene'
 import { HowToPlay } from '../../ui/HowToPlay'
 import { Hud } from '../../ui/Hud'
 import { ResultCard } from '../../ui/ResultCard'
 import { ResultsScreen } from '../../ui/ResultsScreen'
 import { useGameKeys } from '../../ui/useGameKeys'
+import { AnswerInput } from '../../ui/AnswerInput'
+import { Crosshair } from '../Crosshair'
 import { useApp } from '../AppContext'
 import { useChallenge } from '../challenge'
 import { useSaveDailyProgress, type DailyGame } from '../daily/dailyGame'
@@ -44,13 +47,14 @@ interface JourneyGameProps {
 
 export function JourneyGame({ config, seed, daily, onChangeSetup, onHome }: JourneyGameProps) {
   const app = useApp()
-  const { geo } = app
+  const { geo, preferences } = app
   const stage = useGameStage()
   const intro = useIntro('journey')
   const [draftPin, setDraftPin] = useState<LonLat | null>(null)
   const [showConnections, setShowConnections] = useState(false)
   const { recorded, record, clear: clearRecorded } = useRecordedGame({ daily })
   const [showSummary, setShowSummary] = useState(false)
+  const [typing, setTyping] = useState(false)
 
   const session = useLocalSession(
     journey,
@@ -73,12 +77,13 @@ export function JourneyGame({ config, seed, daily, onChangeSetup, onHome }: Jour
     stage.flyTo(frameMany([state.from, state.to].map((id) => geo.factsOf(id).label)))
   })
 
-  const move = () => {
-    if (!state || finished || !draftPin) return
+  /** Travels to the country under the pin, or to one typed by name. */
+  const move = (fields: { pin?: LonLat; answerId?: string } = { pin: draftPin ?? undefined }) => {
+    if (!state || finished || (!fields.pin && !fields.answerId)) return
     const next = session.send({
       type: 'submit',
       playerId: LOCAL_PLAYER,
-      submission: { pin: draftPin, at: Date.now() },
+      submission: { ...fields, at: Date.now() },
     })
     setDraftPin(null)
     if (!next || next === state) return
@@ -116,11 +121,7 @@ export function JourneyGame({ config, seed, daily, onChangeSetup, onHome }: Jour
         }
       : null,
   )
-  useStageScene(
-    state
-      ? journeyScene(state, geo, { draftPin, showConnections })
-      : { paints: [], pins: [], arcs: [] },
-  )
+  useStageScene(state ? journeyScene(state, geo, { draftPin, showConnections }) : EMPTY_SCENE)
 
   useGameKeys((event) => {
     if (event.key === 'Enter') {
@@ -206,6 +207,8 @@ export function JourneyGame({ config, seed, daily, onChangeSetup, onHome }: Jour
         </p>
       </div>
 
+      <Crosshair active={!finished} />
+
       <div className="action-bar">
         {finished ? (
           <ResultCard
@@ -244,17 +247,46 @@ export function JourneyGame({ config, seed, daily, onChangeSetup, onHome }: Jour
                 {draftPin ? 'Travel there?' : 'Tap the next country on your way'}
               </p>
               <div className="placing__actions">
+                {preferences.placement === 'crosshair' && (
+                  <button
+                    type="button"
+                    className="button"
+                    onClick={() => setDraftPin(stage.center())}
+                  >
+                    Drop pin
+                  </button>
+                )}
                 <button
                   type="button"
                   className="button button--primary"
                   disabled={!draftPin}
-                  onClick={move}
+                  onClick={() => move()}
                 >
                   Go
                 </button>
               </div>
             </div>
+            {typing && (
+              <AnswerInput
+                key={state.steps.length}
+                matcher={geo.names}
+                nameOf={nameOf}
+                suggestions
+                placeholder="Type the next country"
+                submitLabel="Go"
+                onSubmit={(answerId) => move({ answerId })}
+              />
+            )}
             <div className="answer-panel__actions">
+              {!typing && (
+                <button
+                  type="button"
+                  className="button button--link"
+                  onClick={() => setTyping(true)}
+                >
+                  Type a country instead
+                </button>
+              )}
               <button
                 type="button"
                 className="button button--link"

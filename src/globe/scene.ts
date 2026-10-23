@@ -11,11 +11,29 @@ export interface CountryPaint {
 export interface PinSpec {
   at: LonLat
   color: string
+  /** The local player's own pin, drawn in the pin colour they picked. */
+  own?: boolean
 }
 
 export interface ArcSpec {
   from: LonLat
   to: LonLat
+  color?: string
+  /** Ends in an arrowhead, for pointing somewhere rather than joining two places. */
+  arrow?: boolean
+}
+
+/** A labelled point: a capital city, or where a journey starts and ends. */
+export interface MarkerSpec {
+  at: LonLat
+  label: string
+  kind: 'city' | 'start' | 'goal'
+}
+
+/** A country that briefly pulses to draw the eye, e.g. the answer as it is revealed. */
+export interface PulseSpec {
+  id: string
+  color: string
 }
 
 /** Everything a mode wants drawn on the globe, derived from its state. */
@@ -23,9 +41,16 @@ export interface GlobeScene {
   paints: CountryPaint[]
   pins: PinSpec[]
   arcs: ArcSpec[]
+  markers?: MarkerSpec[]
+  pulses?: PulseSpec[]
 }
 
 export const EMPTY_SCENE: GlobeScene = { paints: [], pins: [], arcs: [] }
+
+/** The local player's pin, wherever they placed it. */
+export function ownPin(at: LonLat): PinSpec {
+  return { at, color: CLICKED_COLOR, own: true }
+}
 
 /** The reveal colours every mode shares: gold for the answer, coral for the player's pick. */
 export const TARGET_COLOR = '#ffd54a'
