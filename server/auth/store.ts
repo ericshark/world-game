@@ -194,7 +194,11 @@ export class AuthStore {
   }
 
   /** Moves an abandoned anonymous player's records to the player that replaces it. */
-  private mergeAnonymous(fromId: string, _toId: string) {
+  private mergeAnonymous(fromId: string, toId: string) {
+    // A puzzle both have played stays with the account's player; the rest moves over.
+    this.db
+      .prepare('UPDATE OR IGNORE daily_sessions SET player_id = ? WHERE player_id = ?')
+      .run(toId, fromId)
     this.db.prepare('DELETE FROM players WHERE id = ?').run(fromId)
   }
 

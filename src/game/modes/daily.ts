@@ -25,6 +25,13 @@ export interface DailyConfig {
 /** A weekly variation: Saturdays at night, Sundays end on a micro-state. */
 export type DailyTwist = 'night' | 'micro' | null
 
+/** How many players named each country in a Rare Earth round, for the reveal. */
+export interface Crowd {
+  total: number
+  /** Country id → share of players (0–100) who named it. */
+  percent: Record<string, number>
+}
+
 export interface DailyState {
   config: DailyConfig
   seed: string
@@ -32,6 +39,8 @@ export interface DailyState {
   startedAt: number
   endedAt: number | null
   rounds: RoundsState<Challenge>
+  /** Added by a server to a revealed Rare Earth round once enough players have answered. */
+  crowd?: Crowd | null
 }
 
 /** Bump when the generator changes, so old puzzles are not silently rewritten. */
@@ -51,10 +60,15 @@ export const DAILY_ROUNDS = ['locate', 'identify', 'category', 'capital', 'locat
 
 /**
  * The same five rounds for everyone on a given day, one of each kind of challenge, getting
- * harder towards the end. Generated from the date alone, so no server is needed.
+ * harder towards the end. The seed alone decides them: offline it comes from the date, and a
+ * server uses a secret one so nobody can work out tomorrow's puzzle.
  */
-export function dailyChallenges(geo: GeoData, dateKey: string): Challenge[] {
-  const random = createRandom(dailySeed(dateKey, 'five'))
+export function dailyChallenges(
+  geo: GeoData,
+  dateKey: string,
+  seed = dailySeed(dateKey, 'five'),
+): Challenge[] {
+  const random = createRandom(seed)
   const twist = dailyTwist(dateKey)
   const used = new Set<string>()
   const pick = (tiers: number[], micro: boolean | 'only') => {
@@ -78,14 +92,14 @@ export function dailyChallenges(geo: GeoData, dateKey: string): Challenge[] {
 }
 
 export const daily: ModeRules<DailyConfig, DailyState> = {
-  start({ config, now, geo, players }) {
+  start({ config, seed, now, geo, players }) {
     return {
       config,
-      seed: dailySeed(config.dateKey, 'five'),
+      seed,
       twist: dailyTwist(config.dateKey),
       startedAt: now,
       endedAt: null,
-      rounds: startRounds(dailyChallenges(geo, config.dateKey), { players, now }),
+      rounds: startRounds(dailyChallenges(geo, config.dateKey, seed), { players, now }),
     }
   },
 
@@ -114,6 +128,10 @@ export const daily: ModeRules<DailyConfig, DailyState> = {
       )
   },
 
+  viewFor(state) {
+    return { ...state, seed: '', rounds: redactRounds(state.rounds) }
+  },
+
   summarize(state, playerId) {
     const results = playerResults(state.rounds, playerId)
     return {
@@ -128,6 +146,35 @@ export const daily: ModeRules<DailyConfig, DailyState> = {
       metrics: Object.fromEntries(results.map((result, i) => [`tone${i}`, toneIndex(result)])),
     }
   },
+}
+
+/**
+ * Rounds the player has not reached are blanked, and so are a category's accepted answers while
+ * it is still open: a client only needs them once the round is revealed.
+ */
+function redactRounds(rounds: RoundsState<Challenge>): RoundsState<Challenge> {
+  return {
+    ...rounds,
+    challenges: rounds.challenges.map((challenge, index) => {
+      const revealed = index < rounds.round || (index === rounds.round && rounds.phase !== 'open')
+      return revealed ? challenge : hide(challenge, index === rounds.round)
+    }),
+  }
+}
+
+/** The same kind of round with nothing to look up; the current round keeps what it is about. */
+function hide(challenge: Challenge, current: boolean): Challenge {
+  if (challenge.kind === 'category') {
+    const { id, kind, prompt } = challenge.category
+    // A hidden round keeps only its shape; the placeholder kind says nothing about the category.
+    return {
+      kind: 'category',
+      category: current
+        ? { id, kind, prompt, valid: [], lenient: [] }
+        : { id: '', kind: 'subregion', prompt: '', valid: [], lenient: [] },
+    }
+  }
+  return current ? challenge : { ...challenge, countryId: '' }
 }
 
 /** 0 (miss) to 4 (perfect), for the shareable grid. */

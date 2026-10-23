@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { loadTestGeoData } from '../../test/loadTestCountries'
 import { dailyShareText } from '../profile/share'
 import { LOCAL_PLAYER, type Submission } from '../core/types'
-import { daily, dailyChallenges, dailyTwist, type DailyState } from './daily'
+import { daily, dailyChallenges, dailySeed, dailyTwist, type DailyState } from './daily'
 
 const geo = loadTestGeoData()
 
@@ -43,7 +43,7 @@ describe('daily five', () => {
   it('plays through to a summary out of 5,000 with a tone per round', () => {
     let state: DailyState = daily.start({
       config: { dateKey: '2026-10-21' },
-      seed: 'ignored',
+      seed: dailySeed('2026-10-21', 'five'),
       now: 0,
       geo,
       players: [LOCAL_PLAYER],
@@ -65,6 +65,98 @@ describe('daily five', () => {
     expect(summary).toMatchObject({ mode: 'daily', bestKey: 'daily:five', maxScore: 5000 })
     expect(summary.score).toBeGreaterThan(4000)
     expect(summary.metrics).toMatchObject({ tone0: 4, tone1: 4, tone3: 4, tone4: 4 })
+  })
+
+  it('is decided by the seed it is given', () => {
+    const start = (seed: string) =>
+      daily.start({ config: { dateKey: '2026-10-21' }, seed, now: 0, geo, players: [LOCAL_PLAYER] })
+    expect(start('secret-a').rounds.challenges).toEqual(start('secret-a').rounds.challenges)
+    expect(start('secret-a').rounds.challenges).not.toEqual(start('secret-b').rounds.challenges)
+    expect(start('secret-a').seed).toBe('secret-a')
+  })
+
+  it('shows a player only what they may know', () => {
+    let state = daily.start({
+      config: { dateKey: '2026-10-21' },
+      seed: 'secret',
+      now: 0,
+      geo,
+      players: [LOCAL_PLAYER],
+    })
+    const view = (s: DailyState) => daily.viewFor!(s, LOCAL_PLAYER)
+    const known = (s: DailyState) =>
+      view(s).rounds.challenges.map((c) => (c.kind === 'category' ? c.category.id : c.countryId))
+
+    // The seed never leaves the server, and only the current round is shown.
+    expect(view(state).seed).toBe('')
+    const first = state.rounds.challenges[0]
+    expect(known(state)[0]).toBe(first.kind === 'category' ? first.category.id : first.countryId)
+    expect(
+      known(state)
+        .slice(1)
+        .every((id) => id === ''),
+    ).toBe(true)
+
+    // Once the first round is over, the next stays hidden until the player moves on.
+    const pin = geo.factsOf(first.kind === 'category' ? 'FRA' : first.countryId).label
+    state = daily.reduce(
+      state,
+      { type: 'submit', playerId: LOCAL_PLAYER, submission: { pin, at: 1 } },
+      geo,
+    )
+    expect(state.rounds.phase).toBe('revealed')
+    expect(
+      known(state)
+        .slice(1)
+        .every((id) => id === ''),
+    ).toBe(true)
+    state = daily.reduce(state, { type: 'next', at: 2 }, geo)
+    expect(known(state)[1]).not.toBe('')
+    expect(
+      known(state)
+        .slice(2)
+        .every((id) => id === ''),
+    ).toBe(true)
+  })
+
+  it('hides the open category’s accepted answers until it is revealed', () => {
+    let state = daily.start({
+      config: { dateKey: '2026-10-21' },
+      seed: 'secret',
+      now: 0,
+      geo,
+      players: [LOCAL_PLAYER],
+    })
+    // Skip to the category round (the third).
+    for (let round = 0; round < 2; round++) {
+      const challenge = state.rounds.challenges[round]
+      const submission: Submission =
+        challenge.kind === 'identify'
+          ? { answerId: challenge.countryId, at: 1 }
+          : { pin: geo.factsOf((challenge as { countryId: string }).countryId).label, at: 1 }
+      state = daily.reduce(state, { type: 'submit', playerId: LOCAL_PLAYER, submission }, geo)
+      state = daily.reduce(state, { type: 'next', at: 2 }, geo)
+    }
+    const open = daily.viewFor!(state, LOCAL_PLAYER).rounds.challenges[2]
+    if (open.kind !== 'category') throw new Error('expected the category round')
+    expect(open.category.prompt).not.toBe('')
+    expect(open.category.valid).toEqual([])
+    expect(open.category.lenient).toEqual([])
+
+    const answerId = (state.rounds.challenges[2] as { category: { valid: string[] } }).category
+      .valid[0]
+    state = daily.reduce(
+      state,
+      {
+        type: 'submit',
+        playerId: LOCAL_PLAYER,
+        submission: { answerId, pin: geo.factsOf(answerId).label, at: 3 },
+      },
+      geo,
+    )
+    const revealed = daily.viewFor!(state, LOCAL_PLAYER).rounds.challenges[2]
+    if (revealed.kind !== 'category') throw new Error('expected the category round')
+    expect(revealed.category.valid.length).toBeGreaterThan(0)
   })
 
   it('shares results without spoilers', () => {

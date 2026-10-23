@@ -3,13 +3,16 @@ import { relative, resolve } from 'node:path'
 import { Hono } from 'hono'
 import { serveStatic } from '@hono/node-server/serve-static'
 import type { ServerConfig } from './config'
-import { authApi } from './auth/routes'
+import { authRoutes } from './auth/routes'
+import { dailyRoutes } from './daily'
+import type { GeoData } from '../src/geo/facts'
 import type { Mail, Mailer } from './auth/mail'
 import type { OAuthProvider, OAuthProviderId } from './auth/oauth'
 import type { Database } from './db'
 
 export interface AppContext {
   config: ServerConfig
+  geo: GeoData
   db: Database
   /** For /health: how many battle rooms are open. */
   roomCount: () => number
@@ -26,7 +29,9 @@ export function createApp(context: AppContext) {
 
   app.get('/health', (c) => c.text(`ok ${context.roomCount()} rooms`))
 
-  const api = authApi(context)
+  const api = new Hono()
+  const auth = authRoutes(api, context)
+  dailyRoutes(api, context, auth)
   app.route('/api', api)
   app.all('/api/*', (c) => c.json({ error: 'Not found.' }, 404))
 

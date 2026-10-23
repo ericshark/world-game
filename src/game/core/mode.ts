@@ -35,4 +35,10 @@ export interface ModeRules<Config, State, Event = SessionEvent> {
   /** Per-country outcomes revealed by moving from one state to the next, for live stats. */
   outcomesBetween(previous: State, next: State, playerId: PlayerId): CountryOutcome[]
   summarize(state: State, playerId: PlayerId): SessionSummary
+  /**
+   * What a player may be shown of the state when a server hosts the game: later rounds, the
+   * seed and any answers they could use to cheat are left out. Without it, the whole state is
+   * shown.
+   */
+  viewFor?(state: State, playerId: PlayerId): State
 }

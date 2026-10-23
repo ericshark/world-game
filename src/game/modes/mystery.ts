@@ -38,6 +38,8 @@ export interface MysteryState {
   targetId: string
   guesses: MysteryGuess[]
   hintUsed: boolean
+  /** The continent, once the hint is used, so a view that hides the target can show it. */
+  hintRegion?: string
   gaveUp: boolean
 }
 
@@ -100,7 +102,11 @@ export const mystery: ModeRules<MysteryConfig, MysteryState, MysteryEvent> = {
       case 'hint':
         if (event.playerId !== state.player || state.hintUsed) return state
         if (state.guesses.length < HINT_AFTER) return state
-        return { ...state, hintUsed: true }
+        return {
+          ...state,
+          hintUsed: true,
+          hintRegion: geo.feature(state.targetId).properties.region,
+        }
       case 'giveUp':
         if (event.playerId !== state.player) return state
         return { ...state, gaveUp: true, endedAt: event.at }
@@ -122,6 +128,13 @@ export const mystery: ModeRules<MysteryConfig, MysteryState, MysteryEvent> = {
       }
     }
   },
+
+  viewFor: (state) => ({
+    ...state,
+    seed: '',
+    // Who the player is looking for stays hidden until they have found it or given up.
+    targetId: state.endedAt === null ? '' : state.targetId,
+  }),
 
   isFinished: (state) => state.endedAt !== null,
 

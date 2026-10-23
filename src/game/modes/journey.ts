@@ -189,6 +189,9 @@ export const journey: ModeRules<JourneyConfig, JourneyState, JourneyEvent> = {
     }
   },
 
+  // The start, destination and par are the puzzle itself; only the seed would give more away.
+  viewFor: (state) => ({ ...state, seed: '' }),
+
   isFinished: (state) => state.endedAt !== null,
 
   deadline: () => null,

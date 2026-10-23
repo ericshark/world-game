@@ -3,6 +3,7 @@ import { loadTestGeoData } from '../../test/loadTestCountries'
 import { LOCAL_PLAYER } from '../core/types'
 import {
   connectionsFrom,
+  DEFAULT_JOURNEY_CONFIG,
   journey,
   journeyScore,
   journeyStars,
@@ -95,5 +96,20 @@ describe('journey', () => {
       geo,
     )
     expect(journey.summarize(state, LOCAL_PLAYER)).toMatchObject({ score: 0, endedAt: 5 })
+  })
+})
+
+describe('journey view', () => {
+  it('hides only the seed', () => {
+    const state = journey.start({
+      config: DEFAULT_JOURNEY_CONFIG,
+      seed: 'secret',
+      now: 0,
+      geo,
+      players: [LOCAL_PLAYER],
+    })
+    const view = journey.viewFor!(state, LOCAL_PLAYER)
+    expect(view.seed).toBe('')
+    expect({ ...view, seed: 'secret' }).toEqual(state)
   })
 })

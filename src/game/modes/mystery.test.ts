@@ -94,3 +94,39 @@ describe('mystery', () => {
     ])
   })
 })
+
+describe('mystery view', () => {
+  const start = () =>
+    mystery.start({
+      config: DEFAULT_MYSTERY_CONFIG,
+      seed: 'secret',
+      now: 0,
+      geo,
+      players: [LOCAL_PLAYER],
+    })
+
+  it('hides the seed and the country until the game is over', () => {
+    const state = start()
+    const open = mystery.viewFor!(state, LOCAL_PLAYER)
+    expect(open.seed).toBe('')
+    expect(open.targetId).toBe('')
+    const over = mystery.reduce(state, { type: 'giveUp', playerId: LOCAL_PLAYER, at: 1 }, geo)
+    expect(mystery.viewFor!(over, LOCAL_PLAYER).targetId).toBe(state.targetId)
+  })
+
+  it('still shows the continent hint without the country', () => {
+    let state = start()
+    const others = geo.playableIds.filter((id) => id !== state.targetId).slice(0, HINT_AFTER)
+    for (const answerId of others) {
+      state = mystery.reduce(
+        state,
+        { type: 'submit', playerId: LOCAL_PLAYER, submission: { answerId, at: 1 } },
+        geo,
+      )
+    }
+    state = mystery.reduce(state, { type: 'hint', playerId: LOCAL_PLAYER, at: 2 }, geo)
+    const view = mystery.viewFor!(state, LOCAL_PLAYER)
+    expect(view.targetId).toBe('')
+    expect(view.hintRegion).toBe(geo.feature(state.targetId).properties.region)
+  })
+})

@@ -226,7 +226,8 @@ export function MysteryGame({ config, seed, daily, onChangeSetup, onHome }: Myst
             {closest
               ? `Closest: ${nameOf(closest.countryId)}, ${closest.distanceKm === 0 ? 'a neighbour' : formatDistance(closest.distanceKm, units)}`
               : 'Guess any country to start'}
-            {state.hintUsed && ` · It's in ${geo.feature(state.targetId).properties.region}`}
+            {state.hintUsed &&
+              ` · It's in ${state.hintRegion ?? geo.feature(state.targetId).properties.region}`}
           </p>
         )}
       </div>

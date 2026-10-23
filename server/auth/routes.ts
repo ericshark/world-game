@@ -1,4 +1,4 @@
-import { Hono, type Context } from 'hono'
+import type { Hono, Context } from 'hono'
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie'
 import { getConnInfo } from '@hono/node-server/conninfo'
 import { normalizeProfile } from '../../src/game/profile/profile'
@@ -18,8 +18,16 @@ interface Signed {
   token: string
 }
 
-export function authApi({ config, db, now, mailer, devMailbox, oauth }: AppContext) {
-  const api = new Hono()
+export interface Authentication {
+  /** The player making the request, if the session cookie is good. */
+  signedIn(c: Context): { player: PlayerRow; token: string } | null
+}
+
+/** Adds the identity routes to the API and says how other routes can tell who is calling. */
+export function authRoutes(
+  api: Hono,
+  { config, db, now, mailer, devMailbox, oauth }: AppContext,
+): Authentication {
   const store = new AuthStore(db, now)
   const secure = config.publicOrigin.startsWith('https:')
   const perEmail = new RateLimiter(3, 15 * 60_000, now)
@@ -244,5 +252,5 @@ export function authApi({ config, db, now, mailer, devMailbox, oauth }: AppConte
     api.get('/dev/mailbox', (c) => c.json(devMailbox))
   }
 
-  return api
+  return { signedIn }
 }

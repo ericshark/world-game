@@ -48,6 +48,7 @@ export async function startServer({
   const dev = mailer ?? (config.resendApiKey || config.production ? null : new DevMailer())
   const app = createApp({
     config,
+    geo,
     db,
     roomCount: () => realtime?.roomCount() ?? 0,
     now,

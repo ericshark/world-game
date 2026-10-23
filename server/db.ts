@@ -42,6 +42,26 @@ export const MIGRATIONS: readonly string[] = [
      version INTEGER NOT NULL,
      updated INTEGER NOT NULL
    );`,
+  `CREATE TABLE daily_sessions (
+     player_id TEXT NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+     number INTEGER NOT NULL,
+     puzzle TEXT NOT NULL,
+     state TEXT NOT NULL,
+     status TEXT NOT NULL,
+     score INTEGER,
+     flagged INTEGER NOT NULL DEFAULT 0,
+     last_event INTEGER NOT NULL,
+     started INTEGER NOT NULL,
+     finished INTEGER,
+     PRIMARY KEY (player_id, number, puzzle)
+   );
+   CREATE INDEX daily_sessions_board ON daily_sessions (number, puzzle, status, score DESC);
+   CREATE TABLE daily_answers (
+     number INTEGER NOT NULL,
+     country_id TEXT NOT NULL,
+     count INTEGER NOT NULL,
+     PRIMARY KEY (number, country_id)
+   );`,
 ]
 
 export function runMigrations(db: Database, migrations: readonly string[] = MIGRATIONS) {
