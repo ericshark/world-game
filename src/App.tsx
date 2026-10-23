@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { AppContext, useStoredState, type AppServices } from './app/AppContext'
 import { GlobeStageProvider } from './app/GlobeStage'
 import { useRoute } from './app/router'
+import { useKeyboardInset } from './app/useKeyboardInset'
 import { Routes } from './app/Routes'
 import { loadGeoData, type GeoData } from './geo/facts'
 import { LoadingOverlay } from './screens/LoadingOverlay'
@@ -13,6 +14,7 @@ export default function App() {
   const [loadError, setLoadError] = useState<string | null>(null)
   const [route, navigate] = useRoute()
   const toasts = useToasts()
+  useKeyboardInset()
   const stored = useStoredState(geo, toasts.push)
   const reducedMotion = useResolvedReducedMotion(stored.preferences.motion)
 

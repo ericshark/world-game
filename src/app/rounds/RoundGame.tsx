@@ -62,6 +62,8 @@ export interface RoundGameProps<Config, State extends RoundModeState> {
   seed?: string
   /** Set when this game is one of today's daily puzzles: one attempt, then share. */
   daily?: DailyGame
+  /** A one-line reminder of how to play this round, for games that mix kinds of round. */
+  roundTip?: (challenge: Challenge, round: number) => string
   tiles: (results: RoundResult[], units: Units) => { label: string; value: string }[]
   onChangeSetup: () => void
   onHome: () => void
@@ -299,6 +301,9 @@ export function RoundGame<Config, State extends RoundModeState>(
         className={`prompt${challenge.kind === 'category' ? ' prompt--category' : ''}`}
         aria-live="polite"
       >
+        {props.roundTip && open && (
+          <p className="prompt__tip">{props.roundTip(challenge, rounds.round)}</p>
+        )}
         <Prompt
           challenge={challenge}
           answerName={answerId ? geo.nameOf(answerId) : null}

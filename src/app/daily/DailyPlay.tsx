@@ -11,7 +11,7 @@ import { MysteryGame } from '../mystery/MysteryGame'
 import { RoundGame } from '../rounds/RoundGame'
 import { bestStreak } from '../streaks'
 import { todayKey } from '../today'
-import { DAILY_HOW_TO } from './howTo'
+import { DAILY_HOW_TO, dailyRoundTip } from './howTo'
 import type { DailyGame } from './dailyGame'
 
 /** Plays one of today's puzzles, once. */
@@ -45,6 +45,7 @@ export function DailyPlay({ puzzle, onDone }: { puzzle: DailyPuzzle; onDone: () 
           roundTimeMs={null}
           suggestions
           daily={dailyGame}
+          roundTip={dailyRoundTip}
           tiles={(results) => [
             { label: 'Correct', value: `${results.filter((r) => r.hit).length} / 5` },
             { label: 'Best streak', value: String(bestStreak(results)) },

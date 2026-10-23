@@ -1,3 +1,4 @@
+import type { Challenge } from '../../game/core/types'
 import type { HowToStep } from '../../ui/HowToPlay'
 
 export const DAILY_HOW_TO: HowToStep[] = [
@@ -17,3 +18,19 @@ export const DAILY_HOW_TO: HowToStep[] = [
     text: 'Play every day to grow your streak, then share your score without spoilers.',
   },
 ]
+
+/** The Daily Five mixes kinds of round, so each one says how it works. */
+export function dailyRoundTip(challenge: Challenge, round: number): string {
+  switch (challenge.kind) {
+    case 'locate':
+      return round === 0
+        ? 'Find it · tap the country, then confirm'
+        : 'Finale · a harder one to finish the day'
+    case 'identify':
+      return 'Name it · type the highlighted country'
+    case 'category':
+      return 'Think rare · rarer right answers score more, then place yours'
+    case 'capital':
+      return 'Capital · find the city itself, not just its country'
+  }
+}

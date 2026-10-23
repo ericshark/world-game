@@ -709,6 +709,17 @@ input {
   font-weight: 700;
 }
 
+.prompt__tip {
+  display: inline-block;
+  margin: 0 0 6px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.08);
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
 .prompt__sub {
   margin: 2px 0 0;
   color: var(--text-muted);
@@ -764,7 +775,7 @@ input {
 .action-bar {
   position: absolute;
   left: 50%;
-  bottom: calc(28px + var(--safe-bottom));
+  bottom: calc(28px + max(var(--safe-bottom), var(--keyboard-inset, 0px)));
   transform: translateX(-50%);
   width: min(600px, calc(100% - 2 * var(--gutter)));
 }
@@ -1469,7 +1480,7 @@ input {
   }
 
   .action-bar {
-    bottom: calc(10px + var(--safe-bottom));
+    bottom: calc(10px + max(var(--safe-bottom), var(--keyboard-inset, 0px)));
   }
 
   .placing {
