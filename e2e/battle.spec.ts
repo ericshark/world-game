@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test'
 import { openGame, pinTarget, startMode } from './helpers'
 
-test('World Battle: win a duel against a bot', async ({ page }, info) => {
+test('World Battle: win a duel against a bot', async ({ page }) => {
   // Each round waits for the bot to answer, and a duel can run to 15 rounds.
   test.setTimeout(360_000)
   await openGame(page)
@@ -12,15 +12,7 @@ test('World Battle: win a duel against a bot', async ({ page }, info) => {
     await pinTarget(page)
     await page.getByRole('button', { name: 'Confirm' }).click()
     await expect(page.getByTestId('round-result')).toBeVisible({ timeout: 30_000 })
-    if (round === 0) {
-      await expect(page.locator('.battle-reveal__list li')).toHaveCount(2)
-      await page.screenshot({
-        path:
-          '/tmp/claude-1000/-home-eric-GitHub-world-game/0454089f-3b0d-41f0-86e3-1f7579fb7ace/scratchpad/shots/' +
-          info.project.name +
-          '-battle.png',
-      })
-    }
+    if (round === 0) await expect(page.locator('.battle-reveal__list li')).toHaveCount(2)
     const finished = (await page.getByRole('button', { name: 'See results' }).count()) > 0
     await page.getByRole('button', { name: /^(Ready|See results)$/ }).click()
     if (finished) break
