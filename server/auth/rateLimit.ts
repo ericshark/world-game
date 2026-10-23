@@ -26,6 +26,13 @@ export class RateLimiter {
     return true
   }
 
+  /** Whether another action would be allowed, without recording one. */
+  allows(key: string): boolean {
+    const now = this.now()
+    const recent = (this.hits.get(key) ?? []).filter((at) => now - at < this.windowMs)
+    return recent.length < this.limit
+  }
+
   private prune(now: number) {
     for (const [key, times] of this.hits) {
       if (times.every((at) => now - at >= this.windowMs)) this.hits.delete(key)

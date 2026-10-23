@@ -3,6 +3,7 @@ import { deleteCookie, getCookie, setCookie } from 'hono/cookie'
 import { getConnInfo } from '@hono/node-server/conninfo'
 import { normalizeProfile } from '../../src/game/profile/profile'
 import type { AppContext } from '../app'
+import { clientIp } from '../security'
 import { checkNickname } from './nickname'
 import { generateCodeVerifier, generateState, type OAuthProviderId } from './oauth'
 import { RateLimiter } from './rateLimit'
@@ -32,7 +33,15 @@ export function authRoutes(
   const secure = config.publicOrigin.startsWith('https:')
   const perEmail = new RateLimiter(3, 15 * 60_000, now)
   const perIp = new RateLimiter(config.magicLinksPerIpPerHour, 60 * 60_000, now)
-  const ipOf = (c: Context) => getConnInfo(c).remote.address ?? 'unknown'
+  const ipOf = (c: Context) =>
+    clientIp(
+      {
+        'cf-connecting-ip': c.req.header('cf-connecting-ip'),
+        'x-forwarded-for': c.req.header('x-forwarded-for'),
+      },
+      getConnInfo(c).remote.address,
+      config.trustProxy,
+    )
 
   const cookieOptions = (maxAge: number, path = '/') => ({
     httpOnly: true,

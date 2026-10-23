@@ -26,7 +26,7 @@ test('two players are matched and start a duel', async ({ browser }) => {
   const ben = await queuedPlayer(browser, 'Ben')
 
   for (const page of [ana, ben]) {
-    await expect(page).toHaveURL(/#\/room\/[A-Z]{4}$/)
+    await expect(page).toHaveURL(/#\/room\/[A-Z]{5}$/)
     // Both are in the same running game, with no lobby in between.
     const gotIt = page.getByRole('button', { name: 'Got it' })
     await expect(page.locator('.prompt__text').or(gotIt).first()).toBeVisible()

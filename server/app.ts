@@ -7,6 +7,7 @@ import { authRoutes } from './auth/routes'
 import { dailyRoutes } from './daily'
 import { leaderboardRoutes } from './leaderboards'
 import { precompressed } from './precompressed'
+import { originGuard, securityHeaders } from './security'
 import type { GeoData } from '../src/geo/facts'
 import type { Mail, Mailer } from './auth/mail'
 import type { OAuthProvider, OAuthProviderId } from './auth/oauth'
@@ -28,6 +29,8 @@ export interface AppContext {
 /** The HTTP side: the JSON API, health check and the built site. */
 export function createApp(context: AppContext) {
   const app = new Hono()
+  app.use('*', securityHeaders(context.config))
+  app.use('/api/*', originGuard(context.config))
 
   app.get('/health', (c) => c.text(`ok ${context.roomCount()} rooms`))
 

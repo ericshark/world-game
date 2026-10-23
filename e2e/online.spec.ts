@@ -34,7 +34,7 @@ async function hostRoom(browser: Browser, name: string) {
   await page.getByPlaceholder('Your name').fill(name)
   await page.getByRole('button', { name: 'Create a room' }).click()
   const code = (await page.getByTestId('room-code').textContent())!.trim()
-  expect(code).toMatch(/^[A-Z]{4}$/)
+  expect(code).toMatch(/^[A-Z]{5}$/)
   await expect(page).toHaveURL(new RegExp(`#/room/${code}$`))
   return { page, code }
 }

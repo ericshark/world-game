@@ -69,7 +69,7 @@ export async function startServer({
     })
     server.once('error', reject)
   })
-  realtime = attachRealtime(http, geo, { db, now })
+  realtime = attachRealtime(http, geo, { db, config, now })
   const address = http.address()
 
   return {

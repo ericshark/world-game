@@ -69,7 +69,7 @@ describe('battle server', () => {
     const ana = await connect()
     ana.send({ t: 'create', name: 'Ana', color: '#ff6b6b' })
     const { code, playerId: anaId } = await ana.waitFor(isWelcome)
-    expect(code).toMatch(/^[A-Z]{4}$/)
+    expect(code).toMatch(/^[A-Z]{5}$/)
 
     const ben = await connect()
     ben.send({ t: 'join', code: code.toLowerCase(), name: 'Ben', color: '#ff6b6b' })

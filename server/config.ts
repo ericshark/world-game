@@ -22,6 +22,10 @@ export interface ServerConfig {
   github: OAuthCredentials | null
   /** The built site served alongside the API; null skips static serving. */
   distDir: string | null
+  /** Other origins (besides `publicOrigin`) allowed to use the API and the socket. */
+  allowedOrigins: string[]
+  /** Believe `X-Forwarded-For` and `CF-Connecting-IP`; only set this behind a trusted proxy. */
+  trustProxy: boolean
   /** Sign-in emails one address may ask for per hour. */
   magicLinksPerIpPerHour: number
   production: boolean
@@ -53,6 +57,11 @@ export function loadConfig(env: Env = process.env, overrides: Partial<ServerConf
     google: oauth(env, 'GOOGLE'),
     github: oauth(env, 'GITHUB'),
     distDir: env.DIST_DIR ?? 'dist',
+    allowedOrigins: (env.ALLOWED_ORIGINS ?? '')
+      .split(',')
+      .map((origin) => origin.trim().replace(/\/$/, ''))
+      .filter(Boolean),
+    trustProxy: env.TRUST_PROXY === '1',
     magicLinksPerIpPerHour: Number(env.MAGIC_LINKS_PER_IP_PER_HOUR ?? 10),
     production,
     ...overrides,
