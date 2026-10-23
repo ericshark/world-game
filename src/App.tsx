@@ -7,7 +7,8 @@ import { Routes } from './app/Routes'
 import { loadGeoData, type GeoData } from './geo/facts'
 import { LoadingOverlay } from './screens/LoadingOverlay'
 import { ReducedMotionContext, useResolvedReducedMotion } from './ui/motion'
-import { Toasts, useToasts } from './ui/Toasts'
+import { Toasts } from './ui/Toasts'
+import { useToasts } from './ui/useToasts'
 
 export default function App() {
   const [geo, setGeo] = useState<GeoData | null>(null)
