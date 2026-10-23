@@ -222,24 +222,39 @@ describe('http', () => {
     const { join } = await import('node:path')
     const dist = mkdtempSync(join(tmpdir(), 'wg-dist-'))
     mkdirSync(join(dist, 'assets'))
-    writeFileSync(join(dist, 'index.html'), '<title>World Game</title>')
+    writeFileSync(
+      join(dist, 'index.html'),
+      '<title>World Game</title><meta property="og:url" content="%PUBLIC_ORIGIN%/" />',
+    )
     writeFileSync(join(dist, 'assets', 'app-abc123.js'), 'console.log(1)')
     const site = await startServer({
       config: loadConfig(
         {},
-        { port: 0, host: '127.0.0.1', databasePath: ':memory:', distDir: dist },
+        {
+          port: 0,
+          host: '127.0.0.1',
+          databasePath: ':memory:',
+          distDir: dist,
+          publicOrigin: 'https://play.example.com',
+        },
       ),
       geo,
     })
     try {
       const base = `http://127.0.0.1:${site.port}`
       const home = await fetch(base)
-      expect(await home.text()).toContain('World Game')
+      const html = await home.text()
+      expect(html).toContain('World Game')
+      // The sharing tags carry this site's own address.
+      expect(html).toContain('content="https://play.example.com/"')
+      expect(html).not.toContain('%PUBLIC_ORIGIN%')
       expect(home.headers.get('cache-control')).toBe('no-cache')
       const script = await fetch(`${base}/assets/app-abc123.js`)
       expect(script.headers.get('cache-control')).toMatch(/immutable/)
       expect(await (await fetch(`${base}/some/deep/link`)).text()).toContain('World Game')
       expect((await fetch(`${base}/api/nothing`)).status).toBe(404)
+      // A file that does not exist is not a screen of the app.
+      expect((await fetch(`${base}/assets/missing.js`)).status).toBe(404)
     } finally {
       await site.close()
       rmSync(dist, { recursive: true, force: true })

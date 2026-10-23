@@ -3,11 +3,81 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#02030a" />
     <title>World Game</title>
+    <meta
+      name="description"
+      content="Find every country on a spinning Earth. Daily puzzles, duels with friends, journeys and more, free in your browser."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="World Game" />
+    <meta property="og:title" content="World Game" />
+    <meta
+      property="og:description"
+      content="Find every country on a spinning Earth. Daily puzzles, duels with friends and journeys."
+    />
+    <meta property="og:url" content="%PUBLIC_ORIGIN%/" />
+    <meta property="og:image" content="%PUBLIC_ORIGIN%/og-image.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="World Game" />
+    <meta
+      name="twitter:description"
+      content="Find every country on a spinning Earth. Daily puzzles, duels with friends and journeys."
+    />
+    <meta name="twitter:image" content="%PUBLIC_ORIGIN%/og-image.jpg" />
+    <style>
+      /* Shown before the app loads, so the page is never a blank flash. */
+      html,
+      body {
+        margin: 0;
+        background: #02030a;
+        color: #e8edf5;
+        font-family:
+          system-ui,
+          -apple-system,
+          'Segoe UI',
+          Roboto,
+          sans-serif;
+      }
+      .boot {
+        display: grid;
+        place-items: center;
+        height: 100vh;
+        height: 100dvh;
+        text-align: center;
+      }
+      .boot h1 {
+        margin: 0 0 6px;
+        font-size: 28px;
+      }
+      .boot p {
+        margin: 0;
+        color: #9aaccb;
+      }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div class="boot">
+        <div>
+          <h1>World Game</h1>
+          <p>Loading…</p>
+        </div>
+      </div>
+    </div>
+    <noscript>
+      <div class="boot" style="position: fixed; inset: 0; background: #02030a">
+        <div>
+          <h1>World Game</h1>
+          <p>World Game needs JavaScript to draw the globe. Please turn it on and reload.</p>
+        </div>
+      </div>
+    </noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

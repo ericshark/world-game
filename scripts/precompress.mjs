@@ -4,7 +4,7 @@ import { extname, join } from 'node:path'
 import { brotliCompressSync, constants } from 'node:zlib'
 
 const ROOT = new URL('../dist', import.meta.url).pathname
-const EXTENSIONS = new Set(['.js', '.css', '.json', '.svg', '.html'])
+const EXTENSIONS = new Set(['.js', '.css', '.json', '.svg', '.webmanifest'])
 // Smaller than this, brotli saves too little to be worth a second file.
 const MIN_BYTES = 1024
 

@@ -1,5 +1,5 @@
-import { existsSync } from 'node:fs'
-import { relative, resolve } from 'node:path'
+import { existsSync, readFileSync } from 'node:fs'
+import { extname, relative, resolve } from 'node:path'
 import { Hono } from 'hono'
 import { serveStatic } from '@hono/node-server/serve-static'
 import type { ServerConfig } from './config'
@@ -48,9 +48,18 @@ export function createApp(context: AppContext) {
       if (!c.res.ok || c.res.headers.has('cache-control')) return
       c.header('cache-control', cacheControl(c.req.path, c.req.query('v') !== undefined))
     })
+    // The page names this site's address in its sharing tags, which only the server knows.
+    const page = readFileSync(resolve(distDir, 'index.html'), 'utf8').replaceAll(
+      '%PUBLIC_ORIGIN%',
+      context.config.publicOrigin,
+    )
+    app.get('/', (c) => c.html(page))
+    app.get('/index.html', (c) => c.html(page))
     app.use('*', precompressed(distDir))
     app.use('*', serveStatic({ root }))
-    app.get('*', serveStatic({ root, path: 'index.html' }))
+    // Any other address is a screen of the app (they live in the URL hash, but a deep link may
+    // arrive without one); a missing file is a real 404.
+    app.get('*', (c) => (extname(c.req.path) ? c.notFound() : c.html(page)))
   }
   return app
 }

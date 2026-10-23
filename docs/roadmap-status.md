@@ -127,10 +127,15 @@ Work through these in order. Each item should end with tests and a focused commi
   a Try again button when the data cannot load, and entry-by-entry validation of saved, imported
   and cloud profiles with a size cap (`src/game/profile/sanitize.ts`). Tested in
   `e2e/robustness.spec.ts`. `#/crash` (development only) throws on purpose for that test.
-- **Polish and accessibility.**
-  - A pass over phone landscape and tablet sizes, plus `viewport-fit=cover` and `dvh`.
-  - Axe audits.
-  - Meta tags, Open Graph, the manifest and icons.
+- **Polish and accessibility.** Done:
+  - `viewport-fit=cover`, `dvh` heights, and left and right safe areas; a phone-landscape layout
+    that moves the prompt and controls to the sides; checked by screenshot at phone and tablet
+    sizes in both orientations (tablets needed no changes).
+  - `e2e/a11y.spec.ts` runs axe (WCAG 2.1 A and AA) on every screen; it found no serious issues.
+    A low-time notice is read once to screen readers.
+  - Page meta, Open Graph and Twitter tags (the server fills in the site address), a web
+    manifest, real icons (`scripts/build-icons.mjs`), a static loading shell and a `noscript`
+    message. Contrast over bright parts of the globe was not measured.
 - **Balancing.** A `scripts/simulate.ts` bot simulation, an alias and data audit, streak freezes,
   and weekly goals.
 - **Security.**

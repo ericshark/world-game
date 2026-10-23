@@ -26,7 +26,20 @@ export function TimerBar({
         <span style={{ width: `${(left / totalMs) * 100}%` }} />
       </div>
       <span className="timer__seconds">{seconds}s</span>
+      <LowTimeNotice low={low} seconds={warnFrom} />
     </div>
+  )
+}
+
+/**
+ * Said once to screen readers when the clock gets low. The timer itself is not read out every
+ * second, which would drown everything else.
+ */
+function LowTimeNotice({ low, seconds }: { low: boolean; seconds: number }) {
+  return (
+    <span className="sr-only" role="status">
+      {low ? `${seconds} seconds left` : ''}
+    </span>
   )
 }
 
@@ -50,6 +63,7 @@ export function TimerRing({
       aria-live="off"
       aria-label={`${seconds} seconds left`}
     >
+      <LowTimeNotice low={low} seconds={warnFrom} />
       <svg viewBox="0 0 48 48" aria-hidden="true">
         <circle className="timer-ring__track" cx="24" cy="24" r={RING_RADIUS} />
         <circle

@@ -29,6 +29,8 @@
   --gutter: 16px;
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
   color: var(--text);
   background: var(--bg);
   -webkit-tap-highlight-color: transparent;
@@ -43,6 +45,8 @@ body,
 #root {
   margin: 0;
   height: 100%;
+  /* On phones the address bar comes and goes; dvh follows what is actually visible. */
+  height: 100dvh;
 }
 
 body {
@@ -407,6 +411,8 @@ input {
 
 .sheet-backdrop {
   position: absolute;
+  /* Above the game's controls (and the labels on the globe). */
+  z-index: 20;
   inset: 0;
   display: flex;
   align-items: center;
@@ -620,8 +626,8 @@ input {
 .hud {
   position: absolute;
   top: calc(12px + var(--safe-top));
-  left: var(--gutter);
-  right: var(--gutter);
+  left: max(var(--gutter), var(--safe-left));
+  right: max(var(--gutter), var(--safe-right));
   display: flex;
   gap: 8px;
   align-items: center;
@@ -774,6 +780,8 @@ input {
 
 .action-bar {
   position: absolute;
+  /* Above the labels drawn on the globe. */
+  z-index: 10;
   left: 50%;
   bottom: calc(28px + max(var(--safe-bottom), var(--keyboard-inset, 0px)));
   transform: translateX(-50%);
@@ -1016,7 +1024,8 @@ input {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: calc(16px + var(--safe-top)) var(--gutter) calc(16px + var(--safe-bottom));
+  padding: calc(16px + var(--safe-top)) max(var(--gutter), var(--safe-right))
+    calc(16px + var(--safe-bottom)) max(var(--gutter), var(--safe-left));
   background: rgb(2 3 10 / 0.35);
 }
 
@@ -1152,6 +1161,7 @@ input {
 
 .stats-table-wrap {
   max-height: 46vh;
+  max-height: 46dvh;
   overflow: auto;
 }
 
@@ -1482,7 +1492,8 @@ input {
 
   .screen--home {
     align-items: flex-end;
-    padding: calc(12px + var(--safe-top)) var(--gutter) calc(12px + var(--safe-bottom));
+    padding: calc(12px + var(--safe-top)) max(var(--gutter), var(--safe-right))
+      calc(12px + var(--safe-bottom)) max(var(--gutter), var(--safe-left));
   }
 
   .home {
@@ -2037,7 +2048,8 @@ input {
 .screen--passport {
   display: flex;
   justify-content: flex-end;
-  padding: calc(16px + var(--safe-top)) var(--gutter) calc(16px + var(--safe-bottom));
+  padding: calc(16px + var(--safe-top)) max(var(--gutter), var(--safe-right))
+    calc(16px + var(--safe-bottom)) max(var(--gutter), var(--safe-left));
 }
 
 .passport {
@@ -2446,7 +2458,7 @@ input {
 .scoreboard {
   position: absolute;
   top: calc(64px + var(--safe-top));
-  left: var(--gutter);
+  left: max(var(--gutter), var(--safe-left));
   display: grid;
   gap: 4px;
   width: 240px;
@@ -2815,4 +2827,56 @@ input {
 
 .globe-notice p {
   margin: 0;
+}
+
+/* Text for screen readers only. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* A phone held sideways has little height: the prompt and the controls move to the sides so
+   the globe keeps the middle of the screen. */
+@media (orientation: landscape) and (max-height: 500px) {
+  .prompt {
+    top: calc(48px + var(--safe-top));
+    left: max(var(--gutter), var(--safe-left));
+    transform: none;
+    max-width: min(280px, 32vw);
+    padding: 6px 14px 8px;
+    text-align: left;
+  }
+
+  .prompt__text {
+    font-size: 22px;
+  }
+
+  .prompt__text--small {
+    font-size: 18px;
+  }
+
+  .action-bar {
+    left: auto;
+    right: max(var(--gutter), var(--safe-right));
+    top: calc(48px + var(--safe-top));
+    bottom: auto;
+    transform: none;
+    width: min(320px, 36vw);
+    max-height: calc(100dvh - 60px - var(--safe-top) - var(--keyboard-inset, 0px));
+    overflow-y: auto;
+  }
+
+  .placing {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    padding: 12px;
+  }
 }

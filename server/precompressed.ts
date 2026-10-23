@@ -7,7 +7,7 @@ const TYPES: Record<string, string> = {
   '.css': 'text/css; charset=utf-8',
   '.json': 'application/json; charset=utf-8',
   '.svg': 'image/svg+xml',
-  '.html': 'text/html; charset=utf-8',
+  '.webmanifest': 'application/manifest+json',
 }
 
 /** Where the build step leaves a brotli copy of each text file, next to the original. */
@@ -24,7 +24,7 @@ export function precompressed(distDir: string): MiddlewareHandler {
 
   return async (c, next) => {
     const accepts = c.req.header('accept-encoding') ?? ''
-    const path = c.req.path === '/' ? '/index.html' : c.req.path
+    const path = c.req.path
     const type = TYPES[extname(path)]
     if (c.req.method !== 'GET' || !type || !/\bbr\b/.test(accepts)) return next()
 
