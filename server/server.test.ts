@@ -75,12 +75,17 @@ describe('battle server', () => {
     // Same colour requested: the second player gets another one.
     expect(lobby.members[1].color).not.toBe(lobby.members[0].color)
 
-    // Only the host configures and starts.
+    // Only the host configures and starts, and only once everyone is ready.
     ben.send({ t: 'start' })
     ana.send({
       t: 'configure',
       settings: { format: 'party', content: 'pinpoint', bots: 0, botSkill: 'novice' },
     })
+    const beforeReady = ana.messages.length
+    ana.send({ t: 'start' })
+    expect((await ana.waitFor(isError, beforeReady)).message).toMatch(/Waiting for Ben/)
+    ben.send({ t: 'set-ready', ready: true })
+    await ana.room((room) => room.members.every((m) => m.ready))
     ana.send({ t: 'start' })
     const playing = await ben.room((room) => room.phase === 'playing')
     const challenge = playing.battle!.rounds.challenges[0]

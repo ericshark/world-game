@@ -14,6 +14,9 @@ const MAX_MESSAGE_BYTES = 4096
 const MESSAGES_PER_SECOND = 10
 const BURST = 20
 const IDLE_ROOM_MS = 30 * 60_000
+/** Sockets that miss a heartbeat are dead (a phone that lost signal, say) and are dropped. */
+const HEARTBEAT_MS = 15_000
+const SWEEP_MS = 5_000
 // No I or O: codes are read aloud and typed on phones.
 const CODE_LETTERS = 'ABCDEFGHJKLMNPQRSTUVWXYZ'
 
@@ -46,7 +49,21 @@ export async function startServer({
   })
   const sockets = new WebSocketServer({ server: http, path: '/ws', maxPayload: MAX_MESSAGE_BYTES })
 
+  const alive = new WeakSet<WebSocket>()
+  const heartbeat = setInterval(() => {
+    for (const client of sockets.clients) {
+      if (!alive.has(client)) {
+        client.terminate()
+        continue
+      }
+      alive.delete(client)
+      client.ping()
+    }
+  }, HEARTBEAT_MS)
+
   sockets.on('connection', (socket: WebSocket) => {
+    alive.add(socket)
+    socket.on('pong', () => alive.add(socket))
     let room: Room | null = null
     let tokens = BURST
     let refilledAt = Date.now()
@@ -73,7 +90,8 @@ export async function startServer({
           return send({ t: 'error', message: 'No room with that code.', code: 'no-room' })
         }
         const token = message.t === 'join' ? message.token : undefined
-        const problem = target.join(message.name, message.color, token, send)
+        const looks = { color: message.color, shape: message.shape, title: message.title }
+        const problem = target.join(message.name, looks, token, send)
         // A failed join keeps the seat this player already has.
         if (problem) return send({ t: 'error', message: problem })
         if (room && room !== target) room.disconnect(send)
@@ -89,15 +107,16 @@ export async function startServer({
     socket.on('error', () => {})
   })
 
-  // Rooms nobody has used for a while are closed.
+  // Lobby seats left empty too long are freed, and rooms nobody has used for a while close.
   const sweeper = setInterval(() => {
     for (const [code, room] of rooms) {
+      room.guarded(() => room.prune())
       if (room.connectedCount === 0 && Date.now() - room.lastActivity > IDLE_ROOM_MS) {
         room.dispose()
         rooms.delete(code)
       }
     }
-  }, 60_000)
+  }, SWEEP_MS)
 
   const actualPort = await listen(http, port, host)
   return {
@@ -105,7 +124,11 @@ export async function startServer({
     close: () =>
       new Promise((resolve) => {
         clearInterval(sweeper)
-        for (const room of rooms.values()) room.dispose()
+        clearInterval(heartbeat)
+        for (const room of rooms.values()) {
+          room.notifyRestart()
+          room.dispose()
+        }
         for (const client of sockets.clients) client.terminate()
         sockets.close()
         http.close(() => resolve())

@@ -15,6 +15,8 @@ import {
 } from '../core/rounds'
 import { pickWeighted, targetPool, weightByDifficulty } from '../core/targets'
 import type { Challenge, CountryOutcome, PlayerId, RoundResult } from '../core/types'
+import type { ScoringRegion } from '../../geo/scoring'
+import type { PinShape } from '../profile/cosmetics'
 import { botAnswerTime, botSubmission, type BotSkill } from './bots'
 import { pickCategories, usedAnswers } from './rareEarth'
 
@@ -26,6 +28,9 @@ export interface BattlePlayer {
   id: PlayerId
   name: string
   color: string
+  /** The pin shape and title the player picked, shown to everyone. */
+  shape?: PinShape
+  title?: string
   team?: Team
   /** Set for computer opponents. */
   bot?: BotSkill
@@ -35,9 +40,14 @@ export interface BattleConfig {
   format: BattleFormat
   content: BattleContent
   roster: BattlePlayer[]
+  /** Where the countries come from, and how distances are scored. World by default. */
+  region?: ScoringRegion
+  /** How long each round lasts; 25 s by default. */
+  roundMs?: number
 }
 
 export const BATTLE_ROUND_MS = 25_000
+export const BATTLE_ROUND_CHOICES_MS = [15_000, 25_000, 40_000]
 /** Once someone answers, the others have this long. */
 export const BATTLE_HURRY_MS = 10_000
 /** How long the reveal stays up before the next round, unless everyone is ready sooner. */
@@ -108,7 +118,7 @@ export const battle: ModeRules<BattleConfig, BattleState, BattleEvent> = {
       rounds: startRounds(battleChallenges(geo, config, createRandom(seed)), {
         players: ids,
         now,
-        roundTimeMs: BATTLE_ROUND_MS,
+        roundTimeMs: config.roundMs ?? BATTLE_ROUND_MS,
         hurryMs: BATTLE_HURRY_MS,
       }),
       hp:
@@ -131,7 +141,7 @@ export const battle: ModeRules<BattleConfig, BattleState, BattleEvent> = {
     if (state.endedAt !== null) return state
     const evaluate: Evaluate<Challenge> = (challenge, submission, playerId) =>
       evaluateChallenge(geo, challenge, submission, {
-        region: 'World',
+        region: state.config.region ?? 'World',
         cutoffScale: 1,
         usedAnswers: usedAnswers(state.rounds, playerId),
       })
@@ -303,7 +313,8 @@ function compareKeys(a: number[], b: number[]): number {
 /** Seeded challenges for the whole game; mixed games rotate through every kind. */
 function battleChallenges(geo: GeoData, config: BattleConfig, random: Random): Challenge[] {
   const count = MAX_ROUNDS[config.format]
-  const pool = targetPool(geo.countries.features, { region: 'World', skipMicro: true }).map(
+  const region = config.region ?? 'World'
+  const pool = targetPool(geo.countries.features, { region, skipMicro: true }).map(
     (f) => f.properties.id,
   )
   const countries = pickWeighted(weightByDifficulty(pool, 'normal', geo), count, random)

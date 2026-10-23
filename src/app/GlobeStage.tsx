@@ -8,10 +8,9 @@ import { Markers } from '../globe/Markers'
 import {
   cosmeticById,
   GLOWS,
-  PIN_SHAPES,
   PIN_SKINS,
+  pinShapeOf,
   TRAILS,
-  type PinShape,
   type TrailStyle,
 } from '../game/profile/cosmetics'
 import type { Cosmetics } from '../game/profile/profile'
@@ -29,7 +28,7 @@ interface GlobeStageProviderProps {
 
 export function GlobeStageProvider({ geo, showGrid, looks, children }: GlobeStageProviderProps) {
   const pinColor = cosmeticById(PIN_SKINS, looks.pin).color
-  const pinShape = cosmeticById(PIN_SHAPES, looks.shape).id as PinShape
+  const pinShape = pinShapeOf(looks.shape)
   const trail = cosmeticById(TRAILS, looks.trail).id as TrailStyle
   const [scene, setSceneState] = useState(EMPTY_SCENE)
   const [surface, setSurface] = useState<Surface>('day')

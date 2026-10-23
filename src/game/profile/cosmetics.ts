@@ -146,6 +146,11 @@ export function isUnlocked(
     : cosmetic.unlock.achievement in achievements
 }
 
+/** The pin shape for a saved choice, falling back to the classic one. */
+export function pinShapeOf(id: string): PinShape {
+  return cosmeticById(PIN_SHAPES, id).id as PinShape
+}
+
 /** Cosmetics that become available on reaching this level. */
 export function unlockedAt(level: number): Cosmetic[] {
   return Object.values(COSMETICS)

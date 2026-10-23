@@ -5,12 +5,14 @@ import {
   type BattleConfig,
   type BattlePlayer,
   type BattleState,
+  type Team,
 } from '../src/game/modes/battle'
 import { randomSeed } from '../src/game/core/random'
 import {
   DEFAULT_ROOM_SETTINGS,
   MAX_PLAYERS,
   type ClientMessage,
+  type Looks,
   type RoomSettings,
   type RoomView,
   type ServerMessage,
@@ -18,15 +20,22 @@ import {
 
 type Send = (message: ServerMessage) => void
 
-interface Member {
+interface Member extends Looks {
   id: string
   name: string
-  color: string
   /** Secret that lets a player reconnect as themselves. */
   token: string
   send: Send | null
+  /** When the connection dropped, for holding the seat a while. */
+  leftAt: number | null
+  ready: boolean
+  team?: Team
 }
 
+/** A dropped player keeps their place in the lobby this long, for a reconnect. */
+export const SEAT_GRACE_MS = 30_000
+/** Answers arriving this soon after the deadline still count: they were sent in time. */
+export const SUBMIT_GRACE_MS = 500
 /** Never wait less than this for a deadline, so an overdue one cannot spin the CPU. */
 const MIN_WAIT_MS = 5
 
@@ -70,12 +79,16 @@ export class Room {
   }
 
   /** Adds a player, or reconnects one by token. Returns an error message on failure. */
-  join(name: string, color: string, token: string | undefined, send: Send) {
+  join(name: string, looks: Looks, token: string | undefined, send: Send) {
     this.lastActivity = this.now()
+    this.prune()
     const returning = token ? this.members.find((m) => m.token === token) : undefined
     if (returning) {
-      returning.send = send
-      returning.name = name
+      // A second tab with the same seat takes it over; the first is told it has moved.
+      if (returning.send && returning.send !== send) {
+        returning.send({ t: 'error', message: 'You joined this room from another tab.' })
+      }
+      Object.assign(returning, { send, name, leftAt: null }, looks)
       this.welcome(returning)
       return null
     }
@@ -84,9 +97,12 @@ export class Room {
     const member: Member = {
       id: `p${this.nextId++}`,
       name,
-      color: this.uniqueColor(color),
+      ...looks,
+      color: this.uniqueColor(looks.color),
       token: randomSeed() + randomSeed(),
       send,
+      leftAt: null,
+      ready: false,
     }
     this.members.push(member)
     this.hostId ??= member.id
@@ -94,15 +110,13 @@ export class Room {
     return null
   }
 
+  /** The connection dropped: the seat is kept for a while (in a game, until it ends). */
   disconnect(send: Send) {
     const member = this.members.find((m) => m.send === send)
     if (!member) return
     member.send = null
-    // In the lobby, leaving means leaving; mid-game the seat is kept for a reconnect.
-    if (this.phase === 'lobby') this.members.splice(this.members.indexOf(member), 1)
-    if (this.hostId === member.id) {
-      this.hostId = this.members.find((m) => m.send)?.id ?? this.members[0]?.id ?? null
-    }
+    member.leftAt = this.now()
+    member.ready = false
     this.afterChange()
   }
 
@@ -111,14 +125,47 @@ export class Room {
     if (!member) return send({ t: 'error', message: 'Join the room first.' })
     this.lastActivity = this.now()
     const isHost = member.id === this.hostId
+    const inLobby = this.phase === 'lobby'
 
     switch (message.t) {
-      case 'configure':
-        if (!isHost || this.phase !== 'lobby') return
+      case 'configure': {
+        if (!isHost || !inLobby) return
+        if (this.members.length + message.settings.bots > MAX_PLAYERS) {
+          return send({ t: 'error', message: `At most ${MAX_PLAYERS} players, bots included.` })
+        }
         this.settings = message.settings
         break
+      }
+      case 'set-ready':
+        if (!inLobby) return
+        member.ready = message.ready
+        break
+      case 'team':
+        if (!inLobby) return
+        member.team = message.team
+        break
+      case 'kick': {
+        const target = this.members.find((m) => m.id === message.playerId)
+        if (!isHost || !target || target === member) return
+        target.send?.({
+          t: 'error',
+          message: 'The host removed you from the room.',
+          code: 'kicked',
+        })
+        if (inLobby) {
+          this.members.splice(this.members.indexOf(target), 1)
+        } else {
+          // Mid-game the seat stays in the scores, but nobody can play from it again.
+          Object.assign(target, { send: null, leftAt: this.now(), token: randomSeed() })
+        }
+        break
+      }
+      case 'leave':
+        if (inLobby) this.members.splice(this.members.indexOf(member), 1)
+        else Object.assign(member, { send: null, leftAt: this.now() })
+        break
       case 'start': {
-        if (!isHost || this.phase !== 'lobby') return
+        if (!isHost || !inLobby) return
         const problem = this.startProblem()
         if (problem) return send({ t: 'error', message: problem })
         this.battle = battle.start({
@@ -140,7 +187,7 @@ export class Room {
             pin: message.pin,
             answerId: message.answerId,
             hintUsed: message.hintUsed,
-            at: this.now(),
+            at: this.submittedAt(),
           },
         })
         return
@@ -149,9 +196,11 @@ export class Room {
         if (this.battle) this.step({ type: 'ready', playerId: member.id, at: this.now() })
         return
       case 'lobby':
-        if (!isHost || this.phase !== 'finished') return
+        // Anyone can call everyone back for another game.
+        if (this.phase !== 'finished') return
         this.battle = null
         this.phase = 'lobby'
+        for (const m of this.members) m.ready = false
         // Players who left during the game make room for new ones.
         for (const gone of this.members.filter((m) => !m.send)) {
           this.members.splice(this.members.indexOf(gone), 1)
@@ -166,6 +215,28 @@ export class Room {
   /** Sends ticks so timers and bots move the game on without anyone acting. */
   tick() {
     if (this.battle) this.guarded(() => this.step({ type: 'tick', at: this.now() }))
+  }
+
+  /** Drops lobby seats whose players have been gone longer than the grace period. */
+  prune() {
+    if (this.phase !== 'lobby') return
+    const expired = this.members.filter(
+      (m) => !m.send && m.leftAt !== null && this.now() - m.leftAt > SEAT_GRACE_MS,
+    )
+    if (expired.length === 0) return
+    for (const gone of expired) this.members.splice(this.members.indexOf(gone), 1)
+    this.afterChange()
+  }
+
+  /** Tells everyone the server is going away for a moment. */
+  notifyRestart() {
+    for (const member of this.members) {
+      member.send?.({
+        t: 'error',
+        message: 'The server is restarting. Reconnecting…',
+        code: 'restarting',
+      })
+    }
   }
 
   /**
@@ -183,6 +254,13 @@ export class Room {
 
   dispose() {
     if (this.timer) clearTimeout(this.timer)
+  }
+
+  /** An answer that arrives just after the deadline was sent in time, so it counts as on time. */
+  private submittedAt(): number {
+    const now = this.now()
+    const deadline = this.battle?.rounds.deadline ?? null
+    return deadline !== null && now > deadline && now - deadline <= SUBMIT_GRACE_MS ? deadline : now
   }
 
   private step(event: Parameters<typeof battle.reduce>[1]) {
@@ -214,8 +292,28 @@ export class Room {
       }
       if (battle.isFinished(this.battle!)) this.phase = 'finished'
     }
+    this.electHost()
+    this.assignSides()
     this.schedule()
     this.broadcast()
+  }
+
+  /** In a team game everyone is always on a side: the smaller one, until they pick. */
+  private assignSides() {
+    if (this.phase !== 'lobby' || this.settings.format !== 'teams') return
+    for (const member of this.members) {
+      if (member.team) continue
+      const sizes = teamSizes(this.members.flatMap((m) => (m.team ? [m.team] : [])))
+      member.team = sizes.A <= sizes.B ? 'A' : 'B'
+    }
+  }
+
+  /** The host is always someone who is here, if anyone is. */
+  private electHost() {
+    const host = this.members.find((m) => m.id === this.hostId)
+    if (host?.send) return
+    const present = this.members.find((m) => m.send)
+    this.hostId = present?.id ?? host?.id ?? this.members[0]?.id ?? null
   }
 
   private schedule() {
@@ -223,7 +321,9 @@ export class Room {
     this.timer = null
     const deadline = this.battle && this.phase === 'playing' ? battle.deadline(this.battle) : null
     if (deadline === null) return
-    this.timer = setTimeout(() => this.tick(), Math.max(MIN_WAIT_MS, deadline - this.now()))
+    // The grace lets answers sent just before the deadline arrive before the round closes.
+    const wait = deadline + SUBMIT_GRACE_MS - this.now()
+    this.timer = setTimeout(() => this.tick(), Math.max(MIN_WAIT_MS, wait))
   }
 
   private broadcast() {
@@ -239,7 +339,11 @@ export class Room {
         id: m.id,
         name: m.name,
         color: m.color,
+        shape: m.shape,
+        title: m.title,
         connected: Boolean(m.send),
+        ready: m.ready || m.id === this.hostId,
+        team: m.team,
       })),
       settings: this.settings,
       phase: this.phase,
@@ -253,22 +357,46 @@ export class Room {
   }
 
   private startProblem(): string | null {
-    const players = this.members.length + this.settings.bots
+    const { format, bots } = this.settings
+    const players = this.members.length + bots
     if (players < 2) return 'You need at least two players (add bots to play alone).'
-    if (this.settings.format === 'duel' && players !== 2)
-      return 'A duel is for exactly two players.'
-    if (this.settings.format === 'teams' && (players < 4 || players % 2 !== 0)) {
-      return 'Teams need an even number of players, at least four.'
+    if (players > MAX_PLAYERS) return `At most ${MAX_PLAYERS} players, bots included.`
+    if (format === 'duel' && players !== 2) return 'A duel is for exactly two players.'
+    const waiting = this.members.filter((m) => m.id !== this.hostId && (!m.send || !m.ready))
+    if (waiting.length > 0) {
+      return `Waiting for ${waiting.map((m) => m.name).join(', ')} to be ready.`
+    }
+    if (format === 'teams') {
+      const sizes = teamSizes(this.teams())
+      if (sizes.A !== sizes.B || sizes.A < 2) {
+        return 'Teams need the same number on each side, at least two: change sides or bots.'
+      }
     }
     return null
   }
 
+  /** Each person's side: their pick, or the smaller side. Bots then fill the smaller side. */
+  private teams(): Team[] {
+    const sides: Team[] = []
+    for (const member of this.members) {
+      const sizes = teamSizes(sides)
+      sides.push(member.team ?? (sizes.A <= sizes.B ? 'A' : 'B'))
+    }
+    for (let i = 0; i < this.settings.bots; i++) {
+      const sizes = teamSizes(sides)
+      sides.push(sizes.A <= sizes.B ? 'A' : 'B')
+    }
+    return sides
+  }
+
   private battleConfig(): BattleConfig {
-    const { format, content, bots, botSkill } = this.settings
+    const { format, content, bots, botSkill, region, roundMs } = this.settings
     const humans: BattlePlayer[] = this.members.map((m) => ({
       id: m.id,
       name: m.name,
       color: m.color,
+      shape: m.shape,
+      title: m.title,
     }))
     const used = new Set(humans.map((h) => h.color))
     const colors = BOT_COLORS.filter((c) => !used.has(c))
@@ -280,8 +408,11 @@ export class Room {
       bot: botSkill,
     }))
     const roster = [...humans, ...robots]
-    if (format === 'teams') roster.forEach((p, i) => (p.team = i % 2 === 0 ? 'A' : 'B'))
-    return { format, content, roster }
+    if (format === 'teams') {
+      const sides = this.teams()
+      roster.forEach((p, i) => (p.team = sides[i]))
+    }
+    return { format, content, roster, region, roundMs }
   }
 
   /** Two players in the same colour would be confusing on the globe. */
@@ -289,5 +420,12 @@ export class Room {
     const taken = new Set(this.members.map((m) => m.color))
     if (!taken.has(color)) return color
     return BOT_COLORS.find((c) => !taken.has(c)) ?? color
+  }
+}
+
+function teamSizes(sides: Team[]) {
+  return {
+    A: sides.filter((side) => side === 'A').length,
+    B: sides.filter((side) => side === 'B').length,
   }
 }

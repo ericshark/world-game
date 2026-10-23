@@ -12,6 +12,7 @@ import {
   totalPoints,
   type BattleState,
 } from '../../game/modes/battle'
+import { TITLES } from '../../game/profile/cosmetics'
 import type { RecordedSession } from '../../game/profile/record'
 import { frameCountry, frameMany, randomOverview } from '../../globe/framing'
 import { formatDistance, formatNumber } from '../../screens/format'
@@ -45,6 +46,8 @@ export interface MatchHost {
   clockOffset: number
   submit(fields: Omit<Submission, 'at'>): void
   ready(): void
+  /** Online games: false while the connection is being restored. */
+  connected?: boolean
 }
 
 interface BattleGameProps {
@@ -236,6 +239,11 @@ export function BattleGame({ host, recorded, onPlayAgain, onHome }: BattleGamePr
 
   return (
     <div className="screen screen--game">
+      {host.connected === false && (
+        <p className="connection-banner" role="status">
+          Connection lost. Reconnecting…
+        </p>
+      )}
       <Hud
         mode={title}
         progress={`Round ${rounds.round + 1}`}
@@ -263,7 +271,9 @@ export function BattleGame({ host, recorded, onPlayAgain, onHome }: BattleGamePr
           capitalOf={(id) => geo.factsOf(id).capitals[0].name}
           open={open}
         />
-        {deadline !== null && <TimerBar deadline={deadline} totalMs={BATTLE_ROUND_MS} tick />}
+        {deadline !== null && (
+          <TimerBar deadline={deadline} totalMs={view.config.roundMs ?? BATTLE_ROUND_MS} tick />
+        )}
       </div>
 
       <Crosshair active={placing && open && !submitted} />
@@ -327,6 +337,7 @@ function Scoreboard({ view, me }: { view: BattleState; me: string }) {
             <span className="scoreboard__dot" style={{ background: player.color }} />
             <span className="scoreboard__name">
               {player.name}
+              {player.title && <small> · {titleLabel(player.title)}</small>}
               {player.team && <small> · Team {player.team}</small>}
             </span>
             {s.hp !== undefined && (
@@ -450,4 +461,8 @@ function standingDetail(view: BattleState, s: ReturnType<typeof standings>[numbe
   if (s.lives !== undefined)
     return s.out ? 'Out' : `${s.lives} ${s.lives === 1 ? 'life' : 'lives'} left`
   return view.config.format === 'party' ? `Place ${s.place}` : ''
+}
+
+function titleLabel(id: string): string {
+  return TITLES.find((title) => title.id === id)?.label ?? ''
 }

@@ -1,12 +1,16 @@
 import { useEffect, useRef, useState } from 'react'
 import { play } from '../../audio/sound'
 import { battle } from '../../game/modes/battle'
-import { cosmeticById, PIN_SKINS } from '../../game/profile/cosmetics'
+import { cosmeticById, PIN_SKINS, pinShapeOf, TITLES } from '../../game/profile/cosmetics'
 import type { RecordedSession } from '../../game/profile/record'
-import type { RoomSettings, RoomView } from '../../net/protocol'
+import { MAX_PLAYERS, type RoomSettings, type RoomView } from '../../net/protocol'
+import { BATTLE_ROUND_CHOICES_MS } from '../../game/modes/battle'
+import { RegionChoice } from '../../ui/SetupSheet'
 import { Choice } from '../../ui/controls'
 import { Icon } from '../../ui/Icon'
 import { ShareButton } from '../../ui/ShareButton'
+import { Sheet } from '../../ui/Sheet'
+import { HomeScreen } from '../../screens/HomeScreen'
 import { useApp } from '../AppContext'
 import { BattleGame, type MatchHost } from '../battle/BattleGame'
 import { FORMAT_LABELS } from '../battle/setup'
@@ -15,14 +19,66 @@ import { loadSeat, useRoomConnection } from './useRoomConnection'
 
 /**
  * A private online room: the lobby while people gather, then the battle, run by the server.
- * The code "NEW" creates a room.
+ * The code "NEW" creates a room. Someone arriving by link is asked their name first.
  */
 export function RoomScreen({ code, onHome }: { code: string; onHome: () => void }) {
+  const { preferences } = useApp()
+  const [named, setNamed] = useState(
+    () => preferences.playerName.trim() !== '' || loadSeat()?.code === code,
+  )
+  if (!named) return <NamePrompt code={code} onJoin={() => setNamed(true)} onCancel={onHome} />
+  return <ConnectedRoom code={code} onHome={onHome} />
+}
+
+function NamePrompt({
+  code,
+  onJoin,
+  onCancel,
+}: {
+  code: string
+  onJoin: () => void
+  onCancel: () => void
+}) {
+  const { preferences, setPreferences } = useApp()
+  const ready = preferences.playerName.trim() !== ''
+  return (
+    <>
+      <HomeScreen />
+      <Sheet eyebrow={`Room ${code}`} title="Join the game" onClose={onCancel}>
+        <form
+          onSubmit={(event) => {
+            event.preventDefault()
+            if (ready) onJoin()
+          }}
+        >
+          <label className="text-field">
+            <span>Your name, as the others will see it</span>
+            <input
+              type="text"
+              value={preferences.playerName}
+              maxLength={20}
+              placeholder="Your name"
+              autoFocus
+              onChange={(event) => setPreferences({ playerName: event.target.value })}
+            />
+          </label>
+          <button type="submit" className="button button--primary button--large" disabled={!ready}>
+            Join room {code}
+          </button>
+        </form>
+      </Sheet>
+    </>
+  )
+}
+
+function ConnectedRoom({ code, onHome }: { code: string; onHome: () => void }) {
   const app = useApp()
   const { navigate, preferences, profile } = app
   const me = {
     name: preferences.playerName.trim() || 'Player',
     color: cosmeticById(PIN_SKINS, profile.cosmetics.pin).color,
+    shape: pinShapeOf(profile.cosmetics.shape),
+    ...(profile.cosmetics.title !== 'none' && { title: profile.cosmetics.title }),
   }
   // The room this screen belongs to, once known; reconnects rejoin it rather than making another.
   const joined = useRef<string | null>(code === 'NEW' ? null : code)
@@ -43,6 +99,11 @@ export function RoomScreen({ code, onHome }: { code: string; onHome: () => void 
   }, [room, code, navigate])
 
   const recorded = useFinishedGame(room, playerId)
+  // Leaving on purpose gives the seat up straight away, rather than holding it for a return.
+  const leave = () => {
+    send({ t: 'leave' })
+    onHome()
+  }
 
   if (!room || !playerId) {
     return (
@@ -78,18 +139,19 @@ export function RoomScreen({ code, onHome }: { code: string; onHome: () => void 
       clockOffset: connection.clockOffset,
       submit: (fields) => send({ t: 'submit', round: room.battle!.rounds.round, ...fields }),
       ready: () => send({ t: 'ready' }),
+      connected: connection.status === 'open',
     }
     return (
       <BattleGame
         host={host}
         recorded={recorded}
-        onPlayAgain={room.hostId === playerId ? () => send({ t: 'lobby' }) : undefined}
-        onHome={onHome}
+        onPlayAgain={() => send({ t: 'lobby' })}
+        onHome={leave}
       />
     )
   }
 
-  return <Lobby room={room} playerId={playerId} error={error} send={send} onHome={onHome} />
+  return <Lobby room={room} playerId={playerId} error={error} send={send} onLeave={leave} />
 }
 
 /** Records the finished online game in the profile, once. */
@@ -118,19 +180,23 @@ function Lobby({
   playerId,
   error,
   send,
-  onHome,
+  onLeave,
 }: {
   room: RoomView
   playerId: string
   error: string | null
   send: ReturnType<typeof useRoomConnection>['send']
-  onHome: () => void
+  onLeave: () => void
 }) {
   const isHost = room.hostId === playerId
+  const me = room.members.find((m) => m.id === playerId)
+  const { settings } = room
   const configure = (patch: Partial<RoomSettings>) =>
-    send({ t: 'configure', settings: { ...room.settings, ...patch } })
+    send({ t: 'configure', settings: { ...settings, ...patch } })
   const invite = `${window.location.origin}${window.location.pathname}#/room/${room.code}`
-  const players = room.members.length + room.settings.bots
+  const players = room.members.length + settings.bots
+  const maxBots = MAX_PLAYERS - room.members.length
+  const waitingFor = room.members.filter((m) => m.id !== room.hostId && (!m.connected || !m.ready))
 
   return (
     <div className="screen screen--center">
@@ -142,7 +208,7 @@ function Lobby({
               {room.code}
             </h2>
           </div>
-          <button type="button" className="icon-button" onClick={onHome} aria-label="Leave room">
+          <button type="button" className="icon-button" onClick={onLeave} aria-label="Leave room">
             <Icon name="close" />
           </button>
         </header>
@@ -151,28 +217,64 @@ function Lobby({
           <span className="field__hint">or share the code {room.code}</span>
         </div>
 
-        <ul className="lobby__members">
+        <ul className="lobby__members" aria-label="Players">
           {room.members.map((member) => (
             <li key={member.id} className={member.connected ? undefined : 'is-away'}>
               <span className="scoreboard__dot" style={{ background: member.color }} />
-              {member.name}
+              <span className="lobby__name">
+                {member.name}
+                {member.title && <small> · {titleLabel(member.title)}</small>}
+              </span>
+              {settings.format === 'teams' && member.team && (
+                <span className="tag">Team {member.team}</span>
+              )}
               {member.id === room.hostId && <span className="tag">Host</span>}
               {member.id === playerId && <span className="tag">You</span>}
+              {!member.connected ? (
+                <span className="lobby__status">Away</span>
+              ) : (
+                member.id !== room.hostId && (
+                  <span className={`lobby__status${member.ready ? ' is-ready' : ''}`}>
+                    {member.ready ? 'Ready' : 'Not ready'}
+                  </span>
+                )
+              )}
+              {isHost && member.id !== playerId && (
+                <button
+                  type="button"
+                  className="icon-button lobby__kick"
+                  aria-label={`Remove ${member.name}`}
+                  onClick={() => send({ t: 'kick', playerId: member.id })}
+                >
+                  <Icon name="close" size={16} />
+                </button>
+              )}
             </li>
           ))}
-          {room.settings.bots > 0 && (
+          {settings.bots > 0 && (
             <li className="lobby__bots">
-              + {room.settings.bots} {room.settings.bots === 1 ? 'bot' : 'bots'} (
-              {room.settings.botSkill})
+              + {settings.bots} {settings.bots === 1 ? 'bot' : 'bots'} ({settings.botSkill})
             </li>
           )}
         </ul>
+
+        {settings.format === 'teams' && me && (
+          <Choice
+            label="Your side"
+            value={me.team ?? 'A'}
+            onChange={(team) => send({ t: 'team', team })}
+            options={[
+              { value: 'A', label: 'Team A' },
+              { value: 'B', label: 'Team B' },
+            ]}
+          />
+        )}
 
         {isHost ? (
           <>
             <Choice
               label="Format"
-              value={room.settings.format}
+              value={settings.format}
               onChange={(format) => configure({ format })}
               options={(['duel', 'party', 'survival', 'teams'] as const).map((value) => ({
                 value,
@@ -181,36 +283,79 @@ function Lobby({
             />
             <Choice
               label="Rounds"
-              value={room.settings.content}
+              value={settings.content}
               onChange={(content) => configure({ content })}
               options={[
                 { value: 'pinpoint', label: 'Find countries' },
                 { value: 'mixed', label: 'Mixed' },
               ]}
             />
+            <RegionChoice value={settings.region} onChange={(region) => configure({ region })} />
+            <Choice
+              label="Time per round"
+              value={String(settings.roundMs)}
+              onChange={(roundMs) => configure({ roundMs: Number(roundMs) })}
+              options={BATTLE_ROUND_CHOICES_MS.map((ms) => ({
+                value: String(ms),
+                label: `${ms / 1000} s`,
+              }))}
+            />
             <Choice
               label="Bots"
-              value={String(room.settings.bots)}
+              layout="chips"
+              value={String(Math.min(settings.bots, maxBots))}
               onChange={(bots) => configure({ bots: Number(bots) })}
-              options={['0', '1', '2', '3'].map((n) => ({ value: n, label: n }))}
+              options={Array.from({ length: maxBots + 1 }, (_, n) => ({
+                value: String(n),
+                label: String(n),
+              }))}
             />
+            {settings.bots > 0 && (
+              <Choice
+                label="Bot skill"
+                value={settings.botSkill}
+                onChange={(botSkill) => configure({ botSkill })}
+                options={BOT_SKILL_OPTIONS}
+              />
+            )}
             {error && <p className="error">{error}</p>}
             <button
               type="button"
               className="button button--primary button--large"
+              disabled={waitingFor.length > 0}
               onClick={() => send({ t: 'start' })}
             >
-              Start · {players} {players === 1 ? 'player' : 'players'}
+              {waitingFor.length > 0
+                ? `Waiting for ${waitingFor.length} to be ready`
+                : `Start · ${players} ${players === 1 ? 'player' : 'players'}`}
             </button>
           </>
         ) : (
-          <p className="waiting">
-            {FORMAT_LABELS[room.settings.format]} ·{' '}
-            {room.settings.content === 'mixed' ? 'mixed rounds' : 'find countries'}. Waiting for the
-            host to start…
-          </p>
+          <>
+            <p className="waiting">
+              {FORMAT_LABELS[settings.format]} ·{' '}
+              {settings.content === 'mixed' ? 'mixed rounds' : 'find countries'} · {settings.region}{' '}
+              · {settings.roundMs / 1000} s a round
+            </p>
+            <button
+              type="button"
+              className={`button button--large ${me?.ready ? 'button--ghost' : 'button--primary'}`}
+              onClick={() => send({ t: 'set-ready', ready: !me?.ready })}
+            >
+              {me?.ready ? 'Not ready yet' : 'I’m ready'}
+            </button>
+            <p className="field__hint">The host starts the game once everyone is ready.</p>
+          </>
         )}
       </section>
     </div>
   )
+}
+
+const BOT_SKILL_OPTIONS = (['novice', 'traveller', 'explorer', 'cartographer'] as const).map(
+  (value) => ({ value, label: value[0].toUpperCase() + value.slice(1) }),
+)
+
+function titleLabel(id: string): string {
+  return TITLES.find((title) => title.id === id)?.label ?? ''
 }

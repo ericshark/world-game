@@ -30,7 +30,8 @@ export function battleScene(
   const { rounds, config } = view
   if (rounds.phase === 'finished') return EMPTY_SCENE
   const challenge = rounds.challenges[rounds.round]
-  const colorOf = (id: string) => config.roster.find((p) => p.id === id)?.color ?? '#ffffff'
+  const playerOf = (id: string) => config.roster.find((p) => p.id === id)
+  const colorOf = (id: string) => playerOf(id)?.color ?? '#ffffff'
 
   if (rounds.phase === 'open') {
     if (challenge.kind === 'identify') {
@@ -70,7 +71,7 @@ export function battleScene(
   const arcs: ArcSpec[] = []
   for (const [player, result] of results) {
     if (!('guess' in result)) continue
-    pins.push({ at: result.guess, color: colorOf(player) })
+    pins.push({ at: result.guess, color: colorOf(player), shape: playerOf(player)?.shape })
     if (result.distanceKm > 0.5) {
       arcs.push({ from: result.guess, to: result.nearest, color: colorOf(player) })
     }

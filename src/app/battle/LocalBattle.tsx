@@ -1,6 +1,6 @@
 import { LOCAL_PLAYER } from '../../game/core/types'
 import { battle, battleViewFor } from '../../game/modes/battle'
-import { cosmeticById, PIN_SKINS } from '../../game/profile/cosmetics'
+import { cosmeticById, PIN_SKINS, pinShapeOf } from '../../game/profile/cosmetics'
 import { HowToPlay } from '../../ui/HowToPlay'
 import { useApp } from '../AppContext'
 import { modeInfo } from '../modes'
@@ -26,6 +26,8 @@ export function LocalBattle({ config, seed, onHome }: LocalBattleProps) {
     localRoster(config, {
       name: app.preferences.playerName,
       color: cosmeticById(PIN_SKINS, app.profile.cosmetics.pin).color,
+      shape: pinShapeOf(app.profile.cosmetics.shape),
+      ...(app.profile.cosmetics.title !== 'none' && { title: app.profile.cosmetics.title }),
     })
 
   const session = useLocalSession(

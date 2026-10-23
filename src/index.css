@@ -1350,6 +1350,22 @@ input {
   font-size: 12px;
 }
 
+/* Online play */
+.connection-banner {
+  position: fixed;
+  top: calc(var(--safe-top) + 8px);
+  left: 50%;
+  z-index: 40;
+  margin: 0;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: var(--danger);
+  color: #1a0606;
+  font-size: 13px;
+  font-weight: 700;
+  transform: translateX(-50%);
+}
+
 /* Toasts */
 .toasts {
   position: fixed;
@@ -2682,4 +2698,31 @@ input {
 
 .lobby__bots {
   color: var(--text-muted);
+}
+
+.lobby__name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lobby__name small {
+  color: var(--text-muted);
+}
+
+.lobby__status {
+  color: var(--text-faint);
+  font-size: 12px;
+}
+
+.lobby__status.is-ready {
+  color: var(--success);
+  font-weight: 700;
+}
+
+.lobby__kick {
+  width: 28px;
+  height: 28px;
 }

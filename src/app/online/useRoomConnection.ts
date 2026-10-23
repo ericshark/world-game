@@ -5,6 +5,8 @@ import type { ClientMessage, RoomView, ServerMessage } from '../../net/protocol'
 const SEAT_KEY = 'world-game:room-seat'
 const PING_EVERY_MS = 10_000
 const MAX_RETRY_MS = 10_000
+/** Clock samples kept; the one with the fastest round trip is the most trustworthy. */
+const CLOCK_SAMPLES = 6
 
 export interface Seat {
   code: string
@@ -38,6 +40,8 @@ function saveSeat(seat: Seat) {
 
 export interface RoomConnection {
   status: 'connecting' | 'open' | 'closed'
+  /** Set once the host has removed this player: the connection stops trying. */
+  kicked: boolean
   room: RoomView | null
   playerId: string | null
   error: string | null
@@ -58,6 +62,7 @@ export function useRoomConnection(
   const [playerId, setPlayerId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [clockOffset, setClockOffset] = useState(0)
+  const [kicked, setKicked] = useState(false)
   const socketRef = useRef<WebSocket | null>(null)
   const onOpenRef = useRef(onOpen)
   useEffect(() => {
@@ -74,6 +79,7 @@ export function useRoomConnection(
     let retry = 1000
     let pinger = 0
     let reconnect = 0
+    const samples: { rtt: number; offset: number }[] = []
 
     const connect = () => {
       const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws'
@@ -86,11 +92,17 @@ export function useRoomConnection(
         setStatus('open')
         onOpenRef.current(send)
         const ping = () => send({ t: 'ping', sentAt: Date.now() })
-        ping()
+        // A quick burst of pings to sync the clock, then one now and then.
+        for (let i = 0; i < 3; i++) window.setTimeout(ping, i * 250)
         pinger = window.setInterval(ping, PING_EVERY_MS)
       }
       socket.onmessage = (event) => {
-        const message = JSON.parse(String(event.data)) as ServerMessage
+        let message: ServerMessage
+        try {
+          message = JSON.parse(String(event.data)) as ServerMessage
+        } catch {
+          return
+        }
         switch (message.t) {
           case 'welcome':
             setPlayerId(message.playerId)
@@ -100,17 +112,30 @@ export function useRoomConnection(
           case 'room':
             setRoom(message.room)
             break
-          case 'pong':
-            // Assume the reply took as long to come back as the request took to arrive.
-            setClockOffset(message.serverTime - (message.sentAt + Date.now()) / 2)
+          case 'pong': {
+            // Assume the reply took as long to come back as the request took to arrive; the
+            // sample with the quickest round trip has the least room for error.
+            const receivedAt = Date.now()
+            samples.push({
+              rtt: receivedAt - message.sentAt,
+              offset: message.serverTime - (message.sentAt + receivedAt) / 2,
+            })
+            if (samples.length > CLOCK_SAMPLES) samples.shift()
+            setClockOffset(samples.reduce((best, s) => (s.rtt < best.rtt ? s : best)).offset)
             break
+          }
           case 'error':
             setError(message.message)
             // The room is gone: forget it and the seat in it, rather than show a frozen game.
-            if (message.code === 'no-room') {
+            if (message.code === 'no-room' || message.code === 'kicked') {
               setRoom(null)
               setPlayerId(null)
               clearSeat()
+            }
+            if (message.code === 'kicked') {
+              setKicked(true)
+              closed = true
+              socket.close()
             }
             break
         }
@@ -133,5 +158,5 @@ export function useRoomConnection(
     }
   }, [send])
 
-  return { status, room, playerId, error, clockOffset, send }
+  return { status, kicked, room, playerId, error, clockOffset, send }
 }

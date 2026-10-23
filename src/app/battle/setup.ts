@@ -62,7 +62,7 @@ const BOTS: { name: string; color: string }[] = [
 /** You plus computer opponents, named after famous travellers. */
 export function localRoster(
   setup: BattleSetupConfig,
-  me: { name: string; color: string },
+  me: Pick<BattlePlayer, 'name' | 'color' | 'shape' | 'title'>,
 ): BattleConfig {
   const bots = BOTS.filter((bot) => bot.color !== me.color)
   const bot = (index: number, team?: 'A' | 'B'): BattlePlayer => ({
@@ -72,7 +72,7 @@ export function localRoster(
     bot: setup.skill,
     team,
   })
-  const you: BattlePlayer = { id: LOCAL_PLAYER, name: me.name || 'You', color: me.color }
+  const you: BattlePlayer = { ...me, id: LOCAL_PLAYER, name: me.name || 'You' }
   const roster: BattlePlayer[] =
     setup.format === 'duel'
       ? [you, bot(0)]
