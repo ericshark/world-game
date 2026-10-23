@@ -31,7 +31,7 @@ import { MysterySetup } from './mystery/MysterySetup'
 import { loadRareEarthConfig, sanitizeRareEarthConfig } from './rareEarth/config'
 import { RareEarthGame } from './rareEarth/RareEarthGame'
 import { RareEarthSetup } from './rareEarth/RareEarthSetup'
-import { loadRushConfig, sanitizeRushConfig } from './rush/config'
+import { loadRushConfig, rushSubtitle, sanitizeRushConfig } from './rush/config'
 import { RushGame } from './rush/RushGame'
 import { RushSetup } from './rush/RushSetup'
 
@@ -72,7 +72,7 @@ const SCREENS: Record<ModeKey, ModeScreens<unknown>> = {
     Game: RushGame,
     load: loadRushConfig,
     sanitize: sanitizeRushConfig,
-    describe: (c) => [c.region, c.suddenDeath ? 'Sudden death' : '60 seconds'].join(' · '),
+    describe: (c) => rushSubtitle(c),
   }),
   'rare-earth': screens({
     Setup: RareEarthSetup,

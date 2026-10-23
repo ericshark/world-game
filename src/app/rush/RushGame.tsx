@@ -2,8 +2,15 @@ import { useEffect, useRef, useState } from 'react'
 import { play, vibrate } from '../../audio/sound'
 import type { LonLat } from '../../geo/coords'
 import { LOCAL_PLAYER } from '../../game/core/types'
-import { rush, RUSH_START_MS, type RushAnswer, type RushConfig } from '../../game/modes/rush'
-import { randomOverview } from '../../globe/framing'
+import {
+  rush,
+  RUSH_MULTIPLIER_STREAKS,
+  RUSH_START_MS,
+  rushMultiplier,
+  type RushAnswer,
+  type RushConfig,
+} from '../../game/modes/rush'
+import { frameCountry, framePair, randomOverview } from '../../globe/framing'
 import {
   CLICKED_PAINT,
   EMPTY_SCENE,
@@ -11,12 +18,13 @@ import {
   TARGET_PAINT,
   type GlobeScene,
 } from '../../globe/scene'
+import type { Units } from '../../game/profile/settings'
 import { formatDistance, formatNumber } from '../../screens/format'
 import type { Tone } from '../../ui/grades'
 import { HowToPlay } from '../../ui/HowToPlay'
 import { Hud } from '../../ui/Hud'
 import { ResultsScreen } from '../../ui/ResultsScreen'
-import { TimerBar } from '../../ui/TimerBar'
+import { TimerRing } from '../../ui/TimerBar'
 import { useGameKeys } from '../../ui/useGameKeys'
 import { useApp } from '../AppContext'
 import { Crosshair } from '../Crosshair'
@@ -28,6 +36,7 @@ import { useGameStage } from '../useGameStage'
 import { useIntro } from '../useIntro'
 import { useRecordedGame } from '../useRecordedGame'
 import { pinAndArc } from '../rounds/scene'
+import { rushSubtitle } from './config'
 import { useLocalSession, usePauseWhile } from '../useLocalSession'
 
 /** How long the last answer stays painted on the globe. */
@@ -57,9 +66,11 @@ interface RushGameProps {
 export function RushGame({ config, seed, onChangeSetup, onHome }: RushGameProps) {
   const app = useApp()
   const { geo, preferences } = app
-  const stage = useGameStage()
+  const stage = useGameStage({ night: config.night })
   const { recorded, record, clear: clearRecorded } = useRecordedGame()
   const [flash, setFlash] = useState<RushAnswer | null>(null)
+  /** Which miss is shown when reviewing them after the game. */
+  const [reviewing, setReviewing] = useState<number | null>(null)
   const intro = useIntro('rush')
 
   const session = useLocalSession(
@@ -99,7 +110,9 @@ export function RushGame({ config, seed, onChangeSetup, onHome }: RushGameProps)
     if (!next || !last || last === state?.answers.at(-1)) return
     setFlash(last)
     if (last.outcome === 'hit') {
-      play(next.streak >= 3 && next.streak % 3 === 0 ? 'streak' : 'hit')
+      // The fanfare marks each step up in the multiplier.
+      const levelledUp = rushMultiplier(next.streak) > rushMultiplier(state?.streak ?? 0)
+      play(levelledUp ? 'streak' : 'hit')
       vibrate(10)
     } else if (last.outcome === 'near') {
       play('near')
@@ -124,12 +137,23 @@ export function RushGame({ config, seed, onChangeSetup, onHome }: RushGameProps)
   const playAgain = () => {
     clearRecorded()
     setFlash(null)
+    setReviewing(null)
     session.start(config)
   }
 
   const playing = Boolean(state && state.endedAt === null && !intro.open)
   useStagePicking(playing ? answer : null)
-  useStageScene(flash ? flashScene(flash) : EMPTY_SCENE)
+  const misses = state?.answers.filter((a) => a.outcome !== 'hit') ?? []
+  const reviewed = reviewing === null ? null : misses[reviewing]
+  useStageScene(reviewed ? flashScene(reviewed) : flash ? flashScene(flash) : EMPTY_SCENE)
+  useEffect(() => {
+    if (!reviewed) return
+    stage.flyTo(
+      reviewed.guess && reviewed.nearest
+        ? framePair(reviewed.guess, reviewed.nearest)
+        : frameCountry(geo.feature(reviewed.targetId), geo.factsOf(reviewed.targetId).label),
+    )
+  }, [reviewed, stage, geo])
 
   useGameKeys((event) => {
     if (event.key === ' ' && playing) {
@@ -164,11 +188,25 @@ export function RushGame({ config, seed, onChangeSetup, onHome }: RushGameProps)
   const found = state.answers.filter((a) => a.outcome === 'hit').length
   const title = config.suddenDeath ? 'GeoRush · Sudden death' : 'GeoRush'
 
+  if (state.endedAt !== null && recorded && reviewing !== null && reviewed) {
+    return (
+      <MissReview
+        answer={reviewed}
+        index={reviewing}
+        count={misses.length}
+        nameOf={nameOf}
+        units={preferences.units}
+        onMove={setReviewing}
+        onDone={() => setReviewing(null)}
+      />
+    )
+  }
+
   if (state.endedAt !== null && recorded) {
     return (
       <ResultsScreen
         title="GeoRush"
-        subtitle={[config.region, config.suddenDeath ? 'Sudden death' : '60 seconds'].join(' · ')}
+        subtitle={rushSubtitle(config)}
         score={state.score}
         maxScore={null}
         recorded={recorded}
@@ -195,11 +233,16 @@ export function RushGame({ config, seed, onChangeSetup, onHome }: RushGameProps)
         onPlayAgain={playAgain}
         onChangeSetup={onChangeSetup}
         onHome={onHome}
-      />
+      >
+        {misses.length > 0 && (
+          <button type="button" className="button button--block" onClick={() => setReviewing(0)}>
+            Review {misses.length === 1 ? 'the one you missed' : `the ${misses.length} you missed`}
+          </button>
+        )}
+      </ResultsScreen>
     )
   }
 
-  const multiplier = state.answers.at(-1)?.outcome === 'hit' ? state.answers.at(-1)!.multiplier : 1
   return (
     <div className="screen screen--game">
       <Hud
@@ -210,21 +253,21 @@ export function RushGame({ config, seed, onChangeSetup, onHome }: RushGameProps)
         onHelp={intro.show}
         onQuit={onHome}
       >
-        {multiplier > 1 && <span className="hud__multiplier">×{multiplier}</span>}
+        {state.clockEndsAt !== null && (
+          <TimerRing
+            deadline={state.clockEndsAt}
+            totalMs={RUSH_START_MS}
+            pausedAt={state.pausedAt}
+            tick
+          />
+        )}
       </Hud>
 
       <div className="prompt" aria-live="polite">
         <h1 className="prompt__text">
           Find <strong data-testid="target-name">{state.current && nameOf(state.current)}</strong>
         </h1>
-        {state.clockEndsAt !== null && (
-          <TimerBar
-            deadline={state.clockEndsAt}
-            totalMs={RUSH_START_MS}
-            pausedAt={state.pausedAt}
-            onTick={(seconds) => seconds <= 5 && play('tick')}
-          />
-        )}
+        <ComboMeter streak={state.streak} />
         {flash && (
           <p key={flash.at} className={`rush-feedback rush-feedback--${flash.outcome}`}>
             {feedbackText(flash, nameOf)}
@@ -301,4 +344,87 @@ function flashScene(answer: RushAnswer): GlobeScene {
       : { pins: [], arcs: [] }),
     pulses: missed ? [{ id: answer.targetId, color: TARGET_COLOR }] : [],
   }
+}
+
+/** The multiplier, and how many more hits in a row it takes to raise it. */
+function ComboMeter({ streak }: { streak: number }) {
+  const multiplier = rushMultiplier(streak)
+  const next = RUSH_MULTIPLIER_STREAKS.find((needed) => needed > streak)
+  const from = RUSH_MULTIPLIER_STREAKS.findLast((needed) => needed <= streak) ?? 0
+  const progress = next === undefined ? 1 : (streak - from) / (next - from)
+  return (
+    <div className={`combo${multiplier > 1 ? ' is-active' : ''}`}>
+      <span key={multiplier} className="combo__multiplier">
+        ×{multiplier}
+      </span>
+      <span className="combo__bar" aria-hidden="true">
+        <span style={{ width: `${progress * 100}%` }} />
+      </span>
+      <span className="combo__next">
+        {next === undefined ? 'Top multiplier' : `${next - streak} in a row for ×${multiplier + 1}`}
+      </span>
+    </div>
+  )
+}
+
+/** After the game: one missed country at a time, shown on the globe. */
+function MissReview({
+  answer,
+  index,
+  count,
+  nameOf,
+  units,
+  onMove,
+  onDone,
+}: {
+  answer: RushAnswer
+  index: number
+  count: number
+  nameOf: (id: string) => string
+  units: Units
+  onMove: (index: number) => void
+  onDone: () => void
+}) {
+  const detail =
+    answer.outcome === 'skip'
+      ? 'You skipped it'
+      : `You tapped ${answer.clickedId ? nameOf(answer.clickedId) : 'the ocean'}${
+          answer.distanceKm ? `, ${formatDistance(answer.distanceKm, units)} away` : ''
+        }`
+  return (
+    <div className="screen screen--game">
+      <Hud mode="GeoRush" progress={`Miss ${index + 1} of ${count}`} onQuit={onDone} />
+      <div className="action-bar">
+        <div className="panel review">
+          <p className="review__title">
+            <strong>{nameOf(answer.targetId)}</strong>
+          </p>
+          <p className="review__detail">{detail}</p>
+          <div className="button-row">
+            <button
+              type="button"
+              className="button button--ghost"
+              disabled={index === 0}
+              onClick={() => onMove(index - 1)}
+            >
+              Previous
+            </button>
+            {index + 1 < count ? (
+              <button
+                type="button"
+                className="button button--primary"
+                onClick={() => onMove(index + 1)}
+              >
+                Next
+              </button>
+            ) : (
+              <button type="button" className="button button--primary" onClick={onDone}>
+                Back to results
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
 }

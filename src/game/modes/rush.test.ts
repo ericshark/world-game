@@ -70,7 +70,7 @@ describe('rush', () => {
   })
 
   it('ends sudden death on the first miss and has no clock or skips', () => {
-    let state = start({ region: 'Europe', suddenDeath: true })
+    let state = start({ region: 'Europe', suddenDeath: true, night: false })
     expect(state.clockEndsAt).toBeNull()
     expect(rush.reduce(state, { type: 'skip', playerId: LOCAL_PLAYER, at: 1 }, geo)).toBe(state)
     state = hit(state, 1)

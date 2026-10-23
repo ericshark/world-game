@@ -281,12 +281,7 @@ export function RoundGame<Config, State extends RoundModeState>(
 
   const used = new Set(results.flatMap((r) => (r.kind === 'category' ? [r.answerId] : [])))
   const timer = roundTimeMs !== null && open && rounds.deadline !== null && (
-    <TimerBar
-      deadline={rounds.deadline}
-      totalMs={roundTimeMs}
-      pausedAt={rounds.pausedAt}
-      onTick={(seconds) => seconds <= 5 && play('tick')}
-    />
+    <TimerBar deadline={rounds.deadline} totalMs={roundTimeMs} pausedAt={rounds.pausedAt} tick />
   )
 
   return (

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { rushBestKey } from '../../game/modes/rush'
 import { saveSetup } from '../../game/profile/settings'
-import { Choice } from '../../ui/controls'
+import { Choice, Switch } from '../../ui/controls'
 import { RegionChoice, SetupSheet } from '../../ui/SetupSheet'
 import { useApp } from '../AppContext'
 import { loadRushConfig } from './config'
@@ -33,6 +33,14 @@ export function RushSetup({ onClose, onPlay }: { onClose: () => void; onPlay: ()
           { value: 'sudden', label: 'Sudden death', hint: 'No clock, no skips: one miss ends it.' },
         ]}
       />
+      <div className="switches">
+        <Switch
+          label="Night Earth"
+          description="Find your way by city lights"
+          checked={config.night}
+          onChange={(night) => setConfig({ ...config, night })}
+        />
+      </div>
     </SetupSheet>
   )
 }

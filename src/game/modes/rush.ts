@@ -25,9 +25,11 @@ export interface RushConfig {
   region: ScoringRegion
   /** No clock: the first miss or skip ends the run. */
   suddenDeath: boolean
+  /** Played on the night-lights globe. */
+  night: boolean
 }
 
-export const DEFAULT_RUSH_CONFIG: RushConfig = { region: 'World', suddenDeath: false }
+export const DEFAULT_RUSH_CONFIG: RushConfig = { region: 'World', suddenDeath: false, night: false }
 
 export type RushOutcome = 'hit' | 'near' | 'miss' | 'skip'
 
@@ -66,17 +68,17 @@ export interface RushState {
 
 export type RushEvent = SessionEvent | { type: 'skip'; playerId: PlayerId; at: number }
 
+/** Consecutive hits that raise the multiplier: ×2 at 3, ×3 at 6, ×4 at 10 and ×5 at 15. */
+export const RUSH_MULTIPLIER_STREAKS = [3, 6, 10, 15]
+
 /** The multiplier earned by a run of consecutive hits. */
 export function rushMultiplier(streak: number): number {
-  if (streak >= 15) return 5
-  if (streak >= 10) return 4
-  if (streak >= 6) return 3
-  if (streak >= 3) return 2
-  return 1
+  return 1 + RUSH_MULTIPLIER_STREAKS.filter((needed) => streak >= needed).length
 }
 
 export function rushBestKey(config: RushConfig): string {
-  return ['rush', config.region, config.suddenDeath && 'sudden-death'].filter(Boolean).join(':')
+  const flags = [config.suddenDeath && 'sudden-death', config.night && 'night']
+  return ['rush', config.region, ...flags].filter(Boolean).join(':')
 }
 
 /**

@@ -263,13 +263,7 @@ export function BattleGame({ host, recorded, onPlayAgain, onHome }: BattleGamePr
           capitalOf={(id) => geo.factsOf(id).capitals[0].name}
           open={open}
         />
-        {deadline !== null && (
-          <TimerBar
-            deadline={deadline}
-            totalMs={BATTLE_ROUND_MS}
-            onTick={(seconds) => seconds <= 5 && play('tick')}
-          />
-        )}
+        {deadline !== null && <TimerBar deadline={deadline} totalMs={BATTLE_ROUND_MS} tick />}
       </div>
 
       <Crosshair active={placing && open && !submitted} />

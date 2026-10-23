@@ -1433,14 +1433,100 @@ input {
 
 /* GeoRush */
 
-.hud__multiplier {
-  margin-right: 4px;
-  padding: 2px 8px;
+.timer-ring {
+  position: relative;
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+}
+
+.timer-ring svg {
+  position: absolute;
+  inset: 0;
+  transform: rotate(-90deg);
+}
+
+.timer-ring circle {
+  fill: none;
+  stroke-width: 4;
+}
+
+.timer-ring__track {
+  stroke: rgb(255 255 255 / 0.14);
+}
+
+.timer-ring__fill {
+  stroke: var(--accent);
+  stroke-linecap: round;
+}
+
+.timer-ring__seconds {
+  font-size: 15px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.timer-ring.timer--low .timer-ring__fill {
+  stroke: var(--danger);
+}
+
+.timer-ring.timer--low .timer-ring__seconds {
+  color: var(--danger);
+  animation: pop 1s ease-out infinite;
+}
+
+.combo {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: center;
+  margin-top: 8px;
+  color: var(--text-faint);
+  font-size: 13px;
+}
+
+.combo__multiplier {
+  min-width: 34px;
+  padding: 1px 8px;
   border-radius: 999px;
+  background: rgb(255 255 255 / 0.08);
+  font-weight: 800;
+}
+
+.combo.is-active .combo__multiplier {
   background: rgb(255 154 74 / 0.2);
   color: #ff9a4a;
-  font-weight: 800;
   animation: pop 0.3s ease-out;
+}
+
+.combo__bar {
+  width: 90px;
+  height: 5px;
+  border-radius: 3px;
+  background: rgb(255 255 255 / 0.12);
+  overflow: hidden;
+}
+
+.combo__bar span {
+  display: block;
+  height: 100%;
+  background: #ff9a4a;
+  transition: width 0.25s ease-out;
+}
+
+.review {
+  text-align: center;
+}
+
+.review__title {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.review__detail {
+  margin: 4px 0 12px;
+  color: var(--text-muted);
 }
 
 .rush-feedback {
