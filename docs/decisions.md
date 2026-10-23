@@ -42,3 +42,20 @@ Anything on a leaderboard (the ranked dailies and Quick Duel) will be played thr
 with secret daily seeds and one round sent at a time. Personal progress (XP, Passport,
 achievements) stays in the browser and is synced; it is not competitive, so it does not need
 anti-cheat. Without a server, the Daily falls back to local, unranked play.
+
+## Identity: guests by default, cloud sync only for accounts (2026-10-23)
+
+Every browser gets an anonymous player and an httpOnly session cookie (only its SHA-256 hash is
+stored). A nickname is optional; duplicates get a `#1234` suffix, and `#` is not allowed in typed
+names. Signing in (emailed link, Google or GitHub) turns that player into an account, or hands the
+session to the account's existing player on a second device.
+
+Profiles are uploaded only for signed-in accounts, so guests cost the server nothing and no
+progress is stored for people who never asked for it. Sync is versioned (a save names the version
+it started from), so two devices cannot silently overwrite each other. When a device and an
+account both hold different progress on first sign-in, or both changed since the last sync, the
+player chooses which to keep (`planSync` in `src/net/profileSync.ts`).
+
+Magic links open the web app (`/#/signin/<token>`), which then posts the token. Opening the link
+does nothing by itself, so mail scanners that prefetch links cannot use them up. Writes must send
+JSON, which a form on another site cannot, and cookies are `SameSite=Lax`.

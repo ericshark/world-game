@@ -6,11 +6,11 @@ Where the three-phase launch roadmap stands, and how to carry on. The full plan 
 
 ## Summary
 
-| Phase                                              | Status             | Git                         |
-| -------------------------------------------------- | ------------------ | --------------------------- |
-| 1. Single-player platform                          | Done               | `phase-1-start` → `phase-1` |
-| 2. Multiplayer, identity, leaderboards, Quick Duel | About a third done | from `phase-2-start`        |
-| 3. Production polish and launch preparation        | Not started        | —                           |
+| Phase                                              | Status          | Git                         |
+| -------------------------------------------------- | --------------- | --------------------------- |
+| 1. Single-player platform                          | Done            | `phase-1-start` → `phase-1` |
+| 2. Multiplayer, identity, leaderboards, Quick Duel | About half done | from `phase-2-start`        |
+| 3. Production polish and launch preparation        | Not started     | —                           |
 
 ## Decisions already made with the owner
 
@@ -78,6 +78,18 @@ Where the three-phase launch roadmap stands, and how to carry on. The full plan 
   - A reconnecting banner.
   - Restart and kick notices.
   - Name cleaning (NFKC, no control or direction characters).
+- **Server platform:**
+  - `server/` is split into `config.ts` (env vars), `db.ts` (WAL, numbered migrations on
+    `user_version`), `app.ts` (Hono: `/api`, `/health`, built site with hashed-asset caching and a
+    single-page fallback), `realtime.ts` (`/ws`) and `index.ts` (boot).
+  - One port serves all three. `npm start` runs it in production mode (needs `DAILY_SECRET`).
+- **Identity** (`server/auth/*`, `src/net/{api,session,profileSync}.ts`, `src/app/useAccount.ts`):
+  - Anonymous players with hashed session tokens, checked nicknames (`obscenity`, `#1234`
+    suffixes), email magic links (single use, 15 minutes, rate limited, dev mailbox at
+    `/api/dev/mailbox`), Google and GitHub through `arctic` (on only when their env vars are set,
+    tested against a mock), versioned profile sync with a keep-cloud or use-device choice, and a
+    Settings account section with sign out and "delete my online data".
+  - In dev, set `PUBLIC_ORIGIN` to the Vite address so emailed links open the app.
 
 ## Still to do
 
@@ -85,25 +97,6 @@ Work through these in order. Each item should end with tests and a focused commi
 
 ### Phase 2
 
-1. **Server platform.** Nothing is installed yet; checked versions are `hono` 4.13,
-   `@hono/node-server` 2.1, `arctic` 3.7 and `obscenity` 0.4. `node:sqlite` works on Node 24.
-   - Split `server/index.ts` into `config.ts`, `app.ts` (Hono: `/api/*`, static `dist/`,
-     `/health`), `realtime.ts` (ws upgrade, dispatch) and `db.ts` (WAL, numbered migrations).
-   - Serve the site and `/ws` from one port.
-   - Configure through env vars: `PORT`, `PUBLIC_ORIGIN`, `DATABASE_PATH`, `DAILY_SECRET`,
-     `RESEND_API_KEY`, `GOOGLE_*` and `GITHUB_*`.
-2. **Identity.**
-   - **Anonymous player:** created with an httpOnly session cookie, and the session token is
-     stored hashed.
-   - **Nickname:** cleaned with `cleanName` from `src/net/protocol.ts`, length 2–20, checked by
-     `obscenity`, with a `#1234` suffix for duplicates.
-   - **Magic link:** single use, valid for 15 minutes, and rate limited. In dev it goes to a
-     console and a dev-only mailbox instead of being emailed.
-   - **OAuth:** through `arctic`, enabled only when its env vars are set, and tested against a
-     mock.
-   - **Profile sync:** versioned, with a "keep cloud" or "use this device" choice when the two
-     conflict.
-   - **Settings account section:** nickname, sign-in, sign-out, and delete my data.
 3. **Ranked dailies.**
    - Seeds come from `HMAC(DAILY_SECRET, number)`. `daily.start` must take the seed from its
      start params; today it calls `dailySeed()` internally.
@@ -131,7 +124,7 @@ Work through these in order. Each item should end with tests and a focused commi
 6. **E2E.**
    - Quick Duel between two contexts.
    - A ranked Daily, and a second attempt refused.
-   - Magic-link sign-in, with profile sync to a second context.
+   - (Done in `e2e/account.spec.ts`: magic-link sign-in with sync to a second context.)
    - The leaderboard.
    - Then run the full suite and tag `phase-2`.
 
