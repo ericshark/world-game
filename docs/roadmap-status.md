@@ -136,8 +136,11 @@ Work through these in order. Each item should end with tests and a focused commi
   - Page meta, Open Graph and Twitter tags (the server fills in the site address), a web
     manifest, real icons (`scripts/build-icons.mjs`), a static loading shell and a `noscript`
     message. Contrast over bright parts of the globe was not measured.
-- **Balancing.** A `scripts/simulate.ts` bot simulation, an alias and data audit, streak freezes,
-  and weekly goals.
+- **Balancing, retention.** Done (see [balance](balance.md)): `scripts/simulate.ts` and its
+  test, an alias and data audit with fixes, streak freezes (worked out from the daily record, so
+  no stored state; one per seven days in a row, two at most) and three weekly goals with XP
+  (`src/game/profile/weekly.ts`, shown on the Daily screen). Scoring cutoffs, the GeoRush ramp,
+  Journey par bands and Duel damage were not retuned: that needs real player data.
 - **Security.**
   - CSP and security headers, and origin allowlists.
   - Per-IP connection and room-creation caps.

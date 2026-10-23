@@ -4,6 +4,7 @@ import { newAchievements, type Achievement } from './achievements'
 import { masteryOf } from './mastery'
 import type { DailyRecord, Profile } from './profile'
 import { recordAttempt } from './stats'
+import { completeGoals, type WeeklyGoal } from './weekly'
 import { levelForXp, sessionXp, XP_PER_ACHIEVEMENT } from './xp'
 
 export { HISTORY_LIMIT } from './sanitize'
@@ -37,6 +38,8 @@ export interface RecordedSession {
   achievements: Achievement[]
   /** Countries first mastered during this game. */
   newlyMastered: string[]
+  /** Weekly goals this game completed (their XP is already in `xpGained`). */
+  goals: WeeklyGoal[]
 }
 
 /**
@@ -88,6 +91,9 @@ export function recordSession(
     }
   }
 
+  const weekly = completeGoals(next, geo, summary.endedAt)
+  next = weekly.profile
+
   return {
     profile: next,
     previousBest,
@@ -97,6 +103,7 @@ export function recordSession(
     levelAfter: levelForXp(next.xp),
     achievements: unlocked,
     newlyMastered,
+    goals: weekly.completed,
   }
 }
 

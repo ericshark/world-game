@@ -8,6 +8,7 @@ import {
   sanitizeDaily,
   sanitizeHistory,
   sanitizeTimes,
+  sanitizeWeeklyDone,
   sanitizeXp,
 } from './sanitize'
 import { memoryStorage, readJson, removeKey, writeJson, type JsonStorage } from './storage'
@@ -61,6 +62,8 @@ export interface Profile {
   /** Country id → when it was first mastered. */
   masteredAt: Record<string, number>
   daily: Record<string, DailyRecord>
+  /** Week (its Monday's date) → ids of the weekly goals already completed and paid out. */
+  weeklyDone: Record<string, string[]>
   cosmetics: Cosmetics
 }
 
@@ -82,6 +85,7 @@ export function emptyProfile(): Profile {
     achievements: {},
     masteredAt: {},
     daily: {},
+    weeklyDone: {},
     cosmetics: DEFAULT_COSMETICS,
   }
 }
@@ -99,6 +103,7 @@ export function loadProfile(storage?: JsonStorage): Profile {
       achievements: sanitizeTimes(saved.achievements),
       masteredAt: sanitizeTimes(saved.masteredAt, 400),
       daily: sanitizeDaily(saved.daily),
+      weeklyDone: sanitizeWeeklyDone(saved.weeklyDone),
       cosmetics: { ...DEFAULT_COSMETICS, ...sanitizeCosmeticPicks(saved.cosmetics) },
     }
   }

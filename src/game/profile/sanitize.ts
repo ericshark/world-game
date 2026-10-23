@@ -151,6 +151,16 @@ export function sanitizeDaily(value: unknown): Record<string, DailyRecord> {
   return result
 }
 
+export function sanitizeWeeklyDone(value: unknown): Record<string, string[]> {
+  const result: Record<string, string[]> = {}
+  if (!isObject(value)) return result
+  for (const [week, ids] of Object.entries(value).slice(-12)) {
+    if (!DATE_KEY.test(week) || !Array.isArray(ids)) continue
+    result[week] = ids.filter((id): id is string => text(id, 60) !== null).slice(0, 10)
+  }
+  return result
+}
+
 /** Keeps the picks that are short strings; the profile fills in defaults for the rest. */
 export function sanitizeCosmeticPicks(value: unknown): Record<string, string> {
   const result: Record<string, string> = {}

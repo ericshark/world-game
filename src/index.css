@@ -2880,3 +2880,35 @@ input {
     padding: 12px;
   }
 }
+
+.weekly {
+  margin: 0 0 16px;
+}
+
+.weekly__list {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.weekly__list li {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 12px;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  background: rgb(255 255 255 / 0.05);
+  font-size: 14px;
+}
+
+.weekly__list li.is-done {
+  color: var(--success);
+}
+
+.weekly__xp {
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}

@@ -5,6 +5,7 @@ import type { SessionSummary } from '../core/types'
 import { dailyNumber, dailyStreak, localDateKey } from './daily'
 import { explorerRank, masteryOf } from './mastery'
 import { clearProfile, emptyProfile, loadProfile, saveProfile, skillStats } from './profile'
+import { weeklyGoals } from './weekly'
 import { HISTORY_LIMIT, recordOutcomes, recordSession } from './record'
 import type { JsonStorage } from './storage'
 import { levelForXp, xpForLevel } from './xp'
@@ -166,6 +167,35 @@ describe('recordSession', () => {
 
     const again = recordSession(first.profile, summary(10_000, 2), geo)
     expect(again.achievements).toEqual([])
+  })
+
+  it('completes weekly goals as games are finished, and pays each once', () => {
+    // A recent week whose goals include something plain games can complete.
+    const week = ['2026-10-19', '2026-10-26', '2026-11-02', '2026-11-09', '2026-11-16'].find((w) =>
+      weeklyGoals(w).some((g) => ['games', 'modes', 'strong'].includes(g.measure.kind)),
+    )!
+    const [y, m, d] = week.split('-').map(Number)
+    const modes = ['pinpoint', 'rush', 'mystery', 'journey', 'rare-earth'] as const
+    let profile = emptyProfile()
+    const completed: string[] = []
+    let xpFromGoals = 0
+    for (let i = 0; i < 10; i++) {
+      const recorded = recordSession(
+        profile,
+        summary(9000, new Date(y, m - 1, d + 1, 8 + i).getTime(), {
+          mode: modes[i % modes.length],
+          bestKey: `${modes[i % modes.length]}:test`,
+        }),
+        geo,
+      )
+      completed.push(...recorded.goals.map((g) => g.id))
+      xpFromGoals += recorded.goals.reduce((sum, g) => sum + g.xp, 0)
+      profile = recorded.profile
+    }
+    expect(completed.length).toBeGreaterThan(0)
+    expect(new Set(completed).size).toBe(completed.length)
+    expect(profile.weeklyDone[week]).toEqual(completed)
+    expect(xpFromGoals).toBeGreaterThan(0)
   })
 
   it('reports countries mastered during the game', () => {

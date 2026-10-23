@@ -1,7 +1,8 @@
 import { useEffect, useState, type CSSProperties } from 'react'
 import type { DailyPuzzle } from '../../game/core/types'
 import { dailySeed, dailyTwist } from '../../game/modes/daily'
-import { dailyNumber, dailyStreak, dateKeyBefore } from '../../game/profile/daily'
+import { dailyNumber, dateKeyBefore, streakState } from '../../game/profile/daily'
+import { weekStatus } from '../../game/profile/weekly'
 import { loadDailyProgress } from '../../game/profile/dailyProgress'
 import { dailyShareText } from '../../game/profile/share'
 import { formatNumber } from '../../screens/format'
@@ -38,7 +39,7 @@ export function DailyScreen({
   onPlay: (puzzle: DailyPuzzle) => void
   onClose: () => void
 }) {
-  const { profile, account } = useApp()
+  const { profile, account, geo } = useApp()
   const [now, setNow] = useState(() => Date.now())
   useGlobeShift({ x: 0.14, y: 0 }, { x: 0, y: 0.25 })
   useEffect(() => {
@@ -48,7 +49,8 @@ export function DailyScreen({
 
   const dateKey = todayKey(now)
   const today = profile.daily[dateKey] ?? {}
-  const streak = dailyStreak(profile, now)
+  const { streak, freezes } = streakState(profile, now)
+  const goals = weekStatus(profile, geo, now)
   const twist = dailyTwist(dateKey)
   const left = msUntilTomorrow(now)
   const doneAny = Boolean(today.five || today.mystery || today.route)
@@ -76,6 +78,14 @@ export function DailyScreen({
           {streak > 0 && (
             <span className="daily__streak">
               <Icon name="flame" size={16} /> {streak}-day streak
+            </span>
+          )}
+          {freezes > 0 && (
+            <span
+              className="tag"
+              title="A freeze covers one missed day. Every 7th day in a row earns one."
+            >
+              {freezes} streak {freezes === 1 ? 'freeze' : 'freezes'}
             </span>
           )}
           <span>
@@ -132,6 +142,24 @@ export function DailyScreen({
             <ShareButton text={dailyShareText(dateKey, today, streak, url)} label="Share today" />
           </div>
         )}
+
+        <section className="weekly" aria-labelledby="weekly-title">
+          <h3 className="field__label" id="weekly-title">
+            Goals this week
+          </h3>
+          <ul className="weekly__list">
+            {goals.map(({ goal, progress, done }) => (
+              <li key={goal.id} className={done ? 'is-done' : undefined}>
+                <span>
+                  {done && <Icon name="check" size={14} />} {goal.text}
+                </span>
+                <span className="weekly__xp">
+                  {done ? 'Done' : `${progress} / ${goal.target}`} · +{goal.xp} XP
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
 
         <Calendar dateKey={dateKey} />
         <Distribution />

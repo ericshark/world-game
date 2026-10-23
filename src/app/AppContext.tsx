@@ -123,6 +123,9 @@ function rewardToasts(recorded: RecordedSession): Omit<Toast, 'id'>[] {
     title: achievement.title,
     text: achievement.description,
   }))
+  for (const goal of recorded.goals) {
+    toasts.push({ icon: 'check', title: 'Weekly goal done', text: `${goal.text} · +${goal.xp} XP` })
+  }
   if (recorded.levelAfter > recorded.levelBefore) {
     toasts.push({ icon: 'star', title: `Level ${recorded.levelAfter}!` })
   }
