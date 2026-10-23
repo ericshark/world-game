@@ -22,6 +22,8 @@ export interface ServerConfig {
   github: OAuthCredentials | null
   /** The built site served alongside the API; null skips static serving. */
   distDir: string | null
+  /** Sign-in emails one address may ask for per hour. */
+  magicLinksPerIpPerHour: number
   production: boolean
 }
 
@@ -51,6 +53,7 @@ export function loadConfig(env: Env = process.env, overrides: Partial<ServerConf
     google: oauth(env, 'GOOGLE'),
     github: oauth(env, 'GITHUB'),
     distDir: env.DIST_DIR ?? 'dist',
+    magicLinksPerIpPerHour: Number(env.MAGIC_LINKS_PER_IP_PER_HOUR ?? 10),
     production,
     ...overrides,
   }

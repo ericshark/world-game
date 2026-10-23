@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import { AppContext, useStoredState, type AppServices } from './app/AppContext'
 import { GlobeStageProvider } from './app/GlobeStage'
+import { useAccount } from './app/useAccount'
 import { useRoute } from './app/router'
 import { useKeyboardInset } from './app/useKeyboardInset'
 import { Routes } from './app/Routes'
 import { loadGeoData, type GeoData } from './geo/facts'
+import { SyncConflictSheet } from './screens/account/SyncConflictSheet'
 import { LoadingOverlay } from './screens/LoadingOverlay'
 import { ReducedMotionContext, useResolvedReducedMotion } from './ui/motion'
 import { Toasts } from './ui/Toasts'
@@ -17,6 +19,7 @@ export default function App() {
   const toasts = useToasts()
   useKeyboardInset()
   const stored = useStoredState(geo, toasts.push)
+  const account = useAccount(stored.profile, stored.adoptProfile)
   const reducedMotion = useResolvedReducedMotion(stored.preferences.motion)
 
   useEffect(() => {
@@ -26,8 +29,8 @@ export default function App() {
   }, [])
 
   const services = useMemo<AppServices | null>(
-    () => (geo ? { geo, navigate, ...stored } : null),
-    [geo, navigate, stored],
+    () => (geo ? { geo, navigate, account, ...stored } : null),
+    [geo, navigate, account, stored],
   )
 
   return (
@@ -41,6 +44,13 @@ export default function App() {
           {services && (
             <AppContext.Provider value={services}>
               <Routes route={route} />
+              {account.conflict && (
+                <SyncConflictSheet
+                  local={account.conflict.local}
+                  cloud={account.conflict.cloud}
+                  onChoose={account.resolveConflict}
+                />
+              )}
             </AppContext.Provider>
           )}
         </GlobeStageProvider>

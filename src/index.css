@@ -2726,3 +2726,15 @@ input {
   width: 28px;
   height: 28px;
 }
+
+.account__nickname {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.account__nickname .text-field {
+  flex: 1 1 200px;
+  margin: 0;
+}

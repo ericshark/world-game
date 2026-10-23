@@ -4,10 +4,14 @@ import { createBackup, readBackup } from '../game/profile/backup'
 import { play } from '../audio/sound'
 import { Choice, Switch } from '../ui/controls'
 import { Sheet } from '../ui/Sheet'
+import { AccountSection } from './account/AccountSection'
+import { SignInSheet } from './account/SignInSheet'
 
 export function SettingsScreen({ onClose }: { onClose: () => void }) {
-  const { preferences, setPreferences, resetProfile, profile, restore, navigate } = useApp()
+  const { preferences, setPreferences, resetProfile, profile, restore, navigate, account } =
+    useApp()
   const [restoreMessage, setRestoreMessage] = useState<string | null>(null)
+  const [signingIn, setSigningIn] = useState(false)
 
   const exportBackup = () => {
     const url = URL.createObjectURL(
@@ -36,10 +40,18 @@ export function SettingsScreen({ onClose }: { onClose: () => void }) {
   }
 
   const reset = () => {
-    if (window.confirm('Delete all your stats and personal bests? This cannot be undone.')) {
+    if (
+      window.confirm(
+        account.me?.account
+          ? 'Delete all your stats and personal bests, including the copy in your account? This cannot be undone.'
+          : 'Delete all your stats and personal bests? This cannot be undone.',
+      )
+    ) {
       resetProfile()
     }
   }
+
+  if (signingIn) return <SignInSheet onClose={() => setSigningIn(false)} />
 
   return (
     <Sheet eyebrow="World Game" title="Settings" onClose={onClose}>
@@ -109,6 +121,8 @@ export function SettingsScreen({ onClose }: { onClose: () => void }) {
           onChange={(showGrid) => setPreferences({ showGrid })}
         />
       </div>
+
+      <AccountSection onSignIn={() => setSigningIn(true)} />
 
       <div className="field">
         <p className="field__label">Your progress lives in this browser</p>

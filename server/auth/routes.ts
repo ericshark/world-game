@@ -23,7 +23,7 @@ export function authApi({ config, db, now, mailer, devMailbox, oauth }: AppConte
   const store = new AuthStore(db, now)
   const secure = config.publicOrigin.startsWith('https:')
   const perEmail = new RateLimiter(3, 15 * 60_000, now)
-  const perIp = new RateLimiter(10, 60 * 60_000, now)
+  const perIp = new RateLimiter(config.magicLinksPerIpPerHour, 60 * 60_000, now)
   const ipOf = (c: Context) => getConnInfo(c).remote.address ?? 'unknown'
 
   const cookieOptions = (maxAge: number, path = '/') => ({

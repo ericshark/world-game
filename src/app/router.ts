@@ -15,6 +15,7 @@ export type Route =
   | { name: 'daily-play'; puzzle: DailyPuzzle }
   | { name: 'settings' }
   | { name: 'tour' }
+  | { name: 'signin'; token: string }
 
 export const MODE_KEYS: readonly ModeKey[] = [
   'pinpoint',
@@ -28,11 +29,13 @@ const DAILY_PUZZLES: readonly DailyPuzzle[] = ['five', 'mystery', 'route']
 
 /** Routes live in the URL hash, so the back button works and links can open a screen. */
 export function parseRoute(hash: string): Route {
-  const [first, second] = hash.replace(/^#\/?/, '').split('/')
+  // Anything after "?" (an OAuth result, say) is not part of the route.
+  const [first, second] = hash.replace(/^#\/?/, '').split('?')[0].split('/')
   const mode = MODE_KEYS.find((key) => key === second)
   if ((first === 'setup' || first === 'play') && mode) return { name: first, mode }
   if (first === 'challenge' && second) return { name: 'challenge', token: second }
   if (first === 'online') return { name: 'online' }
+  if (first === 'signin' && second) return { name: 'signin', token: second }
   if (first === 'room' && /^[A-Za-z]{3,4}$/.test(second ?? '')) {
     return { name: 'room', code: second.toUpperCase() }
   }
@@ -57,6 +60,8 @@ export function routeHash(route: Route): string {
       return `#/daily/${route.puzzle}`
     case 'challenge':
       return `#/challenge/${route.token}`
+    case 'signin':
+      return `#/signin/${route.token}`
     case 'room':
       return `#/room/${route.code}`
     default:

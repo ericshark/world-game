@@ -15,6 +15,7 @@ import { recordOutcomes, recordSession, type RecordedSession } from '../game/pro
 import { loadPreferences, savePreferences, type Preferences } from '../game/profile/settings'
 import type { Toast } from '../ui/Toasts'
 import type { Route } from './router'
+import type { AccountServices } from './useAccount'
 
 /** What every screen and mode needs from the app. */
 export interface AppServices {
@@ -30,6 +31,8 @@ export interface AppServices {
   preferences: Preferences
   setPreferences(update: Partial<Preferences>): void
   navigate(route: Route, options?: { replace?: boolean }): void
+  /** The server session and cloud sync; `status` is `offline` without a server. */
+  account: AccountServices
 }
 
 export const AppContext = createContext<AppServices | null>(null)
@@ -97,6 +100,7 @@ export function useStoredState(geo: GeoData | null, notify: (toast: Omit<Toast, 
         setPreferencesState(restoredPreferences)
         savePreferences(restoredPreferences)
       },
+      adoptProfile: commitProfile,
       resetProfile: () => {
         clearProfile()
         commitProfile(emptyProfile())

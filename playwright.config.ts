@@ -28,7 +28,13 @@ export default defineConfig({
   webServer: [
     {
       command: 'npx tsx server/index.ts',
-      env: { PORT: String(BATTLE_SERVER_PORT), DATABASE_PATH: ':memory:' },
+      env: {
+        PORT: String(BATTLE_SERVER_PORT),
+        DATABASE_PATH: ':memory:',
+        // Sign-in links point at the page the tests open (the Vite server).
+        PUBLIC_ORIGIN: `http://localhost:${PORT}`,
+        MAGIC_LINKS_PER_IP_PER_HOUR: '1000',
+      },
       url: `http://localhost:${BATTLE_SERVER_PORT}/health`,
       reuseExistingServer: false,
       timeout: 60_000,
