@@ -1,3 +1,4 @@
+import type { SessionEvent } from './mode'
 import type { Challenge, PlayerId, RoundResult, Submission } from './types'
 
 export type RoundPhase = 'open' | 'revealed' | 'finished'
@@ -17,6 +18,8 @@ export interface RoundsState<C extends Challenge = Challenge> {
   /** When the open round closes on its own, or null when untimed. */
   deadline: number | null
   roundTimeMs: number | null
+  /** Set while the clock is stopped; the deadline moves on by the paused time when it resumes. */
+  pausedAt: number | null
   /** Once someone submits, everyone else has at most this long left (multiplayer tension). */
   hurryMs: number | null
   /** One entry per opened round; hidden from other players until the reveal. */
@@ -52,6 +55,7 @@ export function startRounds<C extends Challenge>(
     openedAt: now,
     deadline: roundTimeMs === null ? null : now + roundTimeMs,
     roundTimeMs,
+    pausedAt: null,
     hurryMs,
     submissions: [{}],
     results: [],
@@ -71,7 +75,9 @@ export function submitRound<C extends Challenge>(
 ): RoundsState<C> {
   if (state.phase !== 'open' || !state.players.includes(playerId)) return state
   if (state.submissions[state.round][playerId]) return state
-  if (state.deadline !== null && submission.at > state.deadline) return state
+  // While paused, time stands still at the moment the clock stopped.
+  const at = Math.min(submission.at, state.pausedAt ?? Infinity)
+  if (state.deadline !== null && at > state.deadline) return state
 
   const submissions = [...state.submissions]
   submissions[state.round] = { ...submissions[state.round], [playerId]: submission }
@@ -91,8 +97,46 @@ export function expireRound<C extends Challenge>(
   now: number,
   evaluate: Evaluate<C>,
 ): RoundsState<C> {
-  if (state.phase !== 'open' || state.deadline === null || now < state.deadline) return state
+  if (state.phase !== 'open' || state.deadline === null || state.pausedAt !== null) return state
+  if (now < state.deadline) return state
   return reveal(state, evaluate)
+}
+
+export function pauseRounds<C extends Challenge>(state: RoundsState<C>, at: number) {
+  if (state.pausedAt !== null || state.phase !== 'open' || state.deadline === null) return state
+  return { ...state, pausedAt: at }
+}
+
+export function resumeRounds<C extends Challenge>(state: RoundsState<C>, at: number) {
+  if (state.pausedAt === null) return state
+  const paused = Math.max(0, at - state.pausedAt)
+  const deadline = state.deadline === null ? null : state.deadline + paused
+  return { ...state, deadline, pausedAt: null }
+}
+
+/** When the host must tick for the open round to time out, or null if nothing is running. */
+export function roundsDeadline<C extends Challenge>(state: RoundsState<C>): number | null {
+  return state.pausedAt === null ? state.deadline : null
+}
+
+/** The events every round-based mode handles the same way. */
+export function reduceRounds<C extends Challenge>(
+  state: RoundsState<C>,
+  event: SessionEvent,
+  evaluate: Evaluate<C>,
+): RoundsState<C> {
+  switch (event.type) {
+    case 'submit':
+      return submitRound(state, event.playerId, event.submission, evaluate)
+    case 'tick':
+      return expireRound(state, event.at, evaluate)
+    case 'next':
+      return advanceRound(state, event.at)
+    case 'pause':
+      return pauseRounds(state, event.at)
+    case 'resume':
+      return resumeRounds(state, event.at)
+  }
 }
 
 /** Moves from a revealed round to the next one, or finishes after the last. */
@@ -108,6 +152,7 @@ export function advanceRound<C extends Challenge>(
     phase: 'open',
     openedAt: now,
     deadline: state.roundTimeMs === null ? null : now + state.roundTimeMs,
+    pausedAt: null,
     submissions: [...state.submissions, {}],
   }
 }
@@ -146,5 +191,11 @@ function reveal<C extends Challenge>(state: RoundsState<C>, evaluate: Evaluate<C
   const results = Object.fromEntries(
     state.players.map((player) => [player, evaluate(challenge, submissions[player], player)]),
   )
-  return { ...state, phase: 'revealed', deadline: null, results: [...state.results, results] }
+  return {
+    ...state,
+    phase: 'revealed',
+    deadline: null,
+    pausedAt: null,
+    results: [...state.results, results],
+  }
 }

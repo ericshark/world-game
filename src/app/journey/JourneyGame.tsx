@@ -23,7 +23,7 @@ import { ResultsScreen } from '../../ui/ResultsScreen'
 import { useGameKeys } from '../../ui/useGameKeys'
 import { useApp } from '../AppContext'
 import { useChallenge } from '../challenge'
-import type { DailyGame } from '../daily/dailyGame'
+import { useSaveDailyProgress, type DailyGame } from '../daily/dailyGame'
 import { celebrates } from '../celebrate'
 import { useStagePicking, useStageScene } from '../globeStage'
 import { modeInfo } from '../modes'
@@ -64,9 +64,10 @@ export function JourneyGame({ config, seed, daily, onChangeSetup, onHome }: Jour
         play(celebrates(result) ? 'best' : 'finish')
       },
     },
-    { config, seed },
+    { config, seed, resume: daily?.saved as JourneyState | undefined },
   )
   const state = session.state
+  useSaveDailyProgress(daily, state)
   const finished = Boolean(state && state.endedAt !== null)
 
   // Open on a view of the whole trip; after that the camera is yours.

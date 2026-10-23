@@ -23,6 +23,12 @@ interface StartOptions {
   stats?: StatsByCountry
 }
 
+interface InitialGame<Config, State> extends StartOptions {
+  config: Config
+  /** Carries on with a game saved earlier instead of starting a new one. */
+  resume?: State | null
+}
+
 /**
  * Hosts a game in this browser: runs the mode's rules for the local player, feeds them the clock
  * (events and timer ticks) and reports outcomes. A server will host multiplayer games the same way.
@@ -32,11 +38,12 @@ export function useLocalSession<Config, State, Event extends { type: string } = 
   geo: GeoData | null,
   callbacks: SessionCallbacks,
   /** Starts a game straight away with this setup. */
-  initial?: { config: Config } & StartOptions,
+  initial?: InitialGame<Config, State>,
 ): LocalSession<Config, State, Event> {
-  const [state, setState] = useState<State | null>(() =>
-    initial && geo ? startGame(rules, geo, initial.config, initial) : null,
-  )
+  const [state, setState] = useState<State | null>(() => {
+    if (!initial || !geo) return null
+    return initial.resume ?? startGame(rules, geo, initial.config, initial)
+  })
   const stateRef = useRef<State | null>(state)
   const callbacksRef = useRef(callbacks)
   useEffect(() => {
@@ -91,6 +98,24 @@ export function useLocalSession<Config, State, Event extends { type: string } = 
   }, [deadline, send])
 
   return { state, start, send, end }
+}
+
+/** Stops a game's clock while `paused`, such as while the rules are open over it. */
+export function usePauseWhile<Event>(
+  session: Pick<LocalSession<unknown, unknown, Event>, 'send'>,
+  paused: boolean,
+) {
+  const { send } = session
+  useEffect(() => {
+    if (!paused) return
+    // Every mode's events include SessionEvent's pause and resume.
+    const event = (type: 'pause' | 'resume') =>
+      ({ type, at: Date.now() }) as SessionEvent as unknown as Event
+    send(event('pause'))
+    return () => {
+      send(event('resume'))
+    }
+  }, [paused, send])
 }
 
 function startGame<Config, State, Event>(

@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import type { DailyPuzzle } from '../../game/core/types'
 import { daily, dailySeed, dailyTwist } from '../../game/modes/daily'
 import { dailyNumber, dailyStreak } from '../../game/profile/daily'
+import { loadDailyProgress, saveDailyProgress } from '../../game/profile/dailyProgress'
 import type { RecordedSession } from '../../game/profile/record'
 import { dailyShareText } from '../../game/profile/share'
 import { ShareButton } from '../../ui/ShareButton'
@@ -17,11 +18,16 @@ import type { DailyGame } from './dailyGame'
 export function DailyPlay({ puzzle, onDone }: { puzzle: DailyPuzzle; onDone: () => void }) {
   // The date is fixed when the puzzle opens, so playing across midnight stays on one puzzle.
   const [dateKey] = useState(() => todayKey())
-  const dailyGame: DailyGame = {
-    record: { dateKey, puzzle },
-    share: (recorded) => <DailyShare dateKey={dateKey} recorded={recorded} />,
-  }
   const seed = dailySeed(dateKey, puzzle)
+  const dailyGame = useMemo<DailyGame>(
+    () => ({
+      record: { dateKey, puzzle },
+      share: (recorded) => <DailyShare dateKey={dateKey} recorded={recorded} />,
+      saved: loadDailyProgress(dateKey, puzzle, seed),
+      save: (state) => saveDailyProgress(dateKey, puzzle, state),
+    }),
+    [dateKey, puzzle, seed],
+  )
   const number = dailyNumber(dateKey)
 
   switch (puzzle) {
@@ -38,14 +44,12 @@ export function DailyPlay({ puzzle, onDone }: { puzzle: DailyPuzzle; onDone: () 
           night={dailyTwist(dateKey) === 'night'}
           roundTimeMs={null}
           suggestions
-          decorate={(summary) => ({ ...summary, daily: dailyGame.record })}
+          daily={dailyGame}
           tiles={(results) => [
             { label: 'Correct', value: `${results.filter((r) => r.hit).length} / 5` },
             { label: 'Best streak', value: String(bestStreak(results)) },
             { label: 'Puzzle', value: `#${number}` },
           ]}
-          replayable={false}
-          resultsExtra={(_state, recorded) => dailyGame.share(recorded)}
           onChangeSetup={onDone}
           onHome={onDone}
         />

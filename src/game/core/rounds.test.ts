@@ -4,6 +4,10 @@ import {
   advanceRound,
   currentChallenge,
   expireRound,
+  pauseRounds,
+  reduceRounds,
+  resumeRounds,
+  roundsDeadline,
   roundsViewFor,
   startRounds,
   submitRound,
@@ -123,5 +127,46 @@ describe('rounds engine', () => {
 
     state = submitRound(state, 'cy', pin(3), evaluate)
     expect(Object.keys(roundsViewFor(state, 'cy').submissions[0])).toHaveLength(3)
+  })
+
+  it('stops the clock while paused and adds the paused time back', () => {
+    let state = startRounds(challenges, { players: ['me'], now: 0, roundTimeMs: 20_000 })
+    state = pauseRounds(state, 5_000)
+    expect(roundsDeadline(state)).toBeNull()
+    // Nothing times out while paused, however long the player reads.
+    expect(expireRound(state, 60_000, evaluate)).toBe(state)
+
+    state = resumeRounds(state, 65_000)
+    expect(state.pausedAt).toBeNull()
+    expect(roundsDeadline(state)).toBe(80_000)
+    expect(expireRound(state, 79_999, evaluate).phase).toBe('open')
+    expect(expireRound(state, 80_000, evaluate).phase).toBe('revealed')
+  })
+
+  it('accepts a submission made while paused, as of the moment the clock stopped', () => {
+    let state = startRounds(challenges, { players: ['me'], now: 0, roundTimeMs: 1_000 })
+    state = pauseRounds(state, 500)
+    expect(submitRound(state, 'me', pin(1, 9_000), evaluate).phase).toBe('revealed')
+  })
+
+  it('ignores pauses in untimed rounds and repeated pauses', () => {
+    const untimed = startRounds(challenges, { players: ['me'], now: 0 })
+    expect(pauseRounds(untimed, 10)).toBe(untimed)
+    const timed = pauseRounds(
+      startRounds(challenges, { players: ['me'], now: 0, roundTimeMs: 1_000 }),
+      10,
+    )
+    expect(pauseRounds(timed, 20)).toBe(timed)
+  })
+
+  it('handles the shared session events', () => {
+    let state = startRounds(challenges, { players: ['me'], now: 0, roundTimeMs: 1_000 })
+    state = reduceRounds(state, { type: 'pause', at: 100 }, evaluate)
+    state = reduceRounds(state, { type: 'resume', at: 600 }, evaluate)
+    expect(state.deadline).toBe(1_500)
+    state = reduceRounds(state, { type: 'tick', at: 1_500 }, evaluate)
+    expect(state.phase).toBe('revealed')
+    state = reduceRounds(state, { type: 'next', at: 1_600 }, evaluate)
+    expect(state).toMatchObject({ round: 1, deadline: 2_600 })
   })
 })

@@ -8,6 +8,9 @@ export type SessionEvent =
   /** Lets timers expire; sent regularly by whoever hosts the game. */
   | { type: 'tick'; at: number }
   | { type: 'next'; at: number }
+  /** Stops the clock while the player reads something over the game, such as the rules. */
+  | { type: 'pause'; at: number }
+  | { type: 'resume'; at: number }
 
 export interface StartParams<Config> {
   config: Config

@@ -29,7 +29,7 @@ import { modeInfo } from '../modes'
 import { useTestHook } from '../testHook'
 import { useGameStage } from '../useGameStage'
 import { useIntro } from '../useIntro'
-import { useLocalSession } from '../useLocalSession'
+import { useLocalSession, usePauseWhile } from '../useLocalSession'
 
 /** How long the last answer stays painted on the globe. */
 const FLASH_MS = 1200
@@ -77,6 +77,7 @@ export function RushGame({ config, seed, onChangeSetup, onHome }: RushGameProps)
     // The clock should not run while the first-time intro is being read.
     intro.open ? undefined : { config, seed },
   )
+  usePauseWhile(session, intro.open)
   const state = session.state
   const closeIntro = () => {
     intro.close()
@@ -225,6 +226,7 @@ export function RushGame({ config, seed, onChangeSetup, onHome }: RushGameProps)
           <TimerBar
             deadline={state.clockEndsAt}
             totalMs={RUSH_START_MS}
+            pausedAt={state.pausedAt}
             onTick={(seconds) => seconds <= 5 && play('tick')}
           />
         )}

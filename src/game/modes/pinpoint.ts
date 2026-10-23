@@ -3,10 +3,9 @@ import { evaluateChallenge, type ScoringOptions } from '../core/evaluate'
 import type { ModeRules } from '../core/mode'
 import { createRandom } from '../core/random'
 import {
-  advanceRound,
-  expireRound,
+  reduceRounds,
+  roundsDeadline,
   startRounds,
-  submitRound,
   totalPoints,
   type RoundsState,
 } from '../core/rounds'
@@ -117,24 +116,15 @@ export const pinpoint: ModeRules<PinpointConfig, PinpointState> = {
       submission: Parameters<typeof evaluateChallenge>[2],
     ) => evaluateChallenge(geo, challenge, submission, options)
 
-    switch (event.type) {
-      case 'submit':
-        return {
-          ...state,
-          rounds: submitRound(state.rounds, event.playerId, event.submission, evaluate),
-        }
-      case 'tick':
-        return { ...state, rounds: expireRound(state.rounds, event.at, evaluate) }
-      case 'next': {
-        const rounds = advanceRound(state.rounds, event.at)
-        return { ...state, rounds, endedAt: rounds.phase === 'finished' ? event.at : null }
-      }
-    }
+    const rounds = reduceRounds(state.rounds, event, evaluate)
+    if (rounds === state.rounds) return state
+    const ended = rounds.phase === 'finished' && event.type === 'next'
+    return { ...state, rounds, endedAt: ended ? event.at : state.endedAt }
   },
 
   isFinished: (state) => state.rounds.phase === 'finished',
 
-  deadline: (state) => state.rounds.deadline,
+  deadline: (state) => roundsDeadline(state.rounds),
 
   outcomesBetween(previous, next, playerId) {
     const skill = pinpointSkill(next.config)

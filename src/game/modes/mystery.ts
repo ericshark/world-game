@@ -91,8 +91,11 @@ export const mystery: ModeRules<MysteryConfig, MysteryState, MysteryEvent> = {
   reduce(state, event, geo) {
     if (state.endedAt !== null) return state
     switch (event.type) {
+      // No clock to stop.
       case 'tick':
       case 'next':
+      case 'pause':
+      case 'resume':
         return state
       case 'hint':
         if (event.playerId !== state.player || state.hintUsed) return state

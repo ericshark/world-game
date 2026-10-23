@@ -90,4 +90,16 @@ describe('rush', () => {
   it('has the documented multiplier steps', () => {
     expect([1, 3, 6, 10, 15].map(rushMultiplier)).toEqual([1, 2, 3, 4, 5])
   })
+
+  it('stops the clock while paused', () => {
+    let state = rush.reduce(start(), { type: 'pause', at: 10_000 }, geo)
+    expect(rush.deadline(state)).toBeNull()
+    expect(rush.reduce(state, { type: 'tick', at: 90_000 }, geo).endedAt).toBeNull()
+    // No answers while the game is hidden behind the rules.
+    expect(hit(state, 11_000)).toBe(state)
+
+    state = rush.reduce(state, { type: 'resume', at: 40_000 }, geo)
+    expect(state.clockEndsAt).toBe(RUSH_START_MS + 30_000)
+    expect(rush.deadline(state)).toBe(RUSH_START_MS + 30_000)
+  })
 })

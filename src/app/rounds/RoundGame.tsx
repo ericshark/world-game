@@ -1,14 +1,9 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { play, vibrate } from '../../audio/sound'
 import type { LonLat } from '../../geo/coords'
 import type { ModeRules } from '../../game/core/mode'
-import type { RoundsState } from '../../game/core/rounds'
-import {
-  LOCAL_PLAYER,
-  type Challenge,
-  type RoundResult,
-  type SessionSummary,
-} from '../../game/core/types'
+import { roundsDeadline, type RoundsState } from '../../game/core/rounds'
+import { LOCAL_PLAYER, type Challenge, type RoundResult } from '../../game/core/types'
 import type { RecordedSession } from '../../game/profile/record'
 import type { Units } from '../../game/profile/settings'
 import type { StatsByCountry } from '../../game/profile/stats'
@@ -25,12 +20,13 @@ import { useGameKeys } from '../../ui/useGameKeys'
 import { useApp } from '../AppContext'
 import { celebrates } from '../celebrate'
 import { useChallenge } from '../challenge'
+import { useSaveDailyProgress, type DailyGame } from '../daily/dailyGame'
 import { useStagePicking, useStageScene } from '../globeStage'
 import { trailingHits } from '../streaks'
 import { useTestHook } from '../testHook'
 import { useGameStage } from '../useGameStage'
 import { useIntro } from '../useIntro'
-import { useLocalSession } from '../useLocalSession'
+import { useLocalSession, usePauseWhile } from '../useLocalSession'
 import { Prompt } from './Prompt'
 import { RoundInput } from './RoundInput'
 import { roundScene } from './scene'
@@ -65,13 +61,9 @@ export interface RoundGameProps<Config, State extends RoundModeState> {
   stats?: StatsByCountry
   /** A fixed seed: daily puzzles and challenge links. */
   seed?: string
-  /** Adjusts the summary before it is recorded (e.g. marks a daily puzzle). */
-  decorate?: (summary: SessionSummary) => SessionSummary
+  /** Set when this game is one of today's daily puzzles: one attempt, then share. */
+  daily?: DailyGame
   tiles: (results: RoundResult[], units: Units) => { label: string; value: string }[]
-  /** Daily puzzles cannot be replayed. */
-  replayable?: boolean
-  /** Extra content on the results screen, such as share buttons. */
-  resultsExtra?: (state: State, recorded: RecordedSession) => ReactNode
   onChangeSetup: () => void
   onHome: () => void
 }
@@ -84,7 +76,7 @@ export interface RoundGameProps<Config, State extends RoundModeState> {
 export function RoundGame<Config, State extends RoundModeState>(
   props: RoundGameProps<Config, State>,
 ) {
-  const { rules, config, mode, roundTimeMs, suggestions, stats, seed } = props
+  const { rules, config, mode, roundTimeMs, suggestions, stats, seed, daily } = props
   const app = useApp()
   const { geo, preferences } = app
   const stage = useGameStage({ night: props.night })
@@ -102,14 +94,16 @@ export function RoundGame<Config, State extends RoundModeState>(
     {
       onOutcomes: app.recordOutcomes,
       onFinish: (summary) => {
-        const result = app.finishSession(props.decorate ? props.decorate(summary) : summary)
+        const result = app.finishSession(daily ? { ...summary, daily: daily.record } : summary)
         setRecorded(result)
         play(celebrates(result) ? 'best' : 'finish')
       },
     },
-    { config, stats, seed },
+    { config, stats, seed, resume: daily?.saved as State | undefined },
   )
+  usePauseWhile(session, intro.open)
   const state = session.state
+  useSaveDailyProgress(daily, state)
   const rounds = state?.rounds
   const open = rounds?.phase === 'open'
   const challenge = rounds && rounds.phase !== 'finished' ? rounds.challenges[rounds.round] : null
@@ -214,7 +208,7 @@ export function RoundGame<Config, State extends RoundModeState>(
 
   // A timed round keeps whatever pin is down when time runs out. It is stamped no later than
   // the deadline: a busy main thread can fire this timer late, and the pin was down in time.
-  const deadline = open ? rounds.deadline : null
+  const deadline = open ? roundsDeadline(rounds) : null
   useEffect(() => {
     if (deadline === null || !placing) return
     const timeout = window.setTimeout(
@@ -280,11 +274,11 @@ export function RoundGame<Config, State extends RoundModeState>(
           points: results[index].points,
           tone: gradeOf(results[index]).tone,
         }))}
-        onPlayAgain={props.replayable === false ? undefined : playAgain}
+        onPlayAgain={daily ? undefined : playAgain}
         onChangeSetup={props.onChangeSetup}
         onHome={props.onHome}
       >
-        {props.resultsExtra?.(state, recorded)}
+        {daily?.share(recorded)}
       </ResultsScreen>
     )
   }
@@ -295,6 +289,7 @@ export function RoundGame<Config, State extends RoundModeState>(
     <TimerBar
       deadline={rounds.deadline}
       totalMs={roundTimeMs}
+      pausedAt={rounds.pausedAt}
       onTick={(seconds) => seconds <= 5 && play('tick')}
     />
   )

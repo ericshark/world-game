@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { openGame, pinTarget } from './helpers'
+import { openGame, pinTarget, snapshot } from './helpers'
 
 const DAY = '/?date=2026-10-21#/'
 
@@ -28,6 +28,15 @@ test('Daily World: five rounds once a day, then share', async ({ page }) => {
   await pinTarget(page) // 1: find
   await confirm()
   await next()
+
+  // Leaving part-way through keeps the attempt: it carries on rather than starting over.
+  const target = (await snapshot(page)).targetId
+  await page.getByRole('button', { name: 'Quit' }).click()
+  await page.getByRole('button', { name: /^Daily Five/ }).click()
+  await page.waitForFunction(() => window.__worldGame !== undefined)
+  await expect.poll(async () => (await snapshot(page)).round).toBe(1)
+  expect((await snapshot(page)).targetId).toBe(target)
+
   await answer(page, 'Japan') // 2: name it
   await next()
   await answer(page, 'Brazil') // 3: think rare, then place the answer

@@ -53,6 +53,8 @@ export interface RushState {
   endedAt: number | null
   /** When the clock runs out; null in sudden death. */
   clockEndsAt: number | null
+  /** Set while the clock is stopped; clockEndsAt moves on by the paused time when it resumes. */
+  pausedAt: number | null
   /** Unused targets from easiest to hardest band, each band shuffled. */
   bands: string[][]
   current: string | null
@@ -98,6 +100,7 @@ export const rush: ModeRules<RushConfig, RushState, RushEvent> = {
       startedAt: now,
       endedAt: null,
       clockEndsAt: config.suddenDeath ? null : now + RUSH_START_MS,
+      pausedAt: null,
       bands,
       current: null,
       answers: [],
@@ -112,17 +115,29 @@ export const rush: ModeRules<RushConfig, RushState, RushEvent> = {
     if (state.endedAt !== null) return state
     switch (event.type) {
       case 'tick':
-        return state.clockEndsAt !== null && event.at >= state.clockEndsAt
+        return state.clockEndsAt !== null &&
+          state.pausedAt === null &&
+          event.at >= state.clockEndsAt
           ? { ...state, endedAt: state.clockEndsAt }
           : state
       case 'next':
         return state
+      case 'pause':
+        return state.pausedAt === null ? { ...state, pausedAt: event.at } : state
+      case 'resume': {
+        if (state.pausedAt === null) return state
+        const paused = Math.max(0, event.at - state.pausedAt)
+        const clockEndsAt = state.clockEndsAt === null ? null : state.clockEndsAt + paused
+        return { ...state, clockEndsAt, pausedAt: null }
+      }
       case 'skip':
         if (event.playerId !== state.player || state.config.suddenDeath) return state
+        if (state.pausedAt !== null) return state
         return answer(state, skipAnswer(state, event.at))
       case 'submit': {
         const { pin, at } = event.submission
         if (event.playerId !== state.player || !pin || !state.current) return state
+        if (state.pausedAt !== null) return state
         if (state.clockEndsAt !== null && at >= state.clockEndsAt) return state
         return answer(state, pinAnswer(state, geo, pin, at))
       }
@@ -131,7 +146,8 @@ export const rush: ModeRules<RushConfig, RushState, RushEvent> = {
 
   isFinished: (state) => state.endedAt !== null,
 
-  deadline: (state) => (state.endedAt === null ? state.clockEndsAt : null),
+  deadline: (state) =>
+    state.endedAt === null && state.pausedAt === null ? state.clockEndsAt : null,
 
   outcomesBetween(previous, next) {
     return next.answers.slice(previous.answers.length).flatMap(outcomeOf)

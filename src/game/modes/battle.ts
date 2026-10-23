@@ -160,7 +160,10 @@ export const battle: ModeRules<BattleConfig, BattleState, BattleEvent> = {
           ? advance(next, event.at)
           : next
       }
+      // Rounds move on by readiness and the clock; nobody can stop a shared clock.
       case 'next':
+      case 'pause':
+      case 'resume':
         return state
     }
   },

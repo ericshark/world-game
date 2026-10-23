@@ -12,6 +12,7 @@ import {
   mysteryScore,
   type MysteryConfig,
   type MysteryGuess,
+  type MysteryState,
 } from '../../game/modes/mystery'
 import type { RecordedSession } from '../../game/profile/record'
 import { frameCountry, randomOverview } from '../../globe/framing'
@@ -25,7 +26,7 @@ import { ResultCard } from '../../ui/ResultCard'
 import { ResultsScreen } from '../../ui/ResultsScreen'
 import { useApp } from '../AppContext'
 import { useChallenge } from '../challenge'
-import type { DailyGame } from '../daily/dailyGame'
+import { useSaveDailyProgress, type DailyGame } from '../daily/dailyGame'
 import { celebrates } from '../celebrate'
 import { useStagePicking, useStageScene } from '../globeStage'
 import { modeInfo } from '../modes'
@@ -67,9 +68,10 @@ export function MysteryGame({ config, seed, daily, onChangeSetup, onHome }: Myst
         if (celebrates(result)) play('best')
       },
     },
-    { config, seed },
+    { config, seed, resume: daily?.saved as MysteryState | undefined },
   )
   const state = session.state
+  useSaveDailyProgress(daily, state)
   const finished = Boolean(state && state.endedAt !== null)
 
   // Zoomed out to start; at the end, fly to the mystery country.

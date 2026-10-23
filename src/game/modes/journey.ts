@@ -145,8 +145,11 @@ export const journey: ModeRules<JourneyConfig, JourneyState, JourneyEvent> = {
   reduce(state, event, geo) {
     if (state.endedAt !== null) return state
     switch (event.type) {
+      // No clock to stop.
       case 'tick':
       case 'next':
+      case 'pause':
+      case 'resume':
         return state
       case 'hint':
         if (event.playerId !== state.player) return state

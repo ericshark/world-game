@@ -1,7 +1,8 @@
 import { useEffect, useState, type CSSProperties } from 'react'
 import type { DailyPuzzle } from '../../game/core/types'
-import { dailyTwist } from '../../game/modes/daily'
+import { dailySeed, dailyTwist } from '../../game/modes/daily'
 import { dailyNumber, dailyStreak, dateKeyBefore } from '../../game/profile/daily'
+import { loadDailyProgress } from '../../game/profile/dailyProgress'
 import { dailyShareText } from '../../game/profile/share'
 import { formatNumber } from '../../screens/format'
 import { Icon, type IconName } from '../../ui/Icon'
@@ -88,6 +89,8 @@ export function DailyScreen({
         <div className="mode-grid daily__puzzles">
           {PUZZLES.map(({ puzzle, title, text, icon }) => {
             const result = today[puzzle]
+            const started =
+              !result && loadDailyProgress(dateKey, puzzle, dailySeed(dateKey, puzzle))
             return (
               <button
                 key={puzzle}
@@ -105,7 +108,11 @@ export function DailyScreen({
                 <span className="mode-tile__text">
                   <span className="mode-tile__title">{title}</span>
                   <span className="mode-tile__tagline">
-                    {result ? `Done · ${formatNumber(result.score)} points` : text}
+                    {result
+                      ? `Done · ${formatNumber(result.score)} points`
+                      : started
+                        ? 'In progress · carry on where you left off'
+                        : text}
                   </span>
                 </span>
                 {!result && <Icon name="play" size={16} />}

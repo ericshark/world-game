@@ -126,3 +126,17 @@ test('a hard round keeps the pin that is down when time runs out', async ({ page
   await expect(page.getByTestId('round-result')).toBeVisible({ timeout: 25_000 })
   await expect(page.getByTestId('round-result')).not.toContainText("Time's up")
 })
+
+test('the round clock stops while the rules are open', async ({ page }, info) => {
+  test.skip(info.project.name !== 'desktop', 'Clock behaviour does not depend on the screen.')
+  await openGame(page)
+  await startPinpoint(page, ['Hard'])
+  const seconds = page.locator('.timer__seconds')
+  await page.getByRole('button', { name: 'How to play' }).click()
+  const shown = await seconds.textContent()
+  await page.waitForTimeout(2_500)
+  await expect(seconds).toHaveText(shown!)
+
+  await page.getByRole('button', { name: 'Got it' }).click()
+  await expect(seconds).not.toHaveText(shown!, { timeout: 3_000 })
+})

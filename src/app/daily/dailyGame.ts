@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useEffect, type ReactNode } from 'react'
 import type { SessionSummary } from '../../game/core/types'
 import type { RecordedSession } from '../../game/profile/record'
 
@@ -7,4 +7,14 @@ export interface DailyGame {
   record: NonNullable<SessionSummary['daily']>
   /** Share panel for the results screen. */
   share: (recorded: RecordedSession) => ReactNode
+  /** Today's unfinished attempt, to carry on from: a daily puzzle cannot be restarted. */
+  saved: unknown
+  save: (state: { seed: string }) => void
+}
+
+/** Saves a daily puzzle after every move, so leaving it part-way does not start it over. */
+export function useSaveDailyProgress(daily: DailyGame | undefined, state: { seed: string } | null) {
+  useEffect(() => {
+    if (daily && state) daily.save(state)
+  }, [daily, state])
 }
