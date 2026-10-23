@@ -1,14 +1,11 @@
-import { useState } from 'react'
-import { play } from '../../audio/sound'
 import { LOCAL_PLAYER } from '../../game/core/types'
 import { battle, battleViewFor } from '../../game/modes/battle'
 import { cosmeticById, PIN_SKINS } from '../../game/profile/cosmetics'
-import type { RecordedSession } from '../../game/profile/record'
 import { HowToPlay } from '../../ui/HowToPlay'
 import { useApp } from '../AppContext'
-import { celebrates } from '../celebrate'
 import { modeInfo } from '../modes'
 import { useIntro } from '../useIntro'
+import { useRecordedGame } from '../useRecordedGame'
 import { useLocalSession } from '../useLocalSession'
 import { BattleGame, type MatchHost } from './BattleGame'
 import { localRoster, type BattleSetupConfig } from './setup'
@@ -24,7 +21,7 @@ interface LocalBattleProps {
 export function LocalBattle({ config, seed, onHome }: LocalBattleProps) {
   const app = useApp()
   const intro = useIntro('battle')
-  const [recorded, setRecorded] = useState<RecordedSession | null>(null)
+  const { recorded, record, clear: clearRecorded } = useRecordedGame()
   const roster = () =>
     localRoster(config, {
       name: app.preferences.playerName,
@@ -36,11 +33,7 @@ export function LocalBattle({ config, seed, onHome }: LocalBattleProps) {
     app.geo,
     {
       onOutcomes: app.recordOutcomes,
-      onFinish: (summary) => {
-        const result = app.finishSession(summary)
-        setRecorded(result)
-        play(celebrates(result) ? 'best' : 'finish')
-      },
+      onFinish: record,
     },
     // Bots do not wait, so the battle starts once the first-time intro is read.
     intro.open ? undefined : { config: roster(), seed },
@@ -77,7 +70,7 @@ export function LocalBattle({ config, seed, onHome }: LocalBattleProps) {
       host={host}
       recorded={recorded}
       onPlayAgain={() => {
-        setRecorded(null)
+        clearRecorded()
         session.start(roster())
       }}
       onHome={onHome}

@@ -4,7 +4,6 @@ import type { LonLat } from '../../geo/coords'
 import type { ModeRules } from '../../game/core/mode'
 import { roundsDeadline, type RoundsState } from '../../game/core/rounds'
 import { LOCAL_PLAYER, type Challenge, type RoundResult } from '../../game/core/types'
-import type { RecordedSession } from '../../game/profile/record'
 import type { Units } from '../../game/profile/settings'
 import type { StatsByCountry } from '../../game/profile/stats'
 import { frameCountry, frameMany, framePair, randomOverview } from '../../globe/framing'
@@ -12,13 +11,12 @@ import { FactCard } from '../../ui/FactCard'
 import { gradeOf } from '../../ui/grades'
 import { HowToPlay, type HowToStep } from '../../ui/HowToPlay'
 import { Hud } from '../../ui/Hud'
-import { Icon } from '../../ui/Icon'
 import { ResultCard } from '../../ui/ResultCard'
 import { ResultsScreen } from '../../ui/ResultsScreen'
 import { TimerBar } from '../../ui/TimerBar'
 import { useGameKeys } from '../../ui/useGameKeys'
 import { useApp } from '../AppContext'
-import { celebrates } from '../celebrate'
+import { Crosshair } from '../Crosshair'
 import { useChallenge } from '../challenge'
 import { useSaveDailyProgress, type DailyGame } from '../daily/dailyGame'
 import { useStagePicking, useStageScene } from '../globeStage'
@@ -26,6 +24,7 @@ import { trailingHits } from '../streaks'
 import { useTestHook } from '../testHook'
 import { useGameStage } from '../useGameStage'
 import { useIntro } from '../useIntro'
+import { useRecordedGame } from '../useRecordedGame'
 import { useLocalSession, usePauseWhile } from '../useLocalSession'
 import { Prompt } from './Prompt'
 import { RoundInput } from './RoundInput'
@@ -85,7 +84,7 @@ export function RoundGame<Config, State extends RoundModeState>(
   const draftRef = useRef<LonLat | null>(null)
   const [answerId, setAnswerId] = useState<string | null>(null)
   const [hintUsed, setHintUsed] = useState(false)
-  const [recorded, setRecorded] = useState<RecordedSession | null>(null)
+  const { recorded, record, clear: clearRecorded } = useRecordedGame({ daily })
   const [firstGame] = useState(() => app.profile.history.length === 0)
 
   const session = useLocalSession(
@@ -93,11 +92,7 @@ export function RoundGame<Config, State extends RoundModeState>(
     geo,
     {
       onOutcomes: app.recordOutcomes,
-      onFinish: (summary) => {
-        const result = app.finishSession(daily ? { ...summary, daily: daily.record } : summary)
-        setRecorded(result)
-        play(celebrates(result) ? 'best' : 'finish')
-      },
+      onFinish: record,
     },
     { config, stats, seed, resume: daily?.saved as State | undefined },
   )
@@ -127,7 +122,7 @@ export function RoundGame<Config, State extends RoundModeState>(
   }
 
   const playAgain = () => {
-    setRecorded(null)
+    clearRecorded()
     resetRound()
     session.start(config, { stats })
   }
@@ -325,11 +320,7 @@ export function RoundGame<Config, State extends RoundModeState>(
         {timer}
       </div>
 
-      {preferences.placement === 'crosshair' && placing && open && (
-        <div className="crosshair" aria-hidden="true">
-          <Icon name="crosshair" size={36} />
-        </div>
-      )}
+      <Crosshair active={placing && open} />
 
       <div className="action-bar">
         {result ? (

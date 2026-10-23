@@ -23,6 +23,7 @@ import { ResultsScreen } from '../../ui/ResultsScreen'
 import { TimerBar } from '../../ui/TimerBar'
 import { useGameKeys } from '../../ui/useGameKeys'
 import { useApp } from '../AppContext'
+import { Crosshair } from '../Crosshair'
 import { useStagePicking, useStageScene } from '../globeStage'
 import { modeInfo } from '../modes'
 import { Prompt } from '../rounds/Prompt'
@@ -62,7 +63,7 @@ interface Draft {
 }
 
 export function BattleGame({ host, recorded, onPlayAgain, onHome }: BattleGameProps) {
-  const { geo, preferences } = useApp()
+  const { geo } = useApp()
   const stage = useGameStage()
   const intro = useIntro('battle')
   const { view, me } = host
@@ -271,11 +272,7 @@ export function BattleGame({ host, recorded, onPlayAgain, onHome }: BattleGamePr
         )}
       </div>
 
-      {preferences.placement === 'crosshair' && placing && open && !submitted && (
-        <div className="crosshair" aria-hidden="true">
-          <Icon name="crosshair" size={36} />
-        </div>
-      )}
+      <Crosshair active={placing && open && !submitted} />
 
       <div className="action-bar">
         {rounds.phase === 'revealed' ? (

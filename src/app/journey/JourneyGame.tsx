@@ -14,7 +14,6 @@ import {
   type JourneyState,
   type JourneyStep,
 } from '../../game/modes/journey'
-import type { RecordedSession } from '../../game/profile/record'
 import { frameMany } from '../../globe/framing'
 import { HowToPlay } from '../../ui/HowToPlay'
 import { Hud } from '../../ui/Hud'
@@ -24,12 +23,12 @@ import { useGameKeys } from '../../ui/useGameKeys'
 import { useApp } from '../AppContext'
 import { useChallenge } from '../challenge'
 import { useSaveDailyProgress, type DailyGame } from '../daily/dailyGame'
-import { celebrates } from '../celebrate'
 import { useStagePicking, useStageScene } from '../globeStage'
 import { modeInfo } from '../modes'
 import { useTestHook } from '../testHook'
 import { useGameStage } from '../useGameStage'
 import { useIntro } from '../useIntro'
+import { useRecordedGame } from '../useRecordedGame'
 import { useLocalSession } from '../useLocalSession'
 import { journeyScene } from './scene'
 
@@ -50,7 +49,7 @@ export function JourneyGame({ config, seed, daily, onChangeSetup, onHome }: Jour
   const intro = useIntro('journey')
   const [draftPin, setDraftPin] = useState<LonLat | null>(null)
   const [showConnections, setShowConnections] = useState(false)
-  const [recorded, setRecorded] = useState<RecordedSession | null>(null)
+  const { recorded, record, clear: clearRecorded } = useRecordedGame({ daily })
   const [showSummary, setShowSummary] = useState(false)
 
   const session = useLocalSession(
@@ -58,11 +57,7 @@ export function JourneyGame({ config, seed, daily, onChangeSetup, onHome }: Jour
     geo,
     {
       onOutcomes: app.recordOutcomes,
-      onFinish: (summary) => {
-        const result = app.finishSession(daily ? { ...summary, daily: daily.record } : summary)
-        setRecorded(result)
-        play(celebrates(result) ? 'best' : 'finish')
-      },
+      onFinish: record,
     },
     { config, seed, resume: daily?.saved as JourneyState | undefined },
   )
@@ -106,7 +101,7 @@ export function JourneyGame({ config, seed, daily, onChangeSetup, onHome }: Jour
   }
 
   const playAgain = () => {
-    setRecorded(null)
+    clearRecorded()
     setShowSummary(false)
     setDraftPin(null)
     setShowConnections(false)

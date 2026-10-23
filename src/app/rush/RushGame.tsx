@@ -3,7 +3,6 @@ import { play, vibrate } from '../../audio/sound'
 import type { LonLat } from '../../geo/coords'
 import { LOCAL_PLAYER } from '../../game/core/types'
 import { rush, RUSH_START_MS, type RushAnswer, type RushConfig } from '../../game/modes/rush'
-import type { RecordedSession } from '../../game/profile/record'
 import { randomOverview } from '../../globe/framing'
 import {
   CLICKED_COLOR,
@@ -17,18 +16,18 @@ import { formatDistance, formatNumber } from '../../screens/format'
 import type { Tone } from '../../ui/grades'
 import { HowToPlay } from '../../ui/HowToPlay'
 import { Hud } from '../../ui/Hud'
-import { Icon } from '../../ui/Icon'
 import { ResultsScreen } from '../../ui/ResultsScreen'
 import { TimerBar } from '../../ui/TimerBar'
 import { useGameKeys } from '../../ui/useGameKeys'
 import { useApp } from '../AppContext'
+import { Crosshair } from '../Crosshair'
 import { useChallenge } from '../challenge'
-import { celebrates } from '../celebrate'
 import { useStagePicking, useStageScene } from '../globeStage'
 import { modeInfo } from '../modes'
 import { useTestHook } from '../testHook'
 import { useGameStage } from '../useGameStage'
 import { useIntro } from '../useIntro'
+import { useRecordedGame } from '../useRecordedGame'
 import { useLocalSession, usePauseWhile } from '../useLocalSession'
 
 /** How long the last answer stays painted on the globe. */
@@ -59,7 +58,7 @@ export function RushGame({ config, seed, onChangeSetup, onHome }: RushGameProps)
   const app = useApp()
   const { geo, preferences } = app
   const stage = useGameStage()
-  const [recorded, setRecorded] = useState<RecordedSession | null>(null)
+  const { recorded, record, clear: clearRecorded } = useRecordedGame()
   const [flash, setFlash] = useState<RushAnswer | null>(null)
   const intro = useIntro('rush')
 
@@ -68,11 +67,7 @@ export function RushGame({ config, seed, onChangeSetup, onHome }: RushGameProps)
     geo,
     {
       onOutcomes: app.recordOutcomes,
-      onFinish: (summary) => {
-        const result = app.finishSession(summary)
-        setRecorded(result)
-        play(celebrates(result) ? 'best' : 'finish')
-      },
+      onFinish: record,
     },
     // The clock should not run while the first-time intro is being read.
     intro.open ? undefined : { config, seed },
@@ -127,7 +122,7 @@ export function RushGame({ config, seed, onChangeSetup, onHome }: RushGameProps)
   }
 
   const playAgain = () => {
-    setRecorded(null)
+    clearRecorded()
     setFlash(null)
     session.start(config)
   }
@@ -237,11 +232,7 @@ export function RushGame({ config, seed, onChangeSetup, onHome }: RushGameProps)
         )}
       </div>
 
-      {preferences.placement === 'crosshair' && (
-        <div className="crosshair" aria-hidden="true">
-          <Icon name="crosshair" size={36} />
-        </div>
-      )}
+      <Crosshair active={playing} />
 
       <div className="action-bar">
         <div className="panel placing">

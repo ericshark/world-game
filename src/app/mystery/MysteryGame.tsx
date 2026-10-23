@@ -14,7 +14,6 @@ import {
   type MysteryGuess,
   type MysteryState,
 } from '../../game/modes/mystery'
-import type { RecordedSession } from '../../game/profile/record'
 import { frameCountry, randomOverview } from '../../globe/framing'
 import { TARGET_PAINT, type GlobeScene } from '../../globe/scene'
 import { formatDistance } from '../../screens/format'
@@ -27,12 +26,12 @@ import { ResultsScreen } from '../../ui/ResultsScreen'
 import { useApp } from '../AppContext'
 import { useChallenge } from '../challenge'
 import { useSaveDailyProgress, type DailyGame } from '../daily/dailyGame'
-import { celebrates } from '../celebrate'
 import { useStagePicking, useStageScene } from '../globeStage'
 import { modeInfo } from '../modes'
 import { useTestHook } from '../testHook'
 import { useGameStage } from '../useGameStage'
 import { useIntro } from '../useIntro'
+import { useRecordedGame } from '../useRecordedGame'
 import { useLocalSession } from '../useLocalSession'
 import { heatOf, heatPaint } from './heat'
 
@@ -53,7 +52,7 @@ export function MysteryGame({ config, seed, daily, onChangeSetup, onHome }: Myst
   const { geo, preferences } = app
   const stage = useGameStage()
   const intro = useIntro('mystery')
-  const [recorded, setRecorded] = useState<RecordedSession | null>(null)
+  const { recorded, record, clear: clearRecorded } = useRecordedGame({ daily, finishSound: false })
   const [showSummary, setShowSummary] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
 
@@ -62,11 +61,7 @@ export function MysteryGame({ config, seed, daily, onChangeSetup, onHome }: Myst
     geo,
     {
       onOutcomes: app.recordOutcomes,
-      onFinish: (summary) => {
-        const result = app.finishSession(daily ? { ...summary, daily: daily.record } : summary)
-        setRecorded(result)
-        if (celebrates(result)) play('best')
-      },
+      onFinish: record,
     },
     { config, seed, resume: daily?.saved as MysteryState | undefined },
   )
@@ -118,7 +113,7 @@ export function MysteryGame({ config, seed, daily, onChangeSetup, onHome }: Myst
   }
 
   const playAgain = () => {
-    setRecorded(null)
+    clearRecorded()
     setShowSummary(false)
     setMessage(null)
     session.start(config)
