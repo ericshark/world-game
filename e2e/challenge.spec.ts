@@ -28,6 +28,8 @@ test('a challenge link replays the same game against your score', async ({
   expect((await snapshot(page)).targetId).toBe(firstTarget)
 
   await pinTarget(page)
+  // GeoRush moves on by itself; pin the next country only once it is the target.
+  await expect.poll(async () => (await snapshot(page)).targetId).not.toBe(firstTarget)
   await pinTarget(page)
   await placePin(page, [-150, -40])
   await expect(page.locator('.results__rival')).toContainText('You beat the challenge')
