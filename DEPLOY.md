@@ -350,11 +350,12 @@ database.
 
 ## If something goes wrong
 
-| Symptom                                                       | Likely cause and fix                                                                                                      |
-| ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| Deploy fails: `DAILY_SECRET must be set`                      | Step 4 was skipped. Run `fly secrets list` and import again.                                                              |
-| Site loads, but sign-in or rooms say "came from another site" | `PUBLIC_ORIGIN` isn't the address in the browser bar. Fix it in `fly.toml` (or add `ALLOWED_ORIGINS`) and deploy.         |
-| Sign-in email never arrives                                   | The Resend domain isn't verified yet, `MAIL_FROM` isn't on that domain, or the 100-a-day limit was hit. Check `fly logs`. |
-| Log says `no-backup`                                          | The `LITESTREAM_*` secrets are missing or misspelled.                                                                     |
-| Players get "Slow down" or can't connect                      | `TRUST_PROXY` or `CLIENT_IP_HEADER` were removed from `fly.toml`, or Cloudflare's orange-cloud proxy is on.               |
-| Rooms vanish at random                                        | More than one machine is running (`fly status`). Scale back with `fly scale count 1`.                                     |
+| Symptom                                                       | Likely cause and fix                                                                                                       |
+| ------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| Deploy fails: `DAILY_SECRET must be set`                      | Step 4 was skipped. Run `fly secrets list` and import again.                                                               |
+| Site loads, but sign-in or rooms say "came from another site" | `PUBLIC_ORIGIN` isn't the address in the browser bar. Fix it in `fly.toml` (or add `ALLOWED_ORIGINS`) and deploy.          |
+| Sign-in email never arrives                                   | The Resend domain isn't verified yet, `MAIL_FROM` isn't on that domain, or the 100-a-day limit was hit. Check `fly logs`.  |
+| Log says `no-backup`                                          | The `LITESTREAM_*` secrets are missing or misspelled.                                                                      |
+| Players get "Slow down" or can't connect                      | `TRUST_PROXY` or `CLIENT_IP_HEADER` were removed from `fly.toml`, or Cloudflare's orange-cloud proxy is on.                |
+| A player quotes an error code from "Something went wrong"     | Find it with `fly logs --app world-game-eric --no-tail \| grep <code>`: the `client_error` line has the message and stack. |
+| Rooms vanish at random                                        | More than one machine is running (`fly status`). Scale back with `fly scale count 1`.                                      |

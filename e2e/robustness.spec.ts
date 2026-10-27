@@ -6,9 +6,21 @@ test.skip(({ isMobile }) => isMobile, 'These checks do not depend on the screen 
 test('a crash shows a recovery page with an error id, and the menu is one click away', async ({
   page,
 }) => {
+  // Built sites report the crash to the server; development builds only log it.
+  const reported =
+    process.env.E2E_PRODUCTION === '1'
+      ? page.waitForResponse((response) => response.url().endsWith('/api/client-error'))
+      : null
   await page.goto('/#/crash')
   await expect(page.getByRole('heading', { name: 'Something went wrong' })).toBeVisible()
   await expect(page.getByTestId('error-id')).toHaveText(/^[A-Z0-9]{4,6}$/)
+  if (reported) {
+    const response = await reported
+    expect(response.status()).toBe(204)
+    expect(response.request().postDataJSON().id).toBe(
+      await page.getByTestId('error-id').textContent(),
+    )
+  }
   await expect(page.getByRole('button', { name: 'Reload' })).toBeVisible()
   await page.getByRole('button', { name: 'Back to the menu' }).click()
   await expect(page.getByRole('button', { name: /^Pinpoint/ })).toBeVisible()

@@ -44,6 +44,11 @@ export function PrivacyScreen({ onClose }: { onClose: () => void }) {
               the database.
             </li>
             <li>
+              If the game crashes, your browser sends the error message, where in the code it
+              happened, the screen you were on and a short error code, so the problem can be found
+              and fixed. Nothing else about you is included.
+            </li>
+            <li>
               The service that hosts the game, and any network in front of it, may log addresses as
               they carry traffic.
             </li>

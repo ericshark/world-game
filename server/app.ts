@@ -6,6 +6,7 @@ import { bodyLimit } from 'hono/body-limit'
 import { serveStatic } from '@hono/node-server/serve-static'
 import type { ServerConfig } from './config'
 import { authRoutes } from './auth/routes'
+import { clientErrorRoutes } from './clientErrors'
 import { dailyRoutes } from './daily'
 import { leaderboardRoutes } from './leaderboards'
 import { log } from './log'
@@ -100,6 +101,7 @@ export function createApp(context: AppContext) {
   const auth = authRoutes(api, context)
   dailyRoutes(api, context, auth)
   leaderboardRoutes(api, context, auth)
+  clientErrorRoutes(api, context)
   app.route('/api', api)
   app.all('/api/*', (c) => c.json({ error: 'Not found.' }, 404))
 

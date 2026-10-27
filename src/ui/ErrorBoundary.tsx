@@ -15,6 +15,23 @@ function errorId(): string {
   return Math.random().toString(36).slice(2, 8).toUpperCase()
 }
 
+/** Sends the crash to the server's log, so the id a player quotes can be looked up. */
+function reportCrash(id: string, error: unknown) {
+  if (!import.meta.env.PROD || !navigator.onLine) return
+  const body = JSON.stringify({
+    id,
+    message: error instanceof Error ? error.message : String(error),
+    stack: error instanceof Error ? error.stack : undefined,
+    route: window.location.hash,
+  })
+  fetch('/api/client-error', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body,
+    keepalive: true,
+  }).catch(() => {})
+}
+
 /** Stops a crash in one part of the app from blanking the whole page. */
 export class ErrorBoundary extends Component<Props, State> {
   state: State = { failure: null }
@@ -26,7 +43,9 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: unknown, info: ErrorInfo) {
-    console.error(`[error ${this.state.failure?.id ?? '?'}]`, error, info.componentStack)
+    const id = this.state.failure?.id ?? '?'
+    console.error(`[error ${id}]`, error, info.componentStack)
+    reportCrash(id, error)
   }
 
   render() {

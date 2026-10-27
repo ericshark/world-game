@@ -182,6 +182,8 @@ and use an R2 API token's key pair.
   queue length, players, accounts, daily sessions, matches and memory.
 - Logs are one JSON object per line on standard output (`docker compose logs app`): starts, stops,
   one line per API request (path only, no query string, no email, no address) and errors.
+  Browser crashes arrive as `client_error` lines carrying the code the crash page shows the player
+  (`id`), the message, a short stack and the screen; search for a code a player quotes.
 - CI (`.github/workflows/ci.yml`) runs lint, types, unit tests and an audit, then builds and
   runs the browser tests against the production build in Chromium (desktop and phone) and WebKit.
   Its first run (2026-10-23) failed on four slow or racy tests; see the readiness report.
