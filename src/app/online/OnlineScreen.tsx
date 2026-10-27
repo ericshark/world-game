@@ -59,7 +59,7 @@ export function OnlineScreen({ onClose }: { onClose: () => void }) {
               type="text"
               value={code}
               maxLength={ROOM_CODE_LENGTH}
-              placeholder="ABCD"
+              placeholder="ABCDE"
               autoCapitalize="characters"
               onChange={(event) => setCode(event.target.value.toUpperCase().replace(/[^A-Z]/g, ''))}
             />
@@ -72,10 +72,12 @@ export function OnlineScreen({ onClose }: { onClose: () => void }) {
             Join
           </button>
         </form>
-        <p className="field__hint">
-          Online play needs the battle server running (<code>npm run server</code>). Friends on the
-          same network can join through your computer's address.
-        </p>
+        {import.meta.env.DEV && (
+          <p className="field__hint">
+            Online play needs the battle server running (<code>npm run server</code>). Friends on
+            the same network can join through your computer's address.
+          </p>
+        )}
       </Sheet>
     </>
   )

@@ -99,6 +99,8 @@ export function BattleSetup({ onClose, onPlay }: { onClose: () => void; onPlay: 
       </button>
       <Choice
         label="Opponents' skill"
+        // Chips wrap; four segments with "Cartographer" do not fit a phone's width.
+        layout="chips"
         value={setup.skill}
         onChange={(skill) => update({ skill })}
         options={[

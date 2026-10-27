@@ -127,7 +127,11 @@ function ConnectedRoom({ code, onHome }: { code: string; onHome: () => void }) {
             </>
           ) : connection.status === 'closed' ? (
             <>
-              <p>Can't reach the battle server. Is it running? (npm run server)</p>
+              <p>
+                {import.meta.env.DEV
+                  ? "Can't reach the battle server. Is it running? (npm run server)"
+                  : "Can't reach the game server."}
+              </p>
               <p className="field__hint">Retrying…</p>
               <button type="button" className="button" onClick={onHome}>
                 Back
@@ -362,6 +366,8 @@ function Lobby({
             {settings.bots > 0 && (
               <Choice
                 label="Bot skill"
+                // Chips wrap; four segments with "Cartographer" do not fit a phone's width.
+                layout="chips"
                 value={settings.botSkill}
                 onChange={(botSkill) => configure({ botSkill })}
                 options={BOT_SKILL_OPTIONS}

@@ -1486,6 +1486,13 @@ input {
     padding-inline: 9px;
   }
 
+  /* The scrollbar is hidden, so an option scrolled out of view looks missing on small phones. */
+  @media (max-width: 360px) {
+    .choice--segments .choice__option {
+      padding-inline: 6px;
+    }
+  }
+
   :root {
     --gutter: 12px;
   }
@@ -2598,6 +2605,11 @@ input {
   margin: 0;
 }
 
+/* Lets the bar shrink in a narrow panel (phone landscape) instead of pushing Ready out. */
+.battle-reveal__next .timer__bar {
+  min-width: 80px;
+}
+
 .text-field {
   display: grid;
   gap: 6px;
@@ -2878,6 +2890,29 @@ input {
     align-items: stretch;
     gap: 10px;
     padding: 12px;
+  }
+
+  /* The side column is narrow: the verdict gets its own line, the points and Next share one. */
+  .result-card__main {
+    flex-wrap: wrap;
+    gap: 6px 12px;
+  }
+
+  .result-card__text {
+    flex-basis: 100%;
+  }
+
+  .result-card__points {
+    flex: 1;
+    font-size: 22px;
+  }
+
+  /* The prompt takes the top left, so the battle scoreboard moves to the bottom left. */
+  .scoreboard {
+    top: auto;
+    bottom: calc(12px + var(--safe-bottom));
+    width: min(240px, 30vw);
+    font-size: 12px;
   }
 }
 
