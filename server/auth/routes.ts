@@ -58,7 +58,11 @@ export function authRoutes(
     return c.json({
       player: { id: player.id, nickname: player.nickname },
       account: account ? { email: account.email } : null,
-      providers: { email: mailer !== null, google: oauth.has('google'), github: oauth.has('github') },
+      providers: {
+        email: mailer !== null,
+        google: oauth.has('google'),
+        github: oauth.has('github'),
+      },
     })
   }
 

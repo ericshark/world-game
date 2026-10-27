@@ -11,7 +11,8 @@ Three.js. It has seven ways to play:
 - **Daily World:** the same puzzles for everyone, every day.
 - **World Battle:** play against bots, or friends in private online rooms.
 
-Progress, achievements and personal bests are kept in your browser.
+Progress, achievements and personal bests are kept in your browser, and follow you to other
+devices if you sign in.
 
 ## Run locally
 
