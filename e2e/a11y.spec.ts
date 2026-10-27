@@ -11,7 +11,7 @@ async function audit(page: Page, name: string) {
   const describe = (v: (typeof results.violations)[number]) =>
     `${v.id} (${v.impact}): ${v.help}\n${v.nodes
       .slice(0, 3)
-      .map((n) => `    ${n.target.join(' ')}`)
+      .map((n) => `    ${n.target.join(' ')}: ${n.any[0]?.message ?? ''}`)
       .join('\n')}`
   const minor = results.violations.filter((v) => v.impact !== 'serious' && v.impact !== 'critical')
   if (minor.length > 0) console.log(`[axe] ${name}: ${minor.map((v) => v.id).join(', ')}`)
@@ -22,6 +22,10 @@ async function audit(page: Page, name: string) {
 }
 
 test.describe('accessibility', () => {
+  // Sheets fade in, and mid-fade axe measures half-transparent colours as low contrast. The app
+  // turns animations off for reduced motion, so the audit sees screens as they settle.
+  test.use({ reducedMotion: 'reduce' })
+
   test('home', async ({ page }) => {
     await openGame(page, '/')
     await audit(page, 'home')
