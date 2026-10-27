@@ -6,6 +6,8 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
 COPY . .
+# Shown on the privacy page; Vite reads it at build time (fly.toml passes it as a build arg).
+ARG VITE_PRIVACY_CONTACT
 RUN npm run build
 # Leave only what the server needs at run time.
 RUN npm prune --omit=dev
@@ -15,7 +17,7 @@ ENV NODE_ENV=production \
     PORT=8788 \
     DATABASE_PATH=/data/world-game.sqlite
 WORKDIR /app
-COPY --from=litestream/litestream:0.5 /usr/local/bin/litestream /usr/local/bin/litestream
+COPY --from=litestream/litestream:0.5.17 /usr/local/bin/litestream /usr/local/bin/litestream
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/package.json ./
 COPY --from=build /app/dist ./dist

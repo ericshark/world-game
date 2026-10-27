@@ -66,17 +66,20 @@ export function originGuard(config: ServerConfig): MiddlewareHandler {
 }
 
 /**
- * The address a request really came from. Behind a trusted proxy (Cloudflare, Caddy) that is in a
- * header; trusting the header without a proxy would let anyone pick their own address, so it is
- * opt-in.
+ * The address a request really came from. Behind a trusted proxy (Cloudflare, Caddy, Fly) that is
+ * in a header; trusting the header without a proxy would let anyone pick their own address, so it
+ * is opt-in. A proxy that appends to `X-Forwarded-For` instead of replacing it (Fly does) leaves
+ * the first entry up to the player, so such a proxy's own header is named in `clientIpHeader`.
  */
 export function clientIp(
   headers: IncomingHttpHeaders,
   remote: string | undefined,
-  trustProxy: boolean,
+  { trustProxy, clientIpHeader }: Pick<ServerConfig, 'trustProxy' | 'clientIpHeader'>,
 ): string {
   if (trustProxy) {
-    const forwarded = headers['cf-connecting-ip'] ?? headers['x-forwarded-for']
+    const forwarded = clientIpHeader
+      ? headers[clientIpHeader]
+      : (headers['cf-connecting-ip'] ?? headers['x-forwarded-for'])
     const first = (Array.isArray(forwarded) ? forwarded[0] : forwarded)?.split(',')[0]?.trim()
     if (first) return first
   }

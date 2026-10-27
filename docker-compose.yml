@@ -3,13 +3,24 @@
 # (see docs/deployment.md for the restore drill against MinIO).
 services:
   app:
-    build: .
+    build:
+      context: .
+      args:
+        VITE_PRIVACY_CONTACT: ${VITE_PRIVACY_CONTACT:-}
     ports:
-      - '8789:8788'
+      # Only this machine can reach it; the proxy in front (Caddy) is the way in.
+      - '127.0.0.1:8789:8788'
     environment:
       PUBLIC_ORIGIN: ${PUBLIC_ORIGIN:-http://localhost:8789}
       DAILY_SECRET: ${DAILY_SECRET:?set DAILY_SECRET in .env (openssl rand -hex 32)}
       METRICS_TOKEN: ${METRICS_TOKEN:-}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-}
+      # Set TRUST_PROXY=1 behind Caddy or Cloudflare, or every player shares the proxy's limits.
+      TRUST_PROXY: ${TRUST_PROXY:-}
+      CLIENT_IP_HEADER: ${CLIENT_IP_HEADER:-}
+      LOG_REQUESTS: ${LOG_REQUESTS:-}
+      MAGIC_LINKS_PER_IP_PER_HOUR: ${MAGIC_LINKS_PER_IP_PER_HOUR:-10}
+      NEW_SESSIONS_PER_IP_PER_HOUR: ${NEW_SESSIONS_PER_IP_PER_HOUR:-120}
       RESEND_API_KEY: ${RESEND_API_KEY:-}
       MAIL_FROM: ${MAIL_FROM:-}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}

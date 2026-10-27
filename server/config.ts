@@ -26,6 +26,11 @@ export interface ServerConfig {
   allowedOrigins: string[]
   /** Believe `X-Forwarded-For` and `CF-Connecting-IP`; only set this behind a trusted proxy. */
   trustProxy: boolean
+  /**
+   * With `trustProxy`, the one header that holds the player's address (lower case, e.g.
+   * `fly-client-ip`); null reads `CF-Connecting-IP`, then the first `X-Forwarded-For` entry.
+   */
+  clientIpHeader: string | null
   /** Opens `/admin/counters` to whoever sends this as a bearer token; null keeps it closed. */
   metricsToken: string | null
   /** Write a log line for each API request (on by default in production). */
@@ -68,6 +73,7 @@ export function loadConfig(env: Env = process.env, overrides: Partial<ServerConf
       .map((origin) => origin.trim().replace(/\/$/, ''))
       .filter(Boolean),
     trustProxy: env.TRUST_PROXY === '1',
+    clientIpHeader: env.CLIENT_IP_HEADER?.trim().toLowerCase() || null,
     metricsToken: env.METRICS_TOKEN || null,
     logRequests: env.LOG_REQUESTS ? env.LOG_REQUESTS === '1' : production,
     newSessionsPerIpPerHour: Number(env.NEW_SESSIONS_PER_IP_PER_HOUR ?? 120),

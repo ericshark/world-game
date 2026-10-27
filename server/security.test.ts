@@ -154,12 +154,27 @@ describe('origins', () => {
 describe('client addresses', () => {
   it('ignore forwarding headers unless a proxy is trusted', () => {
     const headers = { 'x-forwarded-for': '203.0.113.9, 10.0.0.1' }
-    expect(clientIp(headers, '10.0.0.1', false)).toBe('10.0.0.1')
-    expect(clientIp(headers, '10.0.0.1', true)).toBe('203.0.113.9')
-    expect(clientIp({ 'cf-connecting-ip': '198.51.100.7', ...headers }, '10.0.0.1', true)).toBe(
+    const untrusted = { trustProxy: false, clientIpHeader: null }
+    const trusted = { trustProxy: true, clientIpHeader: null }
+    expect(clientIp(headers, '10.0.0.1', untrusted)).toBe('10.0.0.1')
+    expect(clientIp(headers, '10.0.0.1', trusted)).toBe('203.0.113.9')
+    expect(clientIp({ 'cf-connecting-ip': '198.51.100.7', ...headers }, '10.0.0.1', trusted)).toBe(
       '198.51.100.7',
     )
-    expect(clientIp({}, undefined, true)).toBe('unknown')
+    expect(clientIp({}, undefined, trusted)).toBe('unknown')
+  })
+
+  it('read only the named header behind a proxy that appends to X-Forwarded-For', () => {
+    const fly = { trustProxy: true, clientIpHeader: 'fly-client-ip' }
+    // The player wrote the first X-Forwarded-For entry and a CF-Connecting-IP of their own.
+    const spoofed = {
+      'x-forwarded-for': '1.2.3.4, 203.0.113.9',
+      'cf-connecting-ip': '1.2.3.4',
+      'fly-client-ip': '203.0.113.9',
+    }
+    expect(clientIp(spoofed, '172.16.0.2', fly)).toBe('203.0.113.9')
+    expect(clientIp({ 'x-forwarded-for': '1.2.3.4' }, '172.16.0.2', fly)).toBe('172.16.0.2')
+    expect(clientIp(spoofed, '172.16.0.2', { ...fly, trustProxy: false })).toBe('172.16.0.2')
   })
 })
 

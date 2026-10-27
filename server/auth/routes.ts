@@ -35,15 +35,7 @@ export function authRoutes(
   const perIp = new RateLimiter(config.magicLinksPerIpPerHour, 60 * 60_000, now)
   const newSessions = new RateLimiter(config.newSessionsPerIpPerHour, 60 * 60_000, now)
   const nicknameChanges = new RateLimiter(10, 60_000, now)
-  const ipOf = (c: Context) =>
-    clientIp(
-      {
-        'cf-connecting-ip': c.req.header('cf-connecting-ip'),
-        'x-forwarded-for': c.req.header('x-forwarded-for'),
-      },
-      getConnInfo(c).remote.address,
-      config.trustProxy,
-    )
+  const ipOf = (c: Context) => clientIp(c.req.header(), getConnInfo(c).remote.address, config)
 
   const cookieOptions = (maxAge: number, path = '/') => ({
     httpOnly: true,

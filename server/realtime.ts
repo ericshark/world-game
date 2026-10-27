@@ -78,7 +78,7 @@ export function attachRealtime(
 
   sockets.on('connection', (socket: WebSocket, request: IncomingMessage) => {
     const player = playerOf(request, store)
-    const ip = clientIp(request.headers, request.socket.remoteAddress, config.trustProxy)
+    const ip = clientIp(request.headers, request.socket.remoteAddress, config)
     const open = (connectionsByIp.get(ip) ?? 0) + 1
     if (open > MAX_CONNECTIONS_PER_IP) {
       socket.close(1013, 'Too many connections from this address.')

@@ -141,14 +141,7 @@ export function leaderboardRoutes(api: Hono, context: AppContext, auth: Authenti
   // The boards are queries over every result; one address may ask for them this often.
   const reads = new RateLimiter(120, 60_000, context.now)
   api.use('/leaderboards/*', async (c, next) => {
-    const ip = clientIp(
-      {
-        'cf-connecting-ip': c.req.header('cf-connecting-ip'),
-        'x-forwarded-for': c.req.header('x-forwarded-for'),
-      },
-      getConnInfo(c).remote.address,
-      context.config.trustProxy,
-    )
+    const ip = clientIp(c.req.header(), getConnInfo(c).remote.address, context.config)
     if (!reads.take(ip)) return c.json({ error: 'Slow down.' }, 429)
     await next()
   })

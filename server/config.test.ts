@@ -20,6 +20,8 @@ describe('config', () => {
       GITHUB_CLIENT_ID: 'id',
       GITHUB_CLIENT_SECRET: 'secret',
       GOOGLE_CLIENT_ID: 'only-id',
+      TRUST_PROXY: '1',
+      CLIENT_IP_HEADER: ' Fly-Client-IP ',
     })
     expect(config).toMatchObject({
       port: 9000,
@@ -29,7 +31,10 @@ describe('config', () => {
       resendApiKey: 're_123',
       github: { clientId: 'id', clientSecret: 'secret' },
       google: null,
+      trustProxy: true,
+      clientIpHeader: 'fly-client-ip',
     })
+    expect(loadConfig({}).clientIpHeader).toBeNull()
   })
 
   it('refuses to run in production without a daily secret', () => {

@@ -61,7 +61,7 @@ export async function startServer({
       dev ??
       new ResendMailer(
         config.resendApiKey!,
-        process.env.MAIL_FROM ?? 'World Game <noreply@localhost>',
+        process.env.MAIL_FROM || 'World Game <noreply@localhost>',
       ),
     devMailbox: dev instanceof DevMailer ? dev.outbox : null,
     oauth,
