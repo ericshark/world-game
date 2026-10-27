@@ -108,8 +108,5 @@ console errors were from the two deliberate failures it visits, the crash page a
 - **The privacy page** describes what the code does. It is not legal advice; have it reviewed.
 - **Not fixed, by design:** achievement toasts briefly cover the top of the results card when
   several unlock at once (they fade after a few seconds).
-- **Not changed:** without `RESEND_API_KEY`, the email sign-in form still shows and answers "The
-  email could not be sent. Try again later." Set the key (DEPLOY.md step 1d) before launch, or
-  expect that message.
 - **Browser tests in development mode** (Vite dev server) were not re-run; CI tests the production
   build, which is what was run here.

@@ -71,7 +71,8 @@ Without this the game runs, but losing the machine loses every player's results.
 
 ### 1d. Resend (sign-in emails, needed for "Sign in with email")
 
-Without it, players can still play as guests with a nickname, but email sign-in fails.
+Without it, players can still play as guests with a nickname; the game hides email sign-in (and the
+**Sign in** button, if Google and GitHub aren't set up either).
 
 1. Sign up at <https://resend.com>.
 2. **Domains** → **Add domain** → your domain. Add the DNS records it shows at your registrar, then

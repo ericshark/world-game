@@ -44,12 +44,25 @@ export async function startServer({
   config?: ServerConfig
   geo?: GeoData
   now?: () => number
-  mailer?: Mailer
+  /** Overrides the configured mailer; null turns email sign-in off. */
+  mailer?: Mailer | null
   oauth?: Map<OAuthProviderId, OAuthProvider>
 } = {}): Promise<RunningServer> {
   const db = openDatabase(config.databasePath)
   let realtime: ReturnType<typeof attachRealtime> | null = null
-  const dev = mailer ?? (config.resendApiKey || config.production ? null : new DevMailer())
+  // Email sign-in is offered only when mail can go out: through Resend, or in development to
+  // the local mailbox.
+  const chosenMailer: Mailer | null =
+    mailer !== undefined
+      ? mailer
+      : config.resendApiKey
+        ? new ResendMailer(
+            config.resendApiKey,
+            process.env.MAIL_FROM || 'World Game <noreply@localhost>',
+          )
+        : config.production
+          ? null
+          : new DevMailer()
   const app = createApp({
     config,
     geo,
@@ -57,13 +70,8 @@ export async function startServer({
     roomCount: () => realtime?.roomCount() ?? 0,
     stats: () => realtime?.stats() ?? { rooms: 0, sockets: 0, queued: 0 },
     now,
-    mailer:
-      dev ??
-      new ResendMailer(
-        config.resendApiKey!,
-        process.env.MAIL_FROM || 'World Game <noreply@localhost>',
-      ),
-    devMailbox: dev instanceof DevMailer ? dev.outbox : null,
+    mailer: chosenMailer,
+    devMailbox: chosenMailer instanceof DevMailer ? chosenMailer.outbox : null,
     oauth,
   })
 

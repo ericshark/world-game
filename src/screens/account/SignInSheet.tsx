@@ -32,30 +32,32 @@ export function SignInSheet({ onClose }: { onClose: () => void }) {
           minutes.
         </p>
       ) : (
-        <form onSubmit={send}>
-          <label className="text-field">
-            <span>Email</span>
-            <input
-              type="email"
-              value={email}
-              autoComplete="email"
-              placeholder="you@example.com"
-              onChange={(event) => setEmail(event.target.value)}
-            />
-          </label>
-          <button
-            type="submit"
-            className="button button--primary button--large"
-            disabled={busy || !email.includes('@')}
-          >
-            Email me a sign-in link
-          </button>
-          {problem && (
-            <p className="field__hint" role="alert">
-              {problem}
-            </p>
-          )}
-        </form>
+        providers?.email && (
+          <form onSubmit={send}>
+            <label className="text-field">
+              <span>Email</span>
+              <input
+                type="email"
+                value={email}
+                autoComplete="email"
+                placeholder="you@example.com"
+                onChange={(event) => setEmail(event.target.value)}
+              />
+            </label>
+            <button
+              type="submit"
+              className="button button--primary button--large"
+              disabled={busy || !email.includes('@')}
+            >
+              Email me a sign-in link
+            </button>
+            {problem && (
+              <p className="field__hint" role="alert">
+                {problem}
+              </p>
+            )}
+          </form>
+        )
       )}
       {(providers?.google || providers?.github) && (
         <div className="settings__actions">

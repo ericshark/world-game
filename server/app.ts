@@ -28,7 +28,8 @@ export interface AppContext {
   /** Live figures for the counters endpoint. */
   stats: () => { rooms: number; sockets: number; queued: number }
   now: () => number
-  mailer: Mailer
+  /** Null when email sign-in is not available. */
+  mailer: Mailer | null
   /** Sent emails, only when mail is going to the development mailbox. */
   devMailbox: Mail[] | null
   oauth: Map<OAuthProviderId, OAuthProvider>

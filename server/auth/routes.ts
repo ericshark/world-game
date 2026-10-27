@@ -58,7 +58,7 @@ export function authRoutes(
     return c.json({
       player: { id: player.id, nickname: player.nickname },
       account: account ? { email: account.email } : null,
-      providers: { email: true, google: oauth.has('google'), github: oauth.has('github') },
+      providers: { email: mailer !== null, google: oauth.has('google'), github: oauth.has('github') },
     })
   }
 
@@ -111,6 +111,7 @@ export function authRoutes(
   // Sign-in by email
 
   api.post('/auth/magic', async (c) => {
+    if (!mailer) return c.json({ error: 'Email sign-in is not available.' }, 503)
     const email = String((await body(c)).email ?? '').trim()
     if (!EMAIL.test(email) || email.length > 254)
       return c.json({ error: 'Enter a valid email.' }, 400)

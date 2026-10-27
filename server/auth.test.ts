@@ -319,6 +319,25 @@ describe('oauth', () => {
     expect(session.json.providers).toEqual({ email: true, google: true, github: false })
   })
 
+  it('turns email sign-in off when no mail can be sent', async () => {
+    await server.close()
+    server = await startServer({
+      config: loadConfig(
+        {},
+        { port: 0, host: '127.0.0.1', databasePath: join(dir, 'nomail.sqlite'), distDir: null },
+      ),
+      geo,
+      now: () => clock,
+      mailer: null,
+      oauth: new Map(),
+    })
+    const ana = browser()
+    const session = await ana.request('/api/session', { body: {} })
+    expect(session.json.providers).toEqual({ email: false, google: false, github: false })
+    const sent = await ana.request('/api/auth/magic', { body: { email: 'ana@example.com' } })
+    expect(sent.status).toBe(503)
+  })
+
   it('signs in when the state matches, and the same person returns to the same account', async () => {
     const ana = browser()
     await ana.request('/api/session', { body: {} })

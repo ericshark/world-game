@@ -19,6 +19,7 @@ export function AccountSection({ onSignIn }: { onSignIn: () => void }) {
   const [message, setMessage] = useState<string | null>(takeSignInResult)
 
   if (account.status !== 'ready' || !me) return null
+  const canSignIn = me.providers.email || me.providers.google || me.providers.github
 
   const saveNickname = async (event: FormEvent) => {
     event.preventDefault()
@@ -68,7 +69,8 @@ export function AccountSection({ onSignIn }: { onSignIn: () => void }) {
         </p>
       ) : (
         <p className="field__hint">
-          You are playing as a guest. Sign in to keep your progress on every device.
+          You are playing as a guest.
+          {canSignIn && ' Sign in to keep your progress on every device.'}
         </p>
       )}
       <div className="settings__actions">
@@ -77,9 +79,11 @@ export function AccountSection({ onSignIn }: { onSignIn: () => void }) {
             Sign out
           </button>
         ) : (
-          <button type="button" className="button button--ghost" onClick={onSignIn}>
-            Sign in
-          </button>
+          canSignIn && (
+            <button type="button" className="button button--ghost" onClick={onSignIn}>
+              Sign in
+            </button>
+          )
         )}
         <button type="button" className="button button--danger" onClick={deleteData}>
           Delete my online data
