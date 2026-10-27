@@ -7,8 +7,27 @@ found, what was fixed, and what is still unverified. The owner's step-by-step gu
 ## Verdict
 
 **Ready to deploy**, once the owner does the steps in DEPLOY.md that need accounts. Every check
-that can run without a Fly.io, Resend, R2 or OAuth account was run and passes. Eleven problems were found
-and fixed (below); eight of them would have hurt a real launch.
+that can run without a Fly.io, Resend, R2 or OAuth account was run and passes, and GitHub CI is
+green. Fifteen problems were found and fixed (below); ten of them would have hurt a real launch.
+
+## Re-check on 2026-10-27 (version 1.0.0)
+
+Everything above was re-run before tagging `v1.0.0`. Lint, format, types, `npm audit --omit=dev`
+(0 vulnerabilities), unit tests (51 files, 444 tests), the production build, and the browser tests
+against it (83 pass locally in Chromium desktop and phone) all pass. GitHub CI then passed on its
+first full run: 115 browser tests including WebKit. Four more things were fixed:
+
+| #   | Problem                                                                                                            | Impact at launch                                                                             | Fix                                                                                                                                                                       |
+| --- | ------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 12  | In production without `RESEND_API_KEY`, the server still offered email sign-in and built a mailer with no key.     | Every "Email me a sign-in link" failed; with no OAuth either, the Sign in button led nowhere | Email sign-in is only offered when mail can be sent (`503` otherwise); the client hides the form, and the button when no method is set up                                 |
+| 13  | The crash page asks players to quote an error code that only reached their own console.                            | Crash reports from players could not be traced                                               | Built sites post the code, message, short stack and screen name to `/api/client-error` (rate limited, origin checked), logged as `client_error`; the privacy page says so |
+| 14  | No `robots.txt`.                                                                                                   | Crawlers probe `/api/`                                                                       | Added; allows the site, disallows `/api/` and `/admin/`                                                                                                                   |
+| 15  | CI's GeoRush sudden-death test looked for the achievement toast after it had faded (4.5 s) on slow software WebGL. | CI red on a passing game                                                                     | The test watches for the toast before the round ends                                                                                                                      |
+
+Checked by hand against `npm start` (production, no Resend key): the session shows
+`email:false`, `/api/auth/magic` answers 503, a crash report answers 204 and logs only the screen
+name (not a sign-in token in the route), a cross-site report is refused (403), and Settings shows no
+Sign in button at desktop and phone sizes.
 
 ## What was checked
 
@@ -25,7 +44,7 @@ and fixed (below); eight of them would have hurt a real launch.
 | Server checks against `npm start`                         | All pass (below)                                                                                                                                                     |
 | Docker image (`docker compose up --build`)                | Builds in under 3 minutes (633 MB); healthy; runs as the `node` user; privacy contact built in; no test hooks in the shipped build; 26-screen screenshot pass clean  |
 | Litestream backup and restore drill (MinIO)               | **Passed.** Deleted the data volume; on restart Litestream 0.5.17 restored every player, the nickname and the started daily, and the old session cookie still worked |
-| GitHub CI                                                 | Its only run (2026-10-23) failed; the causes are fixed, not yet re-run                                                                                               |
+| GitHub CI                                                 | **Green** on 2026-10-27 (run 40515308236): lint, types, 444 unit tests, audit, then 115 browser tests in Chromium and WebKit                                         |
 
 ### Server checks (production mode)
 
@@ -102,7 +121,6 @@ console errors were from the two deliberate failures it visits, the crash page a
   this session. The first `fly deploy` will validate it.
 - **Real Resend email, real R2, real Google and GitHub sign-in.** They need the owner's accounts.
   The code paths are covered by unit tests against mocks, and the backup path by the MinIO drill.
-- **GitHub CI.** The fixes are committed but not pushed, so CI has not re-run.
 - **Behaviour under a real crowd.** The load test (300 simulated players, in
   [deployment](deployment.md)) ran on a fast desktop, not on a Fly shared CPU.
 - **The privacy page** describes what the code does. It is not legal advice; have it reviewed.

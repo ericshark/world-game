@@ -186,7 +186,7 @@ and use an R2 API token's key pair.
   (`id`), the message, a short stack and the screen; search for a code a player quotes.
 - CI (`.github/workflows/ci.yml`) runs lint, types, unit tests and an audit, then builds and
   runs the browser tests against the production build in Chromium (desktop and phone) and WebKit.
-  Its first run (2026-10-23) failed on four slow or racy tests; see the readiness report.
+  It has passed since 2026-10-27; see the readiness report.
 
 ## After launch
 
