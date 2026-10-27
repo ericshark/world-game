@@ -40,6 +40,11 @@ set to that port.
 To play on your local network, run `npm run dev -- --host` and open the
 network URL on other devices.
 
+## Deploying
+
+[DEPLOY.md](DEPLOY.md) is the step-by-step guide (Fly.io). What was checked before launch is in
+the [readiness report](docs/readiness-report.md).
+
 ## Useful commands
 
 - `npm test`: run unit tests.

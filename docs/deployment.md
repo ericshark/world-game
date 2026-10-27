@@ -1,19 +1,11 @@
 # Deployment
 
 How to run World Game for real, what it costs, and what to do when something goes wrong.
-**Nothing here has been done.** No hosting has been bought, no domain registered, no OAuth app or
-email account created, and nothing is deployed. Each of those needs the owner's decision.
+**The step-by-step owner guide is [DEPLOY.md](../DEPLOY.md)** (Fly.io). This page is the background:
+the design, sizing, a VM alternative and the backup drill. Nothing is deployed yet; no hosting,
+domain, OAuth app or email account exists. Each of those needs the owner's decision.
 
-What is prepared and what was tested:
-
-| Piece                                           | State                                                             |
-| ----------------------------------------------- | ----------------------------------------------------------------- |
-| Production build (`npm run build`, `npm start`) | Built and run locally; health, counters, headers, brotli verified |
-| Load test (`scripts/loadtest.ts`)               | Run locally against the production build (numbers below)          |
-| CI (`.github/workflows/ci.yml`)                 | Written; never run (nothing is pushed)                            |
-| `Dockerfile`, `docker-compose.yml`, Litestream  | Written; **never built or run**: Docker is not usable here        |
-| Backup and restore drill                        | **Not run** (needs Docker or the binaries); steps below           |
-| WebKit tests                                    | Configured (`PW_WEBKIT=1`); not run here                          |
+What was checked is in the [readiness report](readiness-report.md) (2026-10-26).
 
 ## The shape of it
 
@@ -46,8 +38,8 @@ Sources: [Hetzner's 2026 price rise](https://findstack.com/resources/hetzner-pri
 [a cloud price comparison](https://kimmo.suominen.com/stuff/cpc-2026-08.txt),
 [Fly.io pricing](https://fly.io/docs/pricing/), [R2 pricing](https://developers.cloudflare.com/r2/platform/pricing/),
 [Resend pricing](https://resend.com/pricing.md),
-[Litestream releases](https://github.com/benbjohnson/litestream/releases) (the Dockerfile uses the
-`0.5` image tag; pin an exact version after checking the releases page).
+[Litestream releases](https://github.com/benbjohnson/litestream/releases) (the Dockerfile pins
+`0.5.17`, checked in the restore drill on 2026-10-26).
 
 The 100 emails a day on the free Resend plan caps new sign-ins and returning sign-ins together.
 At that point move to Pro or add a second sender.
@@ -100,6 +92,7 @@ need rooms and the queue shared between processes, which is real work and not pl
 | `DAILY_SECRET`                | the long secret; the server refuses to start in production without it                      |
 | `DATABASE_PATH`               | `/data/world-game.sqlite` on the persistent volume                                         |
 | `TRUST_PROXY`                 | `1` behind Cloudflare or Caddy, so limits see the player's address                         |
+| `CLIENT_IP_HEADER`            | `fly-client-ip` on Fly.io (its proxy appends to `X-Forwarded-For`); empty elsewhere        |
 | `RESEND_API_KEY`, `MAIL_FROM` | sign-in email (without them, magic links cannot be sent in production)                     |
 | `GOOGLE_*`, `GITHUB_*`        | optional; callbacks `https://your.domain/api/auth/google/callback` and `…/github/callback` |
 | `METRICS_TOKEN`               | opens `/admin/counters` for monitoring                                                     |
@@ -117,8 +110,14 @@ need rooms and the queue shared between processes, which is real work and not pl
    `/assets/*`, `/textures/*` and `/data/*` cache (they carry long cache headers already).
    Do not cache `/api/*` or `/ws`.
 
-Fly.io works the same way with `fly launch` and a one-gigabyte volume mounted at `/data`; set
-the secrets with `fly secrets set`. Keep it to one machine: two would each have their own rooms.
+On a VM, set `TRUST_PROXY=1` in `.env` (Caddy replaces `X-Forwarded-For`, so leave
+`CLIENT_IP_HEADER` empty), and firewall port 8789 or keep the compose file's `127.0.0.1` binding so
+nobody can reach the app around the proxy. With Cloudflare's proxy in front, also allow only
+Cloudflare's addresses to reach ports 80 and 443, since `CF-Connecting-IP` is believed as sent.
+
+Fly.io is the recommended path and has its own guide: [DEPLOY.md](../DEPLOY.md). It uses
+`fly.toml`: one always-on machine, a volume at `/data`, and `CLIENT_IP_HEADER=fly-client-ip`,
+because Fly's proxy appends to `X-Forwarded-For`.
 
 ## Backups
 
@@ -129,30 +128,35 @@ runs unprotected.
 
 ### Restore drill (run this once before trusting it)
 
-This was **not** run. It needs Docker and about ten minutes, and uses MinIO as a stand-in for R2:
+Run on 2026-10-26 and passed: after the data volume was deleted, the new container restored every
+player, the nickname and the started daily, and an old session cookie still worked. It takes about
+ten minutes and uses Versity Gateway, a small local S3 server, as a stand-in for R2 (MinIO no longer
+publishes images):
 
 ```bash
-# 1. Start MinIO and the app, with backups pointed at a local bucket.
-docker compose --profile backup up -d minio
-docker run --rm --network host minio/mc sh -c \
-  "mc alias set local http://localhost:9000 minioadmin minioadmin && mc mb local/backups"
-# In .env: LITESTREAM_REPLICA_URL=s3://backups/world-game.sqlite
-#          LITESTREAM_ENDPOINT=http://minio:9000   LITESTREAM_ACCESS_KEY_ID=minioadmin
-#          LITESTREAM_SECRET_ACCESS_KEY=minioadmin
-docker compose --profile backup up -d --build app
+# 1. Start the S3 stand-in (its "backups" bucket is created on start) and the app, backing up to it.
+export DAILY_SECRET=$(openssl rand -hex 32) METRICS_TOKEN=drill-token \
+  LITESTREAM_REPLICA_URL=s3://backups/world-game.sqlite LITESTREAM_ENDPOINT=http://s3:9000 \
+  LITESTREAM_ACCESS_KEY_ID=drilladmin LITESTREAM_SECRET_ACCESS_KEY=drillsecret
+docker compose --profile backup up -d --build s3 app
+docker compose logs app | grep "replicating to"
 
-# 2. Make some data: play a Daily at http://localhost:8789, set a nickname.
+# 2. Make some data: play a Daily at http://localhost:8789, set a nickname. Note the counters:
+curl -H "Authorization: Bearer drill-token" http://localhost:8789/admin/counters
 
 # 3. Destroy the disk, as a lost server would.
 docker compose stop app && docker compose rm -f app && docker volume rm world-game_data
 
-# 4. Start again: the entrypoint restores from the bucket.
+# 4. Start again: the entrypoint restores from the bucket (quietly; Litestream logs no line for it).
 docker compose --profile backup up -d app
-docker compose logs app | grep -i restor
-# The nickname and the Daily result should still be there.
+curl -H "Authorization: Bearer drill-token" http://localhost:8789/admin/counters
+# The same players and daily sessions are back, and the nickname with them.
+
+# 5. Clean up.
+docker compose --profile backup down -v
 ```
 
-For R2 instead of MinIO, set `LITESTREAM_ENDPOINT` to `https://<account>.r2.cloudflarestorage.com`
+For R2 instead of the stand-in, set `LITESTREAM_ENDPOINT` to `https://<account>.r2.cloudflarestorage.com`
 and use an R2 API token's key pair.
 
 ## Rolling back and restoring
@@ -180,7 +184,7 @@ and use an R2 API token's key pair.
   one line per API request (path only, no query string, no email, no address) and errors.
 - CI (`.github/workflows/ci.yml`) runs lint, types, unit tests and an audit, then builds and
   runs the browser tests against the production build in Chromium (desktop and phone) and WebKit.
-  Nothing is pushed, so it has not run.
+  Its first run (2026-10-23) failed on four slow or racy tests; see the readiness report.
 
 ## After launch
 

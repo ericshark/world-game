@@ -2,7 +2,7 @@
 
 Where the three-phase launch roadmap stands, and how to carry on. The full plan lives at
 `~/.claude/plans/pasted-content-id-8702-world-typed-fountain.md`, and design choices are in
-[decisions](decisions.md). Last updated 2026-10-23.
+[decisions](decisions.md). Last updated 2026-10-26.
 
 ## Summary
 
@@ -141,19 +141,18 @@ Where the three-phase launch roadmap stands, and how to carry on. The full plan 
   `/admin/counters`), a `Dockerfile`, `docker-compose.yml` and Litestream config, `.env.example`,
   CI with a WebKit project, `scripts/loadtest.ts` (300 players: 21% of a core on average), a privacy
   page and a credits page, and a deployment runbook with prices checked on 2026-10-23.
-  **Not verified:** the Docker image, the Litestream backup and restore drill against MinIO, the
-  CI workflow and the WebKit project (Docker and WebKit's system libraries are not available here).
-  The browser tests do pass against the production build served by the production server.
+  At the time the Docker image, the restore drill, CI and WebKit were not run; the
+  [readiness report](readiness-report.md) (2026-10-26) records running them and what it fixed.
 
 ## Still to do
 
 Nothing is left in the roadmap. What remains is the owner's, and nothing below has been done:
 
-- Buy hosting, register a domain, create the R2 bucket, the Resend account and (optionally) the
-  Google and GitHub OAuth apps; see the checklist in [deployment](deployment.md).
-- Run what could not be run here: build the Docker image, do the Litestream restore drill, let CI
-  run once there is a remote, and run the WebKit tests.
-- Set `VITE_PRIVACY_CONTACT`, and have the privacy page reviewed.
+- Deploy: follow [DEPLOY.md](../DEPLOY.md) (Fly.io). It covers buying hosting and a domain, the R2
+  bucket, Resend and the optional Google and GitHub OAuth apps.
+- The Docker image, the Litestream restore drill and the WebKit tests were run on 2026-10-26; see
+  the [readiness report](readiness-report.md). Push so CI confirms the e2e fixes from that day.
+- Set `VITE_PRIVACY_CONTACT` (in `fly.toml`), and have the privacy page reviewed.
 - Revisit scoring, the GeoRush ramp, Journey par bands and Duel damage with real player data.
 - Run the `security-review` skill once the repository has a remote.
 
