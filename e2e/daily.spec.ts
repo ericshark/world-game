@@ -81,6 +81,8 @@ test('Daily World: five rounds once a day, then share', async ({ page }) => {
 
   // A bonus puzzle: give up the mystery, and it joins the share text.
   await page.getByRole('button', { name: /^Mystery Country/ }).click()
+  // The rules card opens with the game, so wait for the game before looking for it.
+  await page.waitForFunction(() => window.__worldGame !== undefined)
   await dismissIntro(page)
   await answer(page, 'Japan')
   await page.getByRole('button', { name: 'Give up' }).click()

@@ -65,6 +65,8 @@ test('a nickname, a magic-link sign-in and a profile that follows the player', a
   browser,
 }, info) => {
   test.skip(info.project.name !== 'desktop', 'One project is enough for the account flow.')
+  // Two devices, each loading the globe in software rendering: slow on a CI runner.
+  test.slow()
   const email = `ana-${Date.now()}@example.com`
 
   const laptop = await newDevice(browser, profileWith(700, 3))
@@ -94,6 +96,7 @@ test('different progress on a device and an account asks which to keep', async (
   browser,
 }, info) => {
   test.skip(info.project.name !== 'desktop', 'One project is enough for the account flow.')
+  test.slow()
   const email = `ben-${Date.now()}@example.com`
 
   const first = await newDevice(browser, profileWith(900, 5))

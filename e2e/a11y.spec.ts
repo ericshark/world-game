@@ -22,25 +22,30 @@ async function audit(page: Page, name: string) {
 }
 
 test.describe('accessibility', () => {
-  test('menus and sheets', async ({ page }) => {
+  test('home', async ({ page }) => {
     await openGame(page, '/')
     await audit(page, 'home')
-    for (const [path, name] of [
-      ['/#/setup/pinpoint', 'pinpoint setup'],
-      ['/#/setup/battle', 'battle setup'],
-      ['/#/passport', 'passport'],
-      ['/#/daily', 'daily'],
-      ['/#/settings', 'settings'],
-      ['/#/leaderboards', 'leaderboards'],
-      ['/#/online', 'online'],
-      ['/#/privacy', 'privacy'],
-      ['/#/credits', 'credits'],
-    ] as const) {
-      await page.goto(path)
+  })
+
+  // One test per screen: an axe pass takes several seconds on a CI runner rendering WebGL in
+  // software, so ten in one test ran past the timeout.
+  for (const [path, name] of [
+    ['/#/setup/pinpoint', 'pinpoint setup'],
+    ['/#/setup/battle', 'battle setup'],
+    ['/#/passport', 'passport'],
+    ['/#/daily', 'daily'],
+    ['/#/settings', 'settings'],
+    ['/#/leaderboards', 'leaderboards'],
+    ['/#/online', 'online'],
+    ['/#/privacy', 'privacy'],
+    ['/#/credits', 'credits'],
+  ] as const) {
+    test(name, async ({ page }) => {
+      await openGame(page, path)
       await page.getByRole('heading').first().waitFor()
       await audit(page, name)
-    }
-  })
+    })
+  }
 
   test('sign-in', async ({ page }) => {
     await openGame(page, '/#/settings')
@@ -54,13 +59,13 @@ test.describe('accessibility', () => {
     await audit(page, 'pinpoint question')
   })
 
-  test('other game screens', async ({ page }) => {
-    for (const mode of ['GeoRush', 'Mystery Country', 'World Journey', 'Rare Earth']) {
+  for (const mode of ['GeoRush', 'Mystery Country', 'World Journey', 'Rare Earth']) {
+    test(`playing ${mode}`, async ({ page }) => {
       await openGame(page, '/')
       await startMode(page, mode)
       await audit(page, mode)
-    }
-  })
+    })
+  }
 
   test('the first-time rules card', async ({ page }) => {
     await openGame(page, '/')

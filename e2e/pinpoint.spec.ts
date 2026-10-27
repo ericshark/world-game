@@ -133,6 +133,9 @@ test('the round clock stops while the rules are open', async ({ page }, info) =>
   await startPinpoint(page, ['Hard'])
   const seconds = page.locator('.timer__seconds')
   await page.getByRole('button', { name: 'How to play' }).click()
+  // Read the clock once the pause has reached it: a tick can land between the click and the pause.
+  await page.getByRole('button', { name: 'Got it' }).waitFor()
+  await page.waitForTimeout(1_100)
   const shown = await seconds.textContent()
   await page.waitForTimeout(2_500)
   await expect(seconds).toHaveText(shown!)
