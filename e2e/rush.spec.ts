@@ -24,10 +24,13 @@ test('GeoRush sudden death ends on the first miss', async ({ page }) => {
   await openGame(page)
   await startMode(page, 'GeoRush', ['Sudden death'])
   await pinTarget(page)
+  // The achievement toast lasts 4.5 s; on CI's software WebGL the summary checks can outlast it,
+  // so start watching for it before the round ends.
+  const toast = expect(page.locator('.toast')).toContainText('First steps', { timeout: 30_000 })
   await placePin(page, [-150, -40])
   await expect(page.getByTestId('summary-total')).toContainText('100')
   await expect(page.getByText('Your first score in this setup')).toBeVisible()
-  await expect(page.locator('.toast')).toContainText('First steps')
+  await toast
 
   // The miss can be looked at again on the globe.
   await page.getByRole('button', { name: 'Review the one you missed' }).click()
