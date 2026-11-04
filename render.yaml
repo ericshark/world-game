@@ -6,7 +6,7 @@ services:
     plan: starter
     branch: main
     numInstances: 1
-    autoDeployTrigger: off
+    autoDeployTrigger: checksPass
     healthCheckPath: /health/ready
     disk:
       name: world-game-data
