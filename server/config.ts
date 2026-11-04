@@ -60,7 +60,11 @@ export function loadConfig(env: Env = process.env, overrides: Partial<ServerConf
   const config: ServerConfig = {
     port,
     host: env.HOST ?? '0.0.0.0',
-    publicOrigin: (env.PUBLIC_ORIGIN ?? `http://localhost:${port}`).replace(/\/$/, ''),
+    publicOrigin: (
+      env.PUBLIC_ORIGIN ??
+      env.RENDER_EXTERNAL_URL ??
+      `http://localhost:${port}`
+    ).replace(/\/$/, ''),
     databasePath: env.DATABASE_PATH ?? 'data-local/world-game.sqlite',
     // A random secret in development means dailies change on every restart, which is fine there.
     dailySecret: env.DAILY_SECRET ?? randomBytes(32).toString('hex'),

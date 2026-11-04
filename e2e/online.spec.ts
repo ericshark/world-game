@@ -77,7 +77,6 @@ test('two players share a room: same round, secret answers, revealed together', 
 
   // Ben's connection drops (a reload); he comes back to the same round as himself.
   await ben.reload()
-  await openGame(ben, `/#/room/${code}`)
   await dismissIntro(ben)
   await expect(ben.locator('.hud__progress')).toHaveText(/Round 1/)
   await placePin(ben, [-150, -40])

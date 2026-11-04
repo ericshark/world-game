@@ -192,3 +192,18 @@ and use an R2 API token's key pair.
 
 Run `npx tsx scripts/loadtest.ts` against a staging copy before expecting a crowd, and run the
 `security-review` skill once the repository has a remote to compare against.
+
+## Render
+
+The root Blueprint deploys GitHub `main` as one Docker service. The public
+origin defaults to Render's `RENDER_EXTERNAL_URL`; set `PUBLIC_ORIGIN` if using
+a custom domain. Verify Render supplies the client IP header through its edge
+before relying on it for rate limits. Confirm the non-root runtime can write
+to the `/data` disk and that `/health/ready` responds successfully.
+
+The disk keeps SQLite across restarts. Render stops the old instance before
+starting the new one when a disk is attached, so deploys can interrupt rooms.
+Keep the generated `DAILY_SECRET` stable. Verify backup recovery on disposable
+data. For offsite backups, configure the existing Litestream integration with
+approved object storage. Add a verified `MAIL_FROM` and `RESEND_API_KEY` only
+when email sign-in is ready to test.
