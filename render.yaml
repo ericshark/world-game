@@ -3,15 +3,11 @@ services:
     name: world-game
     runtime: docker
     region: virginia
-    plan: starter
+    plan: free
     branch: main
     numInstances: 1
     autoDeployTrigger: checksPass
     healthCheckPath: /health/ready
-    disk:
-      name: world-game-data
-      mountPath: /data
-      sizeGB: 1
     envVars:
       - key: DAILY_SECRET
         generateValue: true
