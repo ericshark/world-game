@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { useApp } from '../app/AppContext'
 import { formatNumber } from '../screens/format'
 import { Icon } from './Icon'
 import { useCountUp } from './useCountUp'
@@ -19,6 +20,7 @@ interface HudProps {
 /** The bar across the top of every game. */
 export function Hud({ mode, progress, score, streak = 0, children, onHelp, onQuit }: HudProps) {
   const shownScore = useCountUp(score ?? 0, 500)
+  const { preferences, setPreferences } = useApp()
   return (
     <header className="hud">
       <button type="button" className="icon-button hud__quit" onClick={onQuit} aria-label="Quit">
@@ -41,6 +43,16 @@ export function Hud({ mode, progress, score, streak = 0, children, onHelp, onQui
           </span>
         )}
         {children}
+        <button
+          type="button"
+          className="icon-button"
+          aria-pressed={preferences.showBorders}
+          aria-label="Country borders"
+          title="Country borders"
+          onClick={() => setPreferences({ showBorders: !preferences.showBorders })}
+        >
+          <Icon name="borders" />
+        </button>
         {onHelp && (
           <button type="button" className="icon-button" onClick={onHelp} aria-label="How to play">
             <Icon name="help" />

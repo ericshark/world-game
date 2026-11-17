@@ -1,6 +1,6 @@
 # World Game
 
-A geography game on a realistic, borderless 3D globe, built with React and
+A geography game on a realistic 3D globe (country borders are an optional setting), built with React and
 Three.js. It has seven ways to play:
 
 - **Pinpoint:** find countries and capitals, or name them, optionally by night.

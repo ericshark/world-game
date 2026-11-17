@@ -22,6 +22,7 @@ import type { Surface } from '../globe/textures'
 export interface GlobeViewProps {
   geo: GeoData | null
   showGrid: boolean
+  showBorders: boolean
   looks: Cosmetics
   scene: GlobeScene
   surface: Surface
@@ -42,6 +43,7 @@ export interface GlobeViewProps {
 export default function GlobeView({
   geo,
   showGrid,
+  showBorders,
   looks,
   scene,
   surface,
@@ -61,6 +63,7 @@ export default function GlobeView({
     <Globe
       onPick={onPick}
       showGrid={showGrid}
+      showBorders={showBorders}
       autoRotate={autoRotate}
       surface={surface}
       centerRef={centerRef}

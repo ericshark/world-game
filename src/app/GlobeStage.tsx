@@ -16,6 +16,7 @@ const GlobeView = lazy(() => import('./GlobeView'))
 interface GlobeStageProviderProps {
   geo: GeoData | null
   showGrid: boolean
+  showBorders: boolean
   /** The player's chosen pin, trail and glow. */
   looks: Cosmetics
   /** Reports the Earth's first load, for the loading screen. */
@@ -26,6 +27,7 @@ interface GlobeStageProviderProps {
 export function GlobeStageProvider({
   geo,
   showGrid,
+  showBorders,
   looks,
   onLoad,
   children,
@@ -75,6 +77,7 @@ export function GlobeStageProvider({
               <GlobeView
                 geo={geo}
                 showGrid={showGrid}
+                showBorders={showBorders}
                 looks={looks}
                 scene={scene}
                 surface={surface}

@@ -27,7 +27,7 @@ export function HomeScreen() {
         <h1 className="home__title" id="home-title">
           World Game
         </h1>
-        <p className="home__tagline">Know the world. One borderless Earth, many ways to play.</p>
+        <p className="home__tagline">Know the world. One Earth, many ways to play.</p>
 
         <DailyCard />
         {showTour ? <TourCard /> : <NextGoal />}

@@ -21,6 +21,8 @@ export interface Preferences {
   /** Tap the globe, or drag it under a fixed crosshair (more precise on phones). */
   placement: Placement
   showGrid: boolean
+  /** Draw country borders on the globe, in every mode. */
+  showBorders: boolean
   /** Modes whose "how to play" card the player has already seen. */
   seenIntros: string[]
   /** Shown to other players in battles. */
@@ -34,6 +36,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
   units: 'km',
   placement: 'tap',
   showGrid: false,
+  showBorders: false,
   seenIntros: [],
   playerName: '',
 }
@@ -97,6 +100,7 @@ export function loadPreferences(storage?: JsonStorage): Preferences {
     units: oneOf(saved.units, ['km', 'mi'], d.units),
     placement: oneOf(saved.placement, ['tap', 'crosshair'], d.placement),
     showGrid: saved.showGrid === true,
+    showBorders: saved.showBorders === true,
     playerName: typeof saved.playerName === 'string' ? saved.playerName.slice(0, 20) : '',
     seenIntros: Array.isArray(saved.seenIntros)
       ? saved.seenIntros.filter((id) => typeof id === 'string')

@@ -52,6 +52,7 @@ export default function App() {
         <GlobeStageProvider
           geo={geo}
           showGrid={stored.preferences.showGrid}
+          showBorders={stored.preferences.showBorders}
           looks={stored.profile.cosmetics}
           onLoad={onGlobeLoad}
         >

@@ -13,6 +13,7 @@ const ZIP_PATH = `${CACHE_DIR}/ne_10m_admin_0_countries.zip`
 const SHP_PATH = `${CACHE_DIR}/ne10/ne_10m_admin_0_countries.shp`
 const OUTPUT_PATH = 'public/data/countries.json'
 const FACTS_PATH = 'public/data/facts.json'
+const BORDERS_PATH = 'public/data/borders.json'
 
 const EARTH_RADIUS_KM = 6371
 // Countries smaller than this are hard to click at max zoom and get a hit radius in-game.
@@ -59,6 +60,10 @@ const output = await mapshaper.applyCommands(
     `-simplify variable percentage='AREA_M2 < ${MICRO_AREA_KM2 * 1e6} ? 1 : 0.12' weighted keep-shapes`,
     '-o countries.json format=geojson precision=0.0001',
     '-o countries.topojson format=topojson',
+    // Shared land borders, each drawn once, from the very shapes used for hit-testing, so the
+    // optional border lines on the globe match the reveal outlines exactly.
+    '-innerlines + name=borders',
+    '-o target=borders borders.json format=geojson precision=0.0001',
   ].join(' '),
 )
 const collection = JSON.parse(output['countries.json'])
@@ -96,6 +101,7 @@ if (missing.size > 0) {
 
 mkdirSync('public/data', { recursive: true })
 writeFileSync(OUTPUT_PATH, JSON.stringify({ type: 'FeatureCollection', features }))
+writeFileSync(BORDERS_PATH, output['borders.json'])
 
 const playable = features
   .filter((f) => f.properties.playable)

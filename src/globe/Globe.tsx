@@ -5,6 +5,7 @@ import { SRGBColorSpace } from 'three'
 import type { LonLat } from '../geo/coords'
 import { keyBelongsElsewhere } from '../ui/useGameKeys'
 import { Atmosphere } from './Atmosphere'
+import { BorderLines } from './BorderLines'
 import { CAMERA_FOV, MAX_CAMERA_DISTANCE, MIN_CAMERA_DISTANCE } from './constants'
 import { lonLatToVector3, vector3ToLonLat } from './coords3d'
 import { LatLonGrid } from './LatLonGrid'
@@ -29,6 +30,7 @@ const NO_SHIFT: ViewShift = { x: 0, y: 0 }
 interface GlobeProps {
   onPick?: (point: LonLat) => void
   showGrid?: boolean
+  showBorders?: boolean
   /** Slowly spin the globe, e.g. behind the home screen. */
   autoRotate?: boolean
   surface?: Surface
@@ -48,6 +50,7 @@ interface GlobeProps {
 export function Globe({
   onPick,
   showGrid = false,
+  showBorders = false,
   autoRotate = false,
   surface = 'day',
   keyboard = true,
@@ -76,6 +79,7 @@ export function Globe({
       <EarthSurfaces surface={surface} onPick={onPick} />
       <Atmosphere tint={surface === 'night' ? '#7f8dff' : glow} />
       {showGrid && <LatLonGrid />}
+      {showBorders && <BorderLines night={surface === 'night'} />}
       <GlobeControls autoRotate={autoRotate} />
       {keyboard && <KeyboardOrbit />}
       {centerRef && <CenterProbe centerRef={centerRef} />}

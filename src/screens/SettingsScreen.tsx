@@ -121,6 +121,11 @@ export function SettingsScreen({ onClose }: { onClose: () => void }) {
       />
       <div className="switches">
         <Switch
+          label="Country borders"
+          checked={preferences.showBorders}
+          onChange={(showBorders) => setPreferences({ showBorders })}
+        />
+        <Switch
           label="Latitude and longitude grid"
           checked={preferences.showGrid}
           onChange={(showGrid) => setPreferences({ showGrid })}

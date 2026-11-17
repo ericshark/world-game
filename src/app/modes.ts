@@ -16,7 +16,7 @@ export const MODES: ModeInfo[] = [
   {
     key: 'pinpoint',
     title: 'Pinpoint',
-    tagline: 'Find countries and capitals on a borderless Earth.',
+    tagline: 'Find countries and capitals on the globe.',
     icon: 'pin',
     accent: '#ffd54a',
     howTo: [
@@ -28,7 +28,7 @@ export const MODES: ModeInfo[] = [
       {
         icon: 'pin',
         title: 'Drop your pin',
-        text: 'Tap where you think the country is. There are no borders, so trust your map sense.',
+        text: 'Tap where you think the country is. Borders are hidden unless you switch them on, so trust your map sense.',
       },
       {
         icon: 'check',
@@ -134,7 +134,7 @@ export const MODES: ModeInfo[] = [
       {
         icon: 'pin',
         title: 'Every move is a find',
-        text: 'Tap the next country on the borderless globe and press Go. Crossing a border costs 1 step; a short sea crossing costs 2.',
+        text: 'Tap the next country on the globe and press Go. Crossing a border costs 1 step; a short sea crossing costs 2.',
       },
       {
         icon: 'close',

@@ -146,7 +146,7 @@ export async function loadGeoData(): Promise<GeoData> {
   return new GeoData(new CountryIndex(collection), facts)
 }
 
-async function fetchJson<T>(path: string): Promise<T> {
+export async function fetchJson<T>(path: string): Promise<T> {
   const version = import.meta.env.VITE_ASSET_VERSION ?? 'dev'
   const response = await fetch(`${import.meta.env.BASE_URL}${path}?v=${version}`)
   if (!response.ok) throw new Error(`Failed to load ${path}: ${response.status}`)

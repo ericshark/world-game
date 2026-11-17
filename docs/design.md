@@ -1,7 +1,7 @@
 # World Game — Design
 
 A browser game played on a realistic 3D globe. The game names a country ("Find Peru"); the player
-clicks where they think it is on a borderless satellite-style Earth, then sees the real country
+clicks where they think it is on a satellite-style Earth (borders are hidden unless the player switches them on), then sees the real country
 highlighted, how far off they were, and their score.
 
 ## Goals
@@ -63,7 +63,10 @@ At max zoom (continent view), micro-states and small islands are only a few pixe
 ## Globe & visuals
 
 - Realistic, satellite-style Earth: **NASA Blue Marble** (true color, cloud-free), public domain.
-- **No borders, no labels, no city dots.** Optional faint lat/long grid toggle.
+- **No labels, no city dots.** Optional faint lat/long grid toggle, and an optional **country borders**
+  setting (Settings, or the button in every game's top bar). It is a visual setting that applies in
+  every mode, ranked play included: it changes no rules, scores or leaderboards. Lines come from
+  `public/data/borders.json`, built from the same shapes used for hit-testing, and load on first use.
 - Soft **atmosphere glow** at the limb. **Even lighting**, no night side.
 - **Limited zoom:** from whole-Earth view down to **continent view** at most.
   Because of this, the whole Earth is **a single texture on a sphere** — no tile server, no API keys,
