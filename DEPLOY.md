@@ -1,5 +1,9 @@
 # Deploying World Game to Fly.io
 
+> **Not the live setup.** The site currently runs on Render's free plan; see
+> [docs/deployment.md](docs/deployment.md). This guide is the prepared path for moving to an
+> always-on Fly.io machine. It has not been run.
+
 This is the exact list of things to do, in order, to put World Game on the internet. It takes about
 an hour the first time. Everything the code needs is already in the repository (`Dockerfile`,
 `fly.toml`, `docker/`). What is left needs **you**: accounts, money, a domain and secrets.

@@ -48,4 +48,9 @@ repository has no remote. Run it again once there is one.
   checked for language (nicknames are).
 - Bots can pace themselves past the 300 ms timing flag; it catches only the crudest scripts.
 - No captcha or account lockout. The limits above are what protect sign-in.
-- Not yet done: a `security-review` run against a remote, and a penetration test.
+- Not yet done: a penetration test, and a `security-review` run on a branch (a remote exists now,
+  but the skill compares a branch against it).
+- A heuristic scan (`production-readiness-audit`, 2026-11-17) found nothing real: its one HIGH is
+  the fixed test secret in `playwright.config.ts`, and its `exec()` hits are SQLite statements
+  with fixed text. `npm audit` is clean. Dependabot now opens weekly update pull requests.
+- The server's real client address depends on Render sending `cf-connecting-ip`; that is unverified.

@@ -43,8 +43,9 @@ network URL on other devices.
 
 ## Deploying
 
-[DEPLOY.md](DEPLOY.md) is the step-by-step guide (Fly.io). What was checked before launch is in
-the [readiness report](docs/readiness-report.md).
+The site runs on Render, and pushing `main` deploys it: see [deployment](docs/deployment.md).
+[DEPLOY.md](DEPLOY.md) is a prepared guide for moving to Fly.io. What was checked before launch is
+in the [readiness report](docs/readiness-report.md).
 
 ## Useful commands
 
