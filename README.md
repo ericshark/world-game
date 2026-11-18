@@ -1,79 +1,24 @@
 # World Game
 
-A geography game and trainer on a realistic 3D globe (country borders are an optional setting),
-built with React and Three.js. **Learn** teaches the world in short lessons and spaced reviews, with
-an atlas and regional exams. It has seven ways to play:
+A geography game on an interactive 3D globe. Learn countries and capitals in short lessons, test yourself in timed games, solve the daily puzzles, or challenge friends in a private room.
 
-- **Pinpoint:** find countries and capitals, or name them, optionally by night.
-- **GeoRush:** find as many countries as you can against the clock.
-- **Rare Earth:** name the rarest country that fits a category, then find it.
-- **Mystery Country:** close in on a hidden country, hot and cold.
-- **World Journey:** cross the world one border at a time.
-- **Daily World:** the same puzzles for everyone, every day.
-- **World Battle:** play against bots, or friends in private online rooms.
+[Play World Game](https://world-game-0qhx.onrender.com)
 
-Progress, achievements and personal bests are kept in your browser, and follow you to other
-devices if you sign in.
+![World Game on a 3D globe with its geography game controls](docs/screenshots/globe.jpg)
+
+## How it works
+
+React runs the games, and Three.js draws the globe. Modes include finding countries and capitals, guessing a hidden country by distance, and crossing the world one border at a time. The browser keeps progress and personal bests. Online play uses a Node server with WebSocket rooms.
 
 ## Run locally
 
-Use Node.js 22.12+ and npm. From the project root:
+Use Node.js 22.12 or later and npm.
 
-```bash
+```sh
 npm ci
 npm run dev
 ```
 
-Open the URL Vite prints. It starts on port 5174 and tries the next available
-port if occupied.
+Open the URL printed by Vite, starting at port 5174. For private multiplayer rooms, also run `npm run server` in another terminal. The server starts at port 8788. If it moves to another port, set `WG_SERVER_PORT` to that port when starting Vite.
 
-### Playing with friends
-
-Online rooms need the battle server running alongside the dev server:
-
-```bash
-npm run server
-```
-
-It listens on port 8788, or the next free one. The dev server forwards `/ws` to
-it. If the server ends up on another port, start Vite with `WG_SERVER_PORT`
-set to that port.
-
-To play on your local network, run `npm run dev -- --host` and open the
-network URL on other devices.
-
-## Deploying
-
-The site runs on Render, and pushing `main` deploys it: see [deployment](docs/deployment.md).
-[DEPLOY.md](DEPLOY.md) is a prepared guide for moving to Fly.io. What was checked before launch is
-in the [readiness report](docs/readiness-report.md).
-
-## Useful commands
-
-- `npm test`: run unit tests.
-- `npm run e2e`: play through every mode in headless Chromium (Playwright),
-  at desktop and phone sizes. It starts its own servers on ports 5180 and 8792.
-- `npm run server:watch`: run the battle server and restart it on changes.
-- `npm run build`: type-check and build into `dist/`.
-- `npm run lint`: lint the code.
-- `npm run format:check`: check formatting.
-
-## How it works
-
-- `src/geo/`: coordinates, country lookup, facts, name matching, distance, and scoring.
-- `src/game/core/`: the round engine, seeded randomness, and shared game types.
-- `src/game/modes/`: each game mode's rules, as pure functions of plain state.
-- `src/game/profile/`: saved progress, stats, personal bests, and settings.
-- `src/app/` and `src/screens/`: hosting games in the browser, and the screens.
-- `src/net/` and `server/`: the battle protocol, and the room server that runs
-  the same rules.
-- `src/globe/`: globe rendering, country paint overlay, pins, and camera.
-- `data/`: curated places, capitals, aliases, and geography facts (see [data](docs/data.md)).
-
-Country data and globe imagery are committed in `public/`. Rebuild them only
-when changing assets: `npm run build:data` and `npm run build:texture`.
-Downloads are cached in `.cache/`.
-
-See the [game design](docs/design.md) for rules and design details.
-Imagery: NASA Blue Marble Next Generation. Borders: Natural Earth. Both are
-public domain.
+[Game design](docs/design.md) · [Geography data and credits](docs/data.md) · [Deployment](docs/deployment.md)
