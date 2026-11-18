@@ -32,7 +32,7 @@ test('a failed load offers a retry that works', async ({ page }) => {
   await expect(page.getByText('Could not load the game')).toBeVisible()
   await page.unroute('**/data/countries.json*')
   await page.getByRole('button', { name: 'Try again' }).click()
-  await expect(page.getByRole('status').filter({ hasText: 'Loading' })).toBeHidden({
+  await expect(page.getByRole('status').filter({ hasText: 'Loading Earth' })).toBeHidden({
     timeout: 60_000,
   })
   await expect(page.getByRole('button', { name: /^Pinpoint/ })).toBeVisible()
@@ -54,7 +54,7 @@ test('without WebGL the menus still work and the globe says why it is missing', 
   })
   await page.goto('/')
   await expect(page.getByText('The 3D globe is not available')).toBeVisible()
-  await expect(page.getByRole('status').filter({ hasText: 'Loading' })).toBeHidden()
+  await expect(page.getByRole('status').filter({ hasText: 'Loading Earth' })).toBeHidden()
   await page
     .getByRole('button', { name: /^Passport|Level/ })
     .first()

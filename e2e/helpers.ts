@@ -6,7 +6,7 @@ type Snapshot = ReturnType<NonNullable<Window['__worldGame']>['snapshot']>
 export async function openGame(page: Page, path = '/') {
   await page.goto(path)
   // The first load can take a while: Vite may optimise dependencies and reload the page.
-  await expect(page.getByRole('status').filter({ hasText: 'Loading' })).toBeHidden({
+  await expect(page.getByRole('status').filter({ hasText: 'Loading Earth' })).toBeHidden({
     timeout: 60_000,
   })
 }

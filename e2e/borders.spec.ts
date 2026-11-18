@@ -24,6 +24,8 @@ test('country borders can be switched on in Settings, load once, and stay on', a
 
   // The choice survives a reload.
   await page.reload()
+  // Safari reports the old page's aborted fetches as errors; only the new page counts.
+  errors.length = 0
   // The reload keeps the Settings route, so the sheet is already open.
   await openGame(page, page.url())
   await expect(page.getByRole('switch', { name: 'Country borders' })).toBeChecked()

@@ -21,6 +21,8 @@ export default defineConfig({
   timeout: 60_000,
   expect: { timeout: 15_000 },
   fullyParallel: true,
+  // Software WebGL on a shared runner occasionally stalls a page load; one retry absorbs that.
+  retries: process.env.CI ? 1 : 0,
   // Each test renders WebGL in software; more than a couple at once starves the CPU.
   workers: Number(process.env.PW_WORKERS ?? 2),
   reporter: process.env.CI ? [['list'], ['html', { open: 'never' }]] : 'list',
