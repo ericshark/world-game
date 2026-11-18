@@ -21,4 +21,4 @@ npm run dev
 
 Open the URL printed by Vite, starting at port 5174. For private multiplayer rooms, also run `npm run server` in another terminal. The server starts at port 8788. If it moves to another port, set `WG_SERVER_PORT` to that port when starting Vite.
 
-[Game design](docs/design.md) · [Geography data and credits](docs/data.md) · [Deployment](docs/deployment.md)
+[Game design](docs/design.md) · [Geography data and credits](docs/data.md) · [Deployment](docs/deployment.md) · [Roadmap](docs/roadmap.md)

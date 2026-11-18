@@ -2,11 +2,13 @@
 
 A full check of World Game before its first deployment, on **2026-10-26**: what was run, what it
 found, what was fixed, and what is still unverified. The owner's step-by-step guide is
-[DEPLOY.md](../DEPLOY.md).
+[deploy-fly.md](deploy-fly.md).
+
+> Snapshot from v1 (2026-10-26 and 2026-10-27). For current status see [roadmap](roadmap.md).
 
 ## Verdict
 
-**Ready to deploy**, once the owner does the steps in DEPLOY.md that need accounts. Every check
+**Ready to deploy**, once the owner does the steps in deploy-fly.md that need accounts. Every check
 that can run without a Fly.io, Resend, R2 or OAuth account was run and passes, and GitHub CI is
 green. Fifteen problems were found and fixed (below); ten of them would have hurt a real launch.
 

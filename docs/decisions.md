@@ -100,3 +100,16 @@ the top. Players whose stats predate reviews are placed from their recent answer
 due, which re-verifies old mastery instead of trusting it. Learning is local and unranked:
 nothing in it touches the server, leaderboards or the ranked dailies. Names are shown in lesson
 study and the Atlas only.
+
+## Borders apply everywhere, and certificates do not record them (2026-11-17)
+
+The borders setting applies to ranked play too. It changes no rules or scores, only what is drawn.
+A regional exam certificate does not record whether borders were on, so the "gold borderless seal"
+from the first plan was not built. Adding it later needs one extra stored flag.
+
+## Dependency updates and releases (2026-11-18)
+
+`npm audit fix` is not run wholesale; only `hono` and `@hono/node-server` were updated, for two
+advisories. Dependabot PRs are merged, not closed, once their checks pass. Each 2.0 milestone is
+tagged `v2-mN` locally; tags do not deploy. Render deploys from `main`, so a push to `main` needs
+the owner's approval. The `codex/world-game-next-level` branch was deleted from the remote.

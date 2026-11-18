@@ -48,7 +48,7 @@ Changes are shipped about every ten seconds, so a hard kill can lose the last fe
 Two prepared paths, both about $6–8 a month (check prices before buying):
 
 - **Render, paid instance.** Change `plan` in `render.yaml`. Nothing else changes.
-- **Fly.io.** [DEPLOY.md](../DEPLOY.md) is a step-by-step guide using `fly.toml`: one always-on
+- **Fly.io.** [deploy-fly.md](deploy-fly.md) is a step-by-step guide using `fly.toml`: one always-on
   machine with a volume. It was written before the Render deployment and has not been run.
 
 The rest of this page is background that applies to any host: the design, sizing, settings, a VM
@@ -162,7 +162,7 @@ On a VM, set `TRUST_PROXY=1` in `.env` (Caddy replaces `X-Forwarded-For`, so lea
 nobody can reach the app around the proxy. With Cloudflare's proxy in front, also allow only
 Cloudflare's addresses to reach ports 80 and 443, since `CF-Connecting-IP` is believed as sent.
 
-Fly.io has its own guide: [DEPLOY.md](../DEPLOY.md). It uses `fly.toml`: one always-on machine, a
+Fly.io has its own guide: [deploy-fly.md](deploy-fly.md). It uses `fly.toml`: one always-on machine, a
 volume at `/data`, and `CLIENT_IP_HEADER=fly-client-ip`, because Fly's proxy appends to
 `X-Forwarded-For`.
 

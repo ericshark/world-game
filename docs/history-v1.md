@@ -1,30 +1,16 @@
-# Roadmap status
+# Version 1 history
 
-Where the three-phase launch roadmap stands, and how to carry on. The full plan lives at
-`~/.claude/plans/pasted-content-id-8702-world-typed-fountain.md`, and design choices are in
-[decisions](decisions.md). Last updated 2026-10-26.
+What was built in the original three-phase roadmap (2026-10-20 to 2026-10-27, released as `v1.0.0`).
+This is a record, not a to-do list. Current status and next steps are in [roadmap](roadmap.md);
+design choices are in [decisions](decisions.md).
 
-## Summary
+| Phase                                              | Status | Git                         |
+| -------------------------------------------------- | ------ | --------------------------- |
+| 1. Single-player platform                          | Done   | `phase-1-start` → `phase-1` |
+| 2. Multiplayer, identity, leaderboards, Quick Duel | Done   | `phase-2-start` → `phase-2` |
+| 3. Production polish and launch preparation        | Done   | `phase-3-start` → `phase-3` |
 
-| Phase                                              | Status          | Git                         |
-| -------------------------------------------------- | --------------- | --------------------------- |
-| 1. Single-player platform                          | Done            | `phase-1-start` → `phase-1` |
-| 2. Multiplayer, identity, leaderboards, Quick Duel | Done            | `phase-2-start` → `phase-2` |
-| 3. Production polish and launch preparation        | Done (prepared) | `phase-3-start` → `phase-3` |
-
-## Decisions already made with the owner
-
-- **Identity:** anonymous by default (a device identity plus a nickname). Optional sign-in by email
-  magic link, or Google/GitHub OAuth, carries a profile across devices.
-- **Matchmaking:** a public Quick Duel queue with Glicko-2 ratings. After about 20 s, offer a
-  clearly labelled, unrated bot match. Party, Survival and Teams stay private-room only.
-- **Hosting target:** about $5–10/mo, on one server. One Node process serves the static site,
-  WebSockets and the API, with SQLite plus Litestream and a free CDN in front.
-- **Never** buy hosting, deploy publicly, or create OAuth or email accounts without asking first.
-
-## Done
-
-### Phase 1 (tag `phase-1`)
+## Phase 1 (tag `phase-1`)
 
 - **Fixes:**
   - Challenge links reject unknown modes and impossible scores.
@@ -50,7 +36,7 @@ Where the three-phase launch roadmap stands, and how to carry on. The full plan 
 - **Tour:** a guided first game (`src/game/modes/tutorial.ts`, `#/tour`).
 - **Shared code:** `useRecordedGame` and `Crosshair`.
 
-### Phase 2 (tag `phase-2`)
+## Phase 2 (tag `phase-2`)
 
 - **Server correctness:**
   - An unknown answer id no longer crashes the server.
@@ -108,7 +94,7 @@ Where the three-phase launch roadmap stands, and how to carry on. The full plan 
     all-time Daily Five averages (7 or more plays). Flagged results are excluded. Without a server
     the screen says why it is empty. The Daily results show "Ranked #N … you beat X%".
 
-### Phase 3 (tag `phase-3`)
+## Phase 3 (tag `phase-3`)
 
 - **Performance.** Done (see [performance](performance.md)): code splitting with a lazy 3D
   chunk, on-demand rendering, a 2048 overlay with incremental paint on phones, hashed and brotli
@@ -144,32 +130,7 @@ Where the three-phase launch roadmap stands, and how to carry on. The full plan 
   At the time the Docker image, the restore drill, CI and WebKit were not run; the
   [readiness report](readiness-report.md) (2026-10-26) records running them and what it fixed.
 
-## Still to do
-
-Nothing is left in the roadmap. What remains is the owner's, and nothing below has been done:
-
-- Deploy: follow [DEPLOY.md](../DEPLOY.md) (Fly.io). It covers buying hosting and a domain, the R2
-  bucket, Resend and the optional Google and GitHub OAuth apps.
-- The Docker image, the Litestream restore drill and the WebKit tests were run on 2026-10-26; see
-  the [readiness report](readiness-report.md). Push so CI confirms the e2e fixes from that day.
-- Set `VITE_PRIVACY_CONTACT` (in `fly.toml`), and have the privacy page reviewed.
-- Revisit scoring, the GeoRush ramp, Journey par bands and Duel damage with real player data.
-- Run the `security-review` skill once the repository has a remote.
-
-## Working rules
-
-- Commit focused changes when checks pass. Don't push or rewrite history.
-- Before committing, run `npm test`, `npm run lint`, `npm run format:check`, `npm run build`, and
-  the relevant `PW_HEADLESS=true npx playwright test`.
-- Dev servers start on default port + 1 or above. The app's Vite default is 5174 and the battle
-  server's is 8788. Stop everything you start, and check the ports are free.
-- Running e2e specs side by side starves the CPU, because every page renders WebGL in software.
-  Close browser contexts after multi-player tests (see `e2e/online.spec.ts`).
-- To test the production build: `VITE_E2E=1 npm run build`, then `E2E_PRODUCTION=1 PW_HEADLESS=true
-npx playwright test` (one port, the built server). Rebuild without `VITE_E2E` afterwards.
-- Vite's `ws proxy error: ECONNRESET` log lines during e2e are harmless noise.
-
-## Known gaps
+## Known gaps at v1
 
 - Name It rounds online reveal the country's shape to the client. This is inherent to the round;
   see the decisions log.

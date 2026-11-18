@@ -1,15 +1,15 @@
 # Deploying World Game to Fly.io
 
 > **Not the live setup.** The site currently runs on Render's free plan; see
-> [docs/deployment.md](docs/deployment.md). This guide is the prepared path for moving to an
+> [deployment.md](deployment.md). This guide is the prepared path for moving to an
 > always-on Fly.io machine. It has not been run.
 
 This is the exact list of things to do, in order, to put World Game on the internet. It takes about
 an hour the first time. Everything the code needs is already in the repository (`Dockerfile`,
 `fly.toml`, `docker/`). What is left needs **you**: accounts, money, a domain and secrets.
 
-Background, sizing and the reasoning behind each choice live in [docs/deployment.md](docs/deployment.md).
-What was checked before this guide was written is in [docs/readiness-report.md](docs/readiness-report.md).
+Background, sizing and the reasoning behind each choice live in [deployment.md](deployment.md).
+What was checked before this guide was written is in [readiness-report.md](readiness-report.md).
 
 **What you get:** one small Fly.io machine running the site, the API and the real-time games, with the
 database on a disk and a live backup in Cloudflare R2. The cost is about **$6–8 a month plus the
@@ -121,7 +121,7 @@ openssl rand -hex 32
 
 ## 3. Point the settings at your app
 
-Open [fly.toml](fly.toml) and change these four lines:
+Open [fly.toml](../fly.toml) and change these four lines:
 
 | Line                   | Change it to                                                                 |
 | ---------------------- | ---------------------------------------------------------------------------- |
@@ -239,7 +239,7 @@ If backups are set up, you should see a Litestream line `msg="replicating to" ty
    fly certs check yourdomain --app world-game-eric
    ```
 
-4. In [fly.toml](fly.toml), set `PUBLIC_ORIGIN = 'https://yourdomain'`. To keep the `fly.dev` address
+4. In [fly.toml](../fly.toml), set `PUBLIC_ORIGIN = 'https://yourdomain'`. To keep the `fly.dev` address
    working too, add this line under `[env]`:
    `ALLOWED_ORIGINS = 'https://world-game-eric.fly.dev'`. Then deploy again:
 

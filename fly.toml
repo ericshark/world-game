@@ -1,4 +1,4 @@
-# Fly.io settings for World Game (step-by-step guide: DEPLOY.md).
+# Fly.io settings for World Game (step-by-step guide: docs/deploy-fly.md).
 # Run exactly one machine: rooms and the Quick Duel queue live in its memory, and the SQLite
 # database lives on its volume. Never scale this above one.
 
