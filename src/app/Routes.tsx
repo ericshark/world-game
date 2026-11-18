@@ -36,6 +36,13 @@ const SettingsScreen = lazy(() =>
 const PassportScreen = lazy(() =>
   import('../screens/passport/PassportScreen').then((m) => ({ default: m.PassportScreen })),
 )
+const LearnScreen = lazy(() =>
+  import('../screens/learn/LearnScreen').then((m) => ({ default: m.LearnScreen })),
+)
+const AtlasScreen = lazy(() =>
+  import('../screens/learn/AtlasScreen').then((m) => ({ default: m.AtlasScreen })),
+)
+const LearnPlay = lazy(() => import('./learn/LearnPlay').then((m) => ({ default: m.LearnPlay })))
 const OnlineScreen = lazy(() =>
   import('./online/OnlineScreen').then((m) => ({ default: m.OnlineScreen })),
 )
@@ -216,6 +223,18 @@ function CurrentRoute({ route }: { route: Route }) {
       )
     case 'passport':
       return <PassportScreen onClose={home} />
+    case 'atlas':
+      return <AtlasScreen onClose={() => navigate({ name: 'learn' })} />
+    case 'learn':
+      return <LearnScreen onClose={home} />
+    case 'learn-play':
+      return (
+        <LearnPlay
+          key={route.target}
+          target={route.target}
+          onHub={() => navigate({ name: 'learn' }, { replace: true })}
+        />
+      )
     case 'tour':
       return <TutorialGame onHome={home} />
     case 'crash':

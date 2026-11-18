@@ -14,6 +14,8 @@ export interface GlobeStage {
   setScene(scene: GlobeScene): void
   setSurface(surface: Surface): void
   setAutoRotate(autoRotate: boolean): void
+  /** Forces the border lines on (or off) whatever the setting says; null follows the setting. */
+  setBordersOverride(show: boolean | null): void
   /** Slides the globe aside, e.g. away from a panel. */
   setShift(shift: ViewShift): void
   flyTo(view: CameraView): void

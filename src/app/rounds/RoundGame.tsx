@@ -71,6 +71,8 @@ export interface RoundGameProps<Config, State extends RoundModeState> {
   hideCapitalCountry?: boolean
   /** The player's stats, for practice modes. */
   stats?: StatsByCountry
+  /** Offer "play again" and a challenge link; off for sessions built from the player's stats. */
+  replayable?: boolean
   /** A fixed seed: daily puzzles and challenge links. */
   seed?: string
   /** Set when this game is one of today's daily puzzles: one attempt, then share. */
@@ -246,7 +248,7 @@ export function RoundGame<Config, State extends RoundModeState>(
   })
 
   const score = results.reduce((sum, r) => sum + r.points, 0)
-  const rematch = useChallenge(daily ? undefined : state?.seed, score)
+  const rematch = useChallenge(daily || props.replayable === false ? undefined : state?.seed, score)
 
   useTestHook({
     snapshot: () => ({
@@ -287,7 +289,7 @@ export function RoundGame<Config, State extends RoundModeState>(
           points: results[index].points,
           tone: gradeOf(results[index]).tone,
         }))}
-        onPlayAgain={daily ? undefined : playAgain}
+        onPlayAgain={daily || props.replayable === false ? undefined : playAgain}
         onChangeSetup={props.onChangeSetup}
         onHome={props.onHome}
       >

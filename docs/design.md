@@ -227,6 +227,37 @@ show in the HUD, and personal bests are kept per setup.
 - Stronger anti-cheat: check submission timing against the server clock and flag implausible
   answers. Views already leave out later rounds and the answers to open rounds.
 
+## Learn
+
+The part of the game that teaches, rather than tests. Everything below is derived from the saved
+per-country stats, so nothing about it is stored beyond two small tables.
+
+- **Review schedule** (`src/game/profile/review.ts`). Each country skill (find it, name it, its
+  capital) sits in a Leitner box 0 to 6, with gaps of about 1, 3, 7, 16, 35 and 90 days. A right
+  answer moves it up only when it is due, so repeating a country in one sitting does not climb
+  the boxes; a wrong answer drops it to box 1. Every mode feeds this through `recordOutcomes`.
+  Stats saved before reviews existed are placed from their recent answers and count as due, so
+  old progress is checked again rather than assumed.
+- **Lessons** (`curriculum.ts`). The course is generated from the data: each region splits into
+  UN subregions, and each subregion into lessons of about five countries, taught well-known
+  first with neighbours together. A lesson opens with a **study** step (the camera flies to each
+  country, with borders, names, capital and neighbours shown), then a quiz.
+- **Sessions** (`learn.ts`, `learnQueue.ts`). A lesson asks every skill of its countries not yet
+  answered right, plus a few due reviews; a review session asks the most overdue. A question
+  missed is asked again once at the end. Naming is multiple choice when new or just forgotten.
+  Sessions play through the same `RoundGame` as Pinpoint.
+- **World knowledge and Expert.** World knowledge counts each core skill (find it, name it) as
+  its box over 4, so a country answered right once counts for a quarter and one remembered across
+  weeks counts in full. A country is **Expert** when both core skills are in box 4 or higher.
+  Mastery and explorer ranks are unchanged.
+- **Mix-ups.** Wrong pins and answers record which country was taken for which, in a capped
+  table; the hub offers a drill that asks both of the most confused pairs side by side.
+- **Exams and certificates.** A regional exam finds every country of a region once, with no
+  help and no re-asks; 90% passes and earns that region's certificate. Whether borders were on is
+  not recorded, so a certificate does not distinguish borderless passes.
+- **Atlas.** Free exploration with borders on: tap a country for its name, capital, neighbours
+  and facts. Names appear only here and in lesson study, never in scored games.
+
 ## Progression
 
 - **Mastery** per country, across all skills: Seen, Found (right at least once), or Mastered

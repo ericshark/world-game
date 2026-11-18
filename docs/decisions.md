@@ -86,3 +86,17 @@ same pair has already been rated three times in 24 hours. A player who left and 
 within the 30 s seat grace loses. Ratings notes are sent to the connection that was seated when
 the game ended, so a player who reconnects after the end may not see theirs (the rating itself
 is saved).
+
+## Learning is derived from stats; reviews follow due dates (2026-11-17)
+
+Lessons, progress, World knowledge and the Expert tier are computed from the per-country stats, as
+Passport stamps are, so there is no lesson state to migrate. The only new stored data are a box and
+due date on each skill's stats, a capped table of mix-ups, and the dates regional exams were
+passed. Mastery and ranks keep their meaning, because achievements and the Passport rely on them;
+Expert sits above them rather than replacing them.
+
+A right answer climbs a box only once the skill is due, so one sitting cannot rush a country to
+the top. Players whose stats predate reviews are placed from their recent answers and counted as
+due, which re-verifies old mastery instead of trusting it. Learning is local and unranked:
+nothing in it touches the server, leaderboards or the ranked dailies. Names are shown in lesson
+study and the Atlas only.

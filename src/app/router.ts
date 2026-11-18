@@ -8,6 +8,10 @@ export type Route =
   | { name: 'setup'; mode: ModeKey }
   | { name: 'play'; mode: ModeKey }
   | { name: 'passport' }
+  | { name: 'learn' }
+  | { name: 'atlas' }
+  /** `review`, or a lesson id. */
+  | { name: 'learn-play'; target: string }
   | { name: 'daily' }
   | { name: 'challenge'; token: string }
   | { name: 'online' }
@@ -41,6 +45,11 @@ export function parseRoute(hash: string): Route {
   if (first === 'challenge' && second) return { name: 'challenge', token: second }
   if ((import.meta.env.DEV || import.meta.env.VITE_E2E) && first === 'crash')
     return { name: 'crash' }
+  if (first === 'learn') {
+    return second && /^[a-z0-9-]{1,60}$/.test(second)
+      ? { name: 'learn-play', target: second }
+      : { name: 'learn' }
+  }
   if (first === 'online') return { name: 'online' }
   if (first === 'signin' && second) return { name: 'signin', token: second }
   if (first === 'room' && /^[A-Za-z]{3,5}$/.test(second ?? '')) {
@@ -55,6 +64,7 @@ export function parseRoute(hash: string): Route {
   if (
     first === 'settings' ||
     first === 'tour' ||
+    first === 'atlas' ||
     first === 'leaderboards' ||
     first === 'privacy' ||
     first === 'credits'
@@ -75,6 +85,8 @@ export function routeHash(route: Route): string {
       return `#/daily/${route.puzzle}`
     case 'challenge':
       return `#/challenge/${route.token}`
+    case 'learn-play':
+      return `#/learn/${route.target}`
     case 'signin':
       return `#/signin/${route.token}`
     case 'room':

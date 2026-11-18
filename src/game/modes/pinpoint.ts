@@ -1,4 +1,5 @@
 import { MAX_POINTS, type ScoringRegion } from '../../geo/scoring'
+import { mistakenFor } from '../core/confusions'
 import { evaluateChallenge, type ScoringOptions } from '../core/evaluate'
 import type { ModeRules } from '../core/mode'
 import { createRandom } from '../core/random'
@@ -156,5 +157,6 @@ function outcomeOf(result: RoundResult, skill: Skill): CountryOutcome {
     success: result.hit,
     distanceKm:
       result.kind === 'locate' || result.kind === 'capital' ? result.distanceKm : undefined,
+    mistakenFor: mistakenFor(result),
   }
 }

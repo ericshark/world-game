@@ -108,7 +108,8 @@ export interface MissedResult {
 export type RoundResult =
   LocateResult | CapitalResult | IdentifyResult | CategoryResult | MissedResult
 
-export type ModeId = 'pinpoint' | 'rush' | 'rare-earth' | 'mystery' | 'journey' | 'daily' | 'battle'
+export type ModeId =
+  'pinpoint' | 'rush' | 'rare-earth' | 'mystery' | 'journey' | 'daily' | 'battle' | 'learn'
 
 /** Skills tracked per country across all modes. */
 export type Skill = 'locate' | 'capital' | 'name' | 'recall' | 'visit'
@@ -118,6 +119,8 @@ export interface CountryOutcome {
   skill: Skill
   success: boolean
   distanceKm?: number
+  /** On a miss, the country that was picked or named instead. */
+  mistakenFor?: string
 }
 
 /**

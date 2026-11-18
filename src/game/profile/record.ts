@@ -1,3 +1,4 @@
+import { REGIONS } from '../../geo/countries'
 import type { GeoData } from '../../geo/facts'
 import type { CountryOutcome, SessionSummary } from '../core/types'
 import { newAchievements, type Achievement } from './achievements'
@@ -8,7 +9,7 @@ import { completeGoals, type WeeklyGoal } from './weekly'
 import { levelForXp, sessionXp, XP_PER_ACHIEVEMENT } from './xp'
 
 export { HISTORY_LIMIT } from './sanitize'
-import { HISTORY_LIMIT } from './sanitize'
+import { HISTORY_LIMIT, MAX_CONFUSIONS } from './sanitize'
 
 /**
  * Adds a revealed round's outcomes to the per-country stats. Done round by round, so a game the
@@ -18,13 +19,17 @@ import { HISTORY_LIMIT } from './sanitize'
 export function recordOutcomes(profile: Profile, outcomes: CountryOutcome[], at: number): Profile {
   const countries = { ...profile.countries }
   const masteredAt = { ...profile.masteredAt }
-  for (const { countryId, skill, success, distanceKm } of outcomes) {
+  const confusions = { ...profile.confusions }
+  for (const { countryId, skill, success, distanceKm, mistakenFor } of outcomes) {
+    if (mistakenFor)
+      confusions[`${countryId}>${mistakenFor}`] =
+        (confusions[`${countryId}>${mistakenFor}`] ?? 0) + 1
     const skills = { ...countries[countryId] }
-    skills[skill] = recordAttempt(skills[skill], success, distanceKm)
+    skills[skill] = recordAttempt(skills[skill], success, distanceKm, at)
     countries[countryId] = skills
     if (!(countryId in masteredAt) && masteryOf(skills) === 'mastered') masteredAt[countryId] = at
   }
-  return { ...profile, countries, masteredAt }
+  return { ...profile, countries, masteredAt, confusions: capConfusions(confusions) }
 }
 
 export interface RecordedSession {
@@ -91,6 +96,8 @@ export function recordSession(
     }
   }
 
+  next = withCertificate(next, summary)
+
   const weekly = completeGoals(next, geo, summary.endedAt)
   next = weekly.profile
 
@@ -131,4 +138,19 @@ function decodeTones(metrics: Record<string, number>): string[] {
     .filter((key) => /^tone\d+$/.test(key))
     .sort((a, b) => Number(a.slice(4)) - Number(b.slice(4)))
     .map((key) => TONE_NAMES[metrics[key]] ?? 'miss')
+}
+
+/** Keeps the most frequent mix-ups when the table grows past its cap. */
+function capConfusions(confusions: Record<string, number>): Record<string, number> {
+  const entries = Object.entries(confusions)
+  if (entries.length <= MAX_CONFUSIONS) return confusions
+  return Object.fromEntries(entries.sort((a, b) => b[1] - a[1]).slice(0, MAX_CONFUSIONS))
+}
+
+/** A passed regional exam (see learn.ts) earns that region's certificate, once. */
+function withCertificate(profile: Profile, summary: SessionSummary): Profile {
+  if (summary.mode !== 'learn' || summary.metrics.examPassed !== 1) return profile
+  const region = REGIONS[summary.metrics.examRegion]
+  if (!region || region in profile.certificates) return profile
+  return { ...profile, certificates: { ...profile.certificates, [region]: summary.endedAt } }
 }

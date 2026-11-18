@@ -4,7 +4,14 @@ import { memoryStorage } from '../../test/memoryStorage'
 import type { SessionSummary } from '../core/types'
 import { dailyNumber, dailyStreak, localDateKey } from './daily'
 import { explorerRank, masteryOf } from './mastery'
-import { clearProfile, emptyProfile, loadProfile, saveProfile, skillStats } from './profile'
+import {
+  clearProfile,
+  emptyProfile,
+  loadProfile,
+  normalizeProfile,
+  saveProfile,
+  skillStats,
+} from './profile'
 import { weeklyGoals } from './weekly'
 import { HISTORY_LIMIT, recordOutcomes, recordSession } from './record'
 import type { JsonStorage } from './storage'
@@ -97,7 +104,15 @@ describe('recordOutcomes', () => {
       2,
     )
     expect(skillStats(profile, 'locate')).toEqual({
-      PER: { attempts: 2, hits: 1, totalKm: 250, recent: [true, false] },
+      // The miss at time 2 drops the skill to box 1, due a day later.
+      PER: {
+        attempts: 2,
+        hits: 1,
+        totalKm: 250,
+        recent: [true, false],
+        box: 1,
+        dueAt: 2 + 86_400_000,
+      },
     })
   })
 
@@ -252,5 +267,33 @@ describe('daily dates and streaks', () => {
     day('2026-10-21')
     expect(dailyStreak(profile, today)).toBe(4)
     expect(dailyStreak(profile, new Date(2026, 9, 23).getTime())).toBe(0)
+  })
+})
+
+describe('mix-ups and certificates', () => {
+  it('counts what a country was taken for, and keeps the counts through saving', () => {
+    let profile = emptyProfile()
+    const miss = { countryId: 'SVK', skill: 'locate' as const, success: false, mistakenFor: 'SVN' }
+    profile = recordOutcomes(
+      profile,
+      [miss, miss, { ...miss, countryId: 'SVN', mistakenFor: 'SVK' }],
+      1,
+    )
+    expect(profile.confusions).toEqual({ 'SVK>SVN': 2, 'SVN>SVK': 1 })
+    expect(normalizeProfile(profile).confusions).toEqual(profile.confusions)
+  })
+
+  it('drops damaged mix-up and certificate entries, and caps the table', () => {
+    const many = Object.fromEntries(
+      Array.from({ length: 400 }, (_, i) => [`A${i}>B${i}`, 1 + (i % 7)]),
+    )
+    const clean = normalizeProfile({
+      ...emptyProfile(),
+      confusions: { ...many, 'bad key': 3, 'FRA>ITA': -4, 'DEU>AUT': 'x' },
+      certificates: { Europe: 5, '<script>': 1, Asia: 'never' },
+    })
+    expect(Object.keys(clean.confusions)).toHaveLength(300)
+    expect(clean.confusions['bad key']).toBeUndefined()
+    expect(clean.certificates).toEqual({ Europe: 5 })
   })
 })

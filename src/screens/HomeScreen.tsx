@@ -8,6 +8,7 @@ import { cosmeticById, TITLES } from '../game/profile/cosmetics'
 import { dailyNumber, dailyStreak } from '../game/profile/daily'
 import { nextGoal } from '../game/profile/goals'
 import { countByMastery, explorerRank } from '../game/profile/mastery'
+import { dueReviews, worldKnowledge } from '../game/profile/review'
 import { levelForXp } from '../game/profile/xp'
 import { Icon } from '../ui/Icon'
 import { formatNumber } from './format'
@@ -29,6 +30,7 @@ export function HomeScreen() {
         </h1>
         <p className="home__tagline">Know the world. One Earth, many ways to play.</p>
 
+        <LearnCard />
         <DailyCard />
         {showTour ? <TourCard /> : <NextGoal />}
 
@@ -97,6 +99,37 @@ export function HomeScreen() {
         <a href="#/privacy">Privacy</a> · <a href="#/credits">Credits</a>
       </footer>
     </div>
+  )
+}
+
+/** The course: reviews that are waiting, or where to carry on. */
+function LearnCard() {
+  const { navigate, profile, geo } = useApp()
+  const [now] = useState(() => Date.now())
+  const due = dueReviews(profile.countries, now).length
+  const started = Object.keys(profile.countries).length > 0
+  return (
+    <button
+      type="button"
+      className="daily-card daily-card--learn"
+      onClick={() => navigate({ name: 'learn' })}
+    >
+      <span className="daily-card__icon">
+        <Icon name="compass" size={22} />
+      </span>
+      <span className="mode-tile__text">
+        <span className="daily-card__title">
+          {started ? 'Continue learning' : 'Learn the world'}
+        </span>
+        <span className="mode-tile__tagline">
+          {due > 0
+            ? `${due} ${due === 1 ? 'review' : 'reviews'} due`
+            : started
+              ? `World knowledge ${Math.round(worldKnowledge(profile.countries, geo.playableIds) * 100)}% · next lesson ready`
+              : 'Short lessons, then reviews that make it stick'}
+        </span>
+      </span>
+    </button>
   )
 }
 

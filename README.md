@@ -1,7 +1,8 @@
 # World Game
 
-A geography game on a realistic 3D globe (country borders are an optional setting), built with React and
-Three.js. It has seven ways to play:
+A geography game and trainer on a realistic 3D globe (country borders are an optional setting),
+built with React and Three.js. **Learn** teaches the world in short lessons and spaced reviews, with
+an atlas and regional exams. It has seven ways to play:
 
 - **Pinpoint:** find countries and capitals, or name them, optionally by night.
 - **GeoRush:** find as many countries as you can against the clock.

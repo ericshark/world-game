@@ -13,6 +13,7 @@ const MODES: readonly ModeId[] = [
   'mystery',
   'journey',
   'daily',
+  'learn',
   'battle',
 ]
 const SKILLS: readonly Skill[] = ['locate', 'capital', 'name', 'recall', 'visit']
@@ -51,7 +52,14 @@ function stats(value: unknown): CountryStats | null {
   const recent = Array.isArray(value.recent)
     ? value.recent.filter((r): r is boolean => typeof r === 'boolean').slice(-4)
     : []
-  return { attempts, hits, totalKm: count(value.totalKm, 1e12) ?? 0, recent }
+  const clean: CountryStats = { attempts, hits, totalKm: count(value.totalKm, 1e12) ?? 0, recent }
+  const box = count(value.box, 6)
+  const dueAt = count(value.dueAt, 1e14)
+  if (box !== null && Number.isInteger(box) && dueAt !== null) {
+    clean.box = box
+    clean.dueAt = dueAt
+  }
+  return clean
 }
 
 export function sanitizeCountries(value: unknown): Record<string, CountrySkills> {
@@ -157,6 +165,32 @@ export function sanitizeWeeklyDone(value: unknown): Record<string, string[]> {
   for (const [week, ids] of Object.entries(value).slice(-12)) {
     if (!DATE_KEY.test(week) || !Array.isArray(ids)) continue
     result[week] = ids.filter((id): id is string => text(id, 60) !== null).slice(0, 10)
+  }
+  return result
+}
+
+export const MAX_CONFUSIONS = 300
+const CONFUSION_KEY = /^[A-Z0-9]{2,8}>[A-Z0-9]{2,8}$/
+
+/** Mix-up counts; the most frequent are kept when there are too many. */
+export function sanitizeConfusions(value: unknown): Record<string, number> {
+  if (!isObject(value)) return {}
+  const entries = Object.entries(value).flatMap(([key, n]): [string, number][] => {
+    const times = count(n, 1e6)
+    return CONFUSION_KEY.test(key) && times !== null && times >= 1 ? [[key, Math.floor(times)]] : []
+  })
+  return Object.fromEntries(entries.sort((a, b) => b[1] - a[1]).slice(0, MAX_CONFUSIONS))
+}
+
+const REGION_NAME = /^[A-Za-z ]{3,20}$/
+
+/** Region → when its exam was passed. */
+export function sanitizeCertificates(value: unknown): Record<string, number> {
+  const result: Record<string, number> = {}
+  if (!isObject(value)) return result
+  for (const [region, at] of Object.entries(value).slice(0, 12)) {
+    const when = count(at, 1e14)
+    if (REGION_NAME.test(region) && when !== null) result[region] = when
   }
   return result
 }

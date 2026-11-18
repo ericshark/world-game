@@ -8,6 +8,8 @@ import {
   sanitizeDaily,
   sanitizeHistory,
   sanitizeTimes,
+  sanitizeCertificates,
+  sanitizeConfusions,
   sanitizeWeeklyDone,
   sanitizeXp,
 } from './sanitize'
@@ -64,6 +66,10 @@ export interface Profile {
   daily: Record<string, DailyRecord>
   /** Week (its Monday's date) → ids of the weekly goals already completed and paid out. */
   weeklyDone: Record<string, string[]>
+  /** `target>picked` → how often the player took one country for the other (capped). */
+  confusions: Record<string, number>
+  /** Region → when its exam was first passed. */
+  certificates: Record<string, number>
   cosmetics: Cosmetics
 }
 
@@ -86,6 +92,8 @@ export function emptyProfile(): Profile {
     masteredAt: {},
     daily: {},
     weeklyDone: {},
+    confusions: {},
+    certificates: {},
     cosmetics: DEFAULT_COSMETICS,
   }
 }
@@ -104,6 +112,8 @@ export function loadProfile(storage?: JsonStorage): Profile {
       masteredAt: sanitizeTimes(saved.masteredAt, 400),
       daily: sanitizeDaily(saved.daily),
       weeklyDone: sanitizeWeeklyDone(saved.weeklyDone),
+      confusions: sanitizeConfusions(saved.confusions),
+      certificates: sanitizeCertificates(saved.certificates),
       cosmetics: { ...DEFAULT_COSMETICS, ...sanitizeCosmeticPicks(saved.cosmetics) },
     }
   }

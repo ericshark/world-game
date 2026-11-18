@@ -35,6 +35,7 @@ export function GlobeStageProvider({
   const [scene, setSceneState] = useState(EMPTY_SCENE)
   const [surface, setSurface] = useState<Surface>('day')
   const [autoRotate, setAutoRotate] = useState(true)
+  const [bordersOverride, setBordersOverride] = useState<boolean | null>(null)
   const [shift, setShiftState] = useState<ViewShift>({ x: 0, y: 0 })
   const [focus, setFocus] = useState<CameraFocus | null>(null)
   const pickRef = useRef<((point: LonLat) => void) | null>(null)
@@ -54,6 +55,7 @@ export function GlobeStageProvider({
       },
       setSurface,
       setAutoRotate,
+      setBordersOverride,
       setShift: (next) =>
         setShiftState((previous) =>
           previous.x === next.x && previous.y === next.y ? previous : next,
@@ -77,7 +79,7 @@ export function GlobeStageProvider({
               <GlobeView
                 geo={geo}
                 showGrid={showGrid}
-                showBorders={showBorders}
+                showBorders={bordersOverride ?? showBorders}
                 looks={looks}
                 scene={scene}
                 surface={surface}

@@ -10,6 +10,11 @@ describe('router', () => {
     ['#/passport', { name: 'passport' }],
     ['#/stats', { name: 'passport' }],
     ['#/settings', { name: 'settings' }],
+    ['#/learn', { name: 'learn' }],
+    ['#/atlas', { name: 'atlas' }],
+    ['#/learn/review', { name: 'learn-play', target: 'review' }],
+    ['#/learn/western-europe-2', { name: 'learn-play', target: 'western-europe-2' }],
+    ['#/learn/BAD%20ID', { name: 'learn' }],
     ['#/daily', { name: 'daily' }],
     ['#/daily/mystery', { name: 'daily-play', puzzle: 'mystery' }],
     ['#/daily/nope', { name: 'daily' }],
@@ -34,6 +39,8 @@ describe('router', () => {
       { name: 'home' },
       { name: 'play', mode: 'pinpoint' },
       { name: 'settings' },
+      { name: 'learn' },
+      { name: 'learn-play', target: 'review' },
     ] as Route[]) {
       expect(parseRoute(routeHash(route))).toEqual(route)
     }
