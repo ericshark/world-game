@@ -39,7 +39,7 @@ test.describe('accessibility', () => {
     ['/#/passport', 'passport'],
     ['/#/learn', 'learn course'],
     ['/#/atlas', 'atlas'],
-    ['/#/learn/northern-africa', 'lesson study'],
+    ['/#/learn/northern-africa-1', 'lesson study'],
     ['/#/daily', 'daily'],
     ['/#/settings', 'settings'],
     ['/#/leaderboards', 'leaderboards'],
@@ -65,6 +65,17 @@ test.describe('accessibility', () => {
     await startMode(page, 'Pinpoint')
     await audit(page, 'pinpoint question')
   })
+
+  for (const [choices, name] of [
+    [['Flags'], 'flag to find'],
+    [['Name it', 'Flags'], 'flag to pick'],
+  ] as const) {
+    test(`playing Pinpoint: ${name}`, async ({ page }) => {
+      await openGame(page, '/')
+      await startMode(page, 'Pinpoint', [...choices])
+      await audit(page, name)
+    })
+  }
 
   for (const mode of ['GeoRush', 'Mystery Country', 'World Journey', 'Rare Earth']) {
     test(`playing ${mode}`, async ({ page }) => {

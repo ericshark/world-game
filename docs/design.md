@@ -258,6 +258,22 @@ per-country stats, so nothing about it is stored beyond two small tables.
 - **Atlas.** Free exploration with borders on: tap a country for its name, capital, neighbours
   and facts. Names appear only here and in lesson study, never in scored games.
 
+### Flags
+
+Flag artwork is the `flag-icons` package (MIT), copied by `scripts/build-flags.mjs` into
+`public/flags/`. Challenges gain `show: 'name' | 'flag'` and a new skill `flag`.
+
+- **Pinpoint target "Flags".** Find it: a flag is shown and the player places its country on the
+  globe. Name it: a country is highlighted and the player picks its flag from four, whose decoys
+  are look-alikes (Chad and Romania, Indonesia and Monaco, and so on) before neighbours.
+- **Accessibility.** A flag that is the question has empty alt text and flag options are named
+  "Flag 1" to "Flag 4", because the country is the answer. Flags are named once revealed (the
+  `FactCard` flag reads "Flag of ...").
+- **Learn.** Lessons add the flag skill; the study card and `FactCard` show the flag.
+- **Mastery.** Flags are their own track and do not count towards Found, Mastered, Expert or
+  world knowledge.
+- Flag rounds are not in battles, dailies or ranked play.
+
 ## Progression
 
 - **Mastery** per country, across all skills: Seen, Found (right at least once), or Mastered

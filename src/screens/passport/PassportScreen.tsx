@@ -31,6 +31,7 @@ const SKILL_LABELS: Record<Skill, string> = {
   locate: 'Finding it',
   capital: 'Its capital',
   name: 'Naming it',
+  flag: 'Flags',
   recall: 'Rare Earth',
   visit: 'Journeys',
 }

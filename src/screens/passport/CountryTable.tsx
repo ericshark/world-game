@@ -10,6 +10,7 @@ const SKILLS: { value: Skill; label: string }[] = [
   { value: 'locate', label: 'Find' },
   { value: 'capital', label: 'Capitals' },
   { value: 'name', label: 'Name It' },
+  { value: 'flag', label: 'Flags' },
 ]
 
 /** Per-country results for one skill, weakest first. */

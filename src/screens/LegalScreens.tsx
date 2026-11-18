@@ -101,6 +101,11 @@ export function CreditsScreen({ onClose }: { onClose: () => void }) {
               <em>Black Marble</em> (night). Public domain.
             </li>
             <li>Country borders, capitals, populations and areas: Natural Earth. Public domain.</li>
+            <li>
+              Flags: <a href="https://github.com/lipis/flag-icons">flag-icons</a> by Panayiotis
+              Lipiridis, MIT licence. Copyright (c) 2013 Panayiotis Lipiridis. The full licence text
+              is in <a href={`${import.meta.env.BASE_URL}flags/LICENSE`}>flags/LICENSE</a>.
+            </li>
             <li>Distances between countries are worked out from those borders.</li>
           </ul>
           <h3>Software</h3>

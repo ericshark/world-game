@@ -14,7 +14,7 @@ export const TOP_BOX = BOX_INTERVAL_DAYS.length - 1
 export const EXPERT_BOX = 4
 
 /** Skills a Learn session asks about. */
-export const LEARN_SKILLS: readonly Skill[] = ['locate', 'name', 'capital']
+export const LEARN_SKILLS: readonly Skill[] = ['locate', 'name', 'capital', 'flag']
 /** Skills a person must hold for a country to count as known by heart. */
 export const CORE_SKILLS: readonly Skill[] = ['locate', 'name']
 

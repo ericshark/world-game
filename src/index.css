@@ -3090,3 +3090,76 @@ input {
   color: var(--accent);
   font-weight: 600;
 }
+
+/* Flags (M3). The artwork is 4:3 SVG; the frame keeps that shape while it loads. */
+.flag {
+  display: block;
+  aspect-ratio: 4 / 3;
+  height: auto;
+  object-fit: cover;
+  border-radius: 4px;
+  box-shadow: 0 0 0 1px rgb(255 255 255 / 0.18);
+  background: rgb(255 255 255 / 0.06);
+  user-select: none;
+}
+
+.flag--small {
+  width: 40px;
+}
+
+.flag--medium {
+  width: 64px;
+}
+
+.flag--large {
+  width: min(168px, 40vw);
+  margin: 8px auto 0;
+}
+
+.flag--choice {
+  width: 100%;
+}
+
+.choice-grid--flags {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.button--flag {
+  justify-content: center;
+  padding: 6px;
+  min-height: 48px;
+  background: rgb(255 255 255 / 0.06);
+  border-color: rgb(255 255 255 / 0.12);
+}
+
+.button--flag .flag {
+  max-width: 132px;
+  margin: 0 auto;
+}
+
+.facts__flag dd {
+  display: flex;
+}
+
+.study__title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+@media (orientation: landscape) and (max-height: 500px) {
+  .flag--large {
+    width: 96px;
+    margin: 6px 0 0;
+  }
+
+  .button--flag .flag {
+    max-width: 96px;
+  }
+
+  .study {
+    max-height: calc(100dvh - 60px - var(--safe-top));
+    gap: 4px;
+    padding: 10px 12px;
+  }
+}

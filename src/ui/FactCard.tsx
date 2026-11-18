@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { GeoData } from '../geo/facts'
 import type { Units } from '../game/profile/settings'
 import { formatArea, formatPopulation } from '../screens/format'
+import { Flag } from './Flag'
 
 interface FactCardProps {
   geo: GeoData
@@ -26,6 +27,12 @@ export function FactCard({ geo, id, units }: FactCardProps) {
   return (
     <div className="facts">
       <dl className="facts__grid">
+        <div className="facts__flag">
+          <dt>Flag</dt>
+          <dd>
+            <Flag geo={geo} id={id} label={`Flag of ${geo.nameOf(id)}`} size="small" />
+          </dd>
+        </div>
         <div>
           <dt>Capital</dt>
           <dd>{facts.capitals.map((c) => c.name).join(' / ')}</dd>

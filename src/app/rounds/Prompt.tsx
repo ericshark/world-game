@@ -1,4 +1,6 @@
 import type { Challenge } from '../../game/core/types'
+import type { GeoData } from '../../geo/facts'
+import { Flag } from '../../ui/Flag'
 import { Icon } from '../../ui/Icon'
 
 export interface PromptProps {
@@ -6,6 +8,7 @@ export interface PromptProps {
   answerName: string | null
   hintLetter: string | null
   showCapitalCountry: boolean
+  geo: GeoData
   nameOf: (id: string) => string
   capitalOf: (id: string) => string
   open: boolean
@@ -17,12 +20,16 @@ export function Prompt({
   answerName,
   hintLetter,
   showCapitalCountry,
+  geo,
   nameOf,
   capitalOf,
   open,
 }: PromptProps) {
   switch (challenge.kind) {
     case 'identify':
+      if (challenge.show === 'flag') {
+        return <h1 className="prompt__text">Which flag is this country's?</h1>
+      }
       return (
         <>
           <h1 className="prompt__text">Name this country</h1>
@@ -55,6 +62,14 @@ export function Prompt({
         </>
       )
     case 'locate':
+      if (challenge.show === 'flag') {
+        return (
+          <>
+            <h1 className="prompt__text">Find the country with this flag</h1>
+            <Flag geo={geo} id={challenge.countryId} size="large" testId="target-flag" />
+          </>
+        )
+      }
       return (
         <h1 className="prompt__text">
           Find <strong data-testid="target-name">{nameOf(challenge.countryId)}</strong>

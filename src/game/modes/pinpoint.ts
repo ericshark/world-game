@@ -11,6 +11,7 @@ import {
   type RoundsState,
 } from '../core/rounds'
 import {
+  flagChoices,
   nameChoices,
   pickWeighted,
   targetPool,
@@ -22,8 +23,11 @@ import type { CountryChallenge, CountryOutcome, RoundResult, Skill } from '../co
 
 export const ROUNDS_PER_GAME = 10
 
-export type PinpointTarget = 'countries' | 'capitals'
-/** Find a named place on the globe, or name the place highlighted on it. */
+export type PinpointTarget = 'countries' | 'capitals' | 'flags'
+/**
+ * Find a named place on the globe, or name the place highlighted on it. With the Flags target,
+ * "find" shows a flag to place on the globe and "name" shows a country and asks for its flag.
+ */
 export type PinpointVariant = 'find' | 'name'
 
 export interface PinpointConfig {
@@ -68,12 +72,20 @@ export interface PinpointState {
 export function pinpointBestKey(config: PinpointConfig): string {
   const { target, variant, region, difficulty, skipMicro, night, practiceWeak } = config
   const flags = [skipMicro && 'no-micro', night && 'night', practiceWeak && 'practice']
-  const kind = variant === 'name' ? 'name' : target
+  const kind =
+    target === 'flags'
+      ? variant === 'name'
+        ? 'flags-pick'
+        : 'flags'
+      : variant === 'name'
+        ? 'name'
+        : target
   return ['pinpoint', kind, region, difficulty, ...flags.filter(Boolean)].join(':')
 }
 
 /** The skill a Pinpoint game trains, for stats and weak-country practice. */
 export function pinpointSkill(config: PinpointConfig): Skill {
+  if (config.target === 'flags') return 'flag'
   if (config.variant === 'name') return 'name'
   return config.target === 'capitals' ? 'capital' : 'locate'
 }
@@ -87,6 +99,16 @@ export const pinpoint: ModeRules<PinpointConfig, PinpointState> = {
     if (config.practiceWeak && stats) entries = weightByPractice(entries, stats)
     const challenges = pickWeighted(entries, ROUNDS_PER_GAME, random).map(
       (countryId): CountryChallenge => {
+        if (config.target === 'flags') {
+          return config.variant === 'name'
+            ? {
+                kind: 'identify',
+                countryId,
+                choices: flagChoices(geo, countryId, random),
+                show: 'flag',
+              }
+            : { kind: 'locate', countryId, show: 'flag' }
+        }
         if (config.variant === 'name') {
           const choices = config.difficulty === 'easy' ? nameChoices(geo, countryId, random) : null
           return { kind: 'identify', countryId, choices }

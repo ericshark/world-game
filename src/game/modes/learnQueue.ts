@@ -7,7 +7,7 @@ import type { Lesson } from './curriculum'
 /** One question of a Learn session. */
 export interface LearnItem {
   countryId: string
-  skill: Extract<Skill, 'locate' | 'name' | 'capital'>
+  skill: Extract<Skill, 'locate' | 'name' | 'capital' | 'flag'>
   /** Offer multiple choice (naming) because it is new or was just forgotten. */
   assist: boolean
 }
@@ -17,7 +17,7 @@ export const SESSION_SIZE = 15
 /** Reviews that may ride along with a lesson. */
 const LESSON_REVIEWS = 5
 
-const LESSON_SKILLS: LearnItem['skill'][] = ['locate', 'name', 'capital']
+const LESSON_SKILLS: LearnItem['skill'][] = ['locate', 'name', 'capital', 'flag']
 
 interface QueueOptions {
   countries: Record<string, CountrySkills>
@@ -40,7 +40,7 @@ export function buildQueue({ countries, now, seed, lesson }: QueueOptions): Lear
     return reviews.slice(0, SESSION_SIZE).map((item) => ({
       countryId: item.countryId,
       skill: item.skill as LearnItem['skill'],
-      assist: item.box <= 1 && item.skill === 'name',
+      assist: item.box <= 1 && (item.skill === 'name' || item.skill === 'flag'),
     }))
   }
 
@@ -48,7 +48,7 @@ export function buildQueue({ countries, now, seed, lesson }: QueueOptions): Lear
     LESSON_SKILLS.filter((skill) => !isLearned(countries[countryId]?.[skill])).map((skill) => ({
       countryId,
       skill,
-      assist: skill === 'name',
+      assist: skill === 'name' || skill === 'flag',
     })),
   )
   const taught = new Set(fresh.map((item) => `${item.countryId}:${item.skill}`))
@@ -58,7 +58,7 @@ export function buildQueue({ countries, now, seed, lesson }: QueueOptions): Lear
     .map((item) => ({
       countryId: item.countryId,
       skill: item.skill as LearnItem['skill'],
-      assist: item.box <= 1 && item.skill === 'name',
+      assist: item.box <= 1 && (item.skill === 'name' || item.skill === 'flag'),
     }))
   return separateRepeats(
     shuffled([...fresh, ...extra], random).slice(0, SESSION_SIZE + LESSON_REVIEWS),

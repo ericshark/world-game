@@ -272,6 +272,7 @@ export function BattleGame({ host, recorded, rating, onPlayAgain, onHome }: Batt
               : null
           }
           showCapitalCountry
+          geo={geo}
           nameOf={(id) => geo.nameOf(id)}
           capitalOf={(id) => geo.factsOf(id).capitals[0].name}
           open={open}

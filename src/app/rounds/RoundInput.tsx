@@ -1,5 +1,6 @@
 import type { Challenge } from '../../game/core/types'
 import { AnswerInput } from '../../ui/AnswerInput'
+import { Flag } from '../../ui/Flag'
 import { Icon } from '../../ui/Icon'
 import { useApp } from '../AppContext'
 
@@ -35,17 +36,29 @@ export function RoundInput(props: RoundInputProps) {
     return (
       <div className="panel answer-panel">
         {challenge.choices ? (
-          <div className="choice-grid">
-            {challenge.choices.map((id) => (
-              <button
-                key={id}
-                type="button"
-                className="button button--choice"
-                onClick={() => props.onAnswer(id)}
-              >
-                {nameOf(id)}
-              </button>
-            ))}
+          <div className={`choice-grid${challenge.show === 'flag' ? ' choice-grid--flags' : ''}`}>
+            {challenge.choices.map((id, index) =>
+              challenge.show === 'flag' ? (
+                <button
+                  key={id}
+                  type="button"
+                  className="button button--flag"
+                  aria-label={`Flag ${index + 1}`}
+                  onClick={() => props.onAnswer(id)}
+                >
+                  <Flag geo={geo} id={id} size="choice" />
+                </button>
+              ) : (
+                <button
+                  key={id}
+                  type="button"
+                  className="button button--choice"
+                  onClick={() => props.onAnswer(id)}
+                >
+                  {nameOf(id)}
+                </button>
+              ),
+            )}
           </div>
         ) : (
           <AnswerInput

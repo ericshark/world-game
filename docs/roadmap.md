@@ -14,8 +14,8 @@ flags, cities, and states and provinces, then a polish pass. Physical geography 
 | M0        | Production fixes, backups, CI, Dependabot    | Done   | `v2-m0`  |
 | M1        | Optional country borders                     | Done   | `v2-m1`  |
 | M2        | Learn: reviews, lessons, Atlas, exams        | Done   | `v2-m2`  |
-| M3        | Flags                                        | Next   |          |
-| M4        | Major cities                                 | Later  |          |
+| M3        | Flags                                        | Done   | `v2-m3`  |
+| M4        | Major cities                                 | Next   |          |
 | M5        | States and provinces (prototype first)       | Later  |          |
 | M6        | Polish, offline install, launch pass (2.0.0) | Later  |          |
 
@@ -24,10 +24,12 @@ commits up to `59b8d3a`). Hosting is deferred; nothing in M3 onward needs it.
 
 ## Up next
 
-1. Merge Dependabot PRs #1 to #5 (vitest, @vitejs/plugin-react, mapshaper, prettier, d3-geo). All
-   have green checks. Merged, not closed. Merging into `main` deploys, so ask first.
-2. Push the tags `v2-m0`, `v2-m1`, `v2-m2`. They are local only. Tags do not trigger deploys.
-3. Build M3 (below).
+1. Merge the open Dependabot PRs. As of 2026-11-18 only #3 (mapshaper) and #5 (d3-geo) are open
+   with green checks; **#4 (prettier) has a failing `e2e` check**, and #1 (vitest) and #2
+   (@vitejs/plugin-react) are closed unmerged. Merged, not closed. Merging into `main` deploys, so
+   ask first.
+2. The tags `v2-m0` to `v2-m2` are pushed. `v2-m3` is local only.
+3. Build M4 (below).
 
 ## Milestones
 
@@ -67,17 +69,23 @@ deploys to production**, so pushes need approval.
   `e2e/learn.spec.ts`, and `a11y.spec.ts` entries.
 - Design is in [design](design.md#learn); the reasoning is in [decisions](decisions.md).
 
-### M3. Flags: next
+### M3. Flags: done (`v2-m3`)
 
-- Flag artwork from the `flag-icons` npm package (MIT). Confirm the licence text, credit it on the
-  credits page, and copy only the needed SVGs into `public/flags/` via `scripts/build-flags.mjs`.
-- Every playable place must have a flag. Test it, including XK, TW, PS and VA.
-- Locate and Identify challenges gain `show: 'name' | 'flag'`, with a new skill `'flag'`. A "pick
-  the flag" round uses look-alike decoys (Chad and Romania, and similar).
-- Surfaces: a Pinpoint target "Flags", the lesson study card, `FactCard`, and Learn sessions.
-- Do not change the Daily generator. Its golden test must still pass.
-- Verification: unit tests, flag e2e specs (desktop and phone), accessibility audit on the new
-  screens, production-build e2e run, screenshot check. Commit locally and tag `v2-m3`. Do not push.
+- Artwork from the `flag-icons` npm package 7.6.0 (MIT, Copyright (c) 2013 Panayiotis Lipiridis).
+  `scripts/build-flags.mjs` copies the 4:3 SVG of every playable place into `public/flags/<iso2>.svg`
+  (197 files, about 1.3 MB, lazy-loaded as images) with the licence beside them. It fails if a
+  flag is missing. The credits page names the package and links the licence.
+- `show?: 'name' | 'flag'` on Locate and Identify challenges, and a new skill `'flag'`. Flag
+  identify rounds always carry four flag `choices`, using look-alike decoys
+  (`LOOK_ALIKE_FLAGS` in `targets.ts`; the most confusable flag, such as Romania for Chad, is
+  always offered).
+- Pinpoint target **Flags**: Find it shows a flag to place on the globe; Name it shows a country
+  and asks for its flag. Best keys `pinpoint:flags` and `pinpoint:flags-pick`.
+- Learn: lessons ask the flag skill too (pick it while new or forgotten, place it on the globe
+  once known). The lesson study card and `FactCard` show the flag.
+- The Daily generator is untouched; its golden test passes. Tests: `src/geo/flags.test.ts`,
+  additions to `pinpoint.test.ts` and `learn.test.ts`, `e2e/flags.spec.ts`, and `a11y.spec.ts`
+  entries.
 
 ### M4. Major cities
 

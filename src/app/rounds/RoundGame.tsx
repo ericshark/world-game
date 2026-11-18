@@ -338,6 +338,7 @@ export function RoundGame<Config, State extends RoundModeState>(
               : null
           }
           showCapitalCountry={!props.hideCapitalCountry}
+          geo={geo}
           nameOf={(id) => geo.nameOf(id)}
           capitalOf={(id) => geo.factsOf(id).capitals[0].name}
           open={open}

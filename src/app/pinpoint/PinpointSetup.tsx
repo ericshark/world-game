@@ -48,17 +48,33 @@ export function PinpointSetup({ onClose, onPlay }: PinpointSetupProps) {
           { value: 'name', label: 'Name it', hint: 'We highlight a country, you name it.' },
         ]}
       />
-      {config.variant === 'find' && (
-        <Choice
-          label="Targets"
-          value={config.target}
-          onChange={(target) => update({ target })}
-          options={[
-            { value: 'countries', label: 'Countries' },
-            { value: 'capitals', label: 'Capitals', hint: 'Cities are points: get within 25 km.' },
-          ]}
-        />
-      )}
+      <Choice
+        label="Targets"
+        value={
+          config.variant === 'name' && config.target === 'capitals' ? 'countries' : config.target
+        }
+        onChange={(target) => update({ target })}
+        options={[
+          { value: 'countries', label: 'Countries' },
+          ...(config.variant === 'find'
+            ? [
+                {
+                  value: 'capitals' as const,
+                  label: 'Capitals',
+                  hint: 'Cities are points: get within 25 km.',
+                },
+              ]
+            : []),
+          {
+            value: 'flags',
+            label: 'Flags',
+            hint:
+              config.variant === 'find'
+                ? 'We show a flag, you find its country on the globe.'
+                : 'We highlight a country, you pick its flag.',
+          },
+        ]}
+      />
       <RegionChoice value={config.region} onChange={(region) => update({ region })} />
       <Choice
         label="Difficulty"
@@ -69,7 +85,7 @@ export function PinpointSetup({ onClose, onPlay }: PinpointSetupProps) {
             value: 'easy',
             label: 'Easy',
             hint:
-              config.variant === 'name'
+              config.variant === 'name' && config.target !== 'flags'
                 ? 'Well-known countries, multiple choice.'
                 : 'Well-known countries, generous scoring.',
           },

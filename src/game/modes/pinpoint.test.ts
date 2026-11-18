@@ -134,3 +134,48 @@ describe('pinpoint', () => {
     expect(result.points).toBeGreaterThan(0)
   })
 })
+
+describe('pinpoint flags', () => {
+  const flags = { ...world, target: 'flags' as const }
+
+  it('shows a flag to find on the globe, and trains the flag skill', () => {
+    const state = start(flags)
+    expect(state.rounds.challenges.every((c) => c.kind === 'locate' && c.show === 'flag')).toBe(
+      true,
+    )
+    const before = state
+    const after = answer(state, 0)
+    expect(pinpoint.outcomesBetween(before, after, LOCAL_PLAYER)).toEqual([
+      expect.objectContaining({ skill: 'flag', success: true }),
+    ])
+    expect(pinpoint.summarize(playThrough(start(flags)), LOCAL_PLAYER)).toMatchObject({
+      score: 10_000,
+      bestKey: 'pinpoint:flags:World:normal',
+    })
+    expect(pinpointSkill(flags)).toBe('flag')
+  })
+
+  it('offers four flags to pick from on every difficulty, with a separate best', () => {
+    for (const difficulty of ['easy', 'normal', 'hard'] as const) {
+      const state = start({ ...flags, variant: 'name', difficulty })
+      for (const challenge of state.rounds.challenges) {
+        expect(challenge).toMatchObject({ kind: 'identify', show: 'flag' })
+        if (challenge.kind === 'identify') {
+          expect(challenge.choices).toHaveLength(4)
+          expect(challenge.choices).toContain(challenge.countryId)
+        }
+      }
+    }
+    const picked = playThrough(start({ ...flags, variant: 'name' }))
+    expect(pinpoint.summarize(picked, LOCAL_PLAYER)).toMatchObject({
+      score: 10_000,
+      bestKey: 'pinpoint:flags-pick:World:normal',
+    })
+    expect(pinpoint.summarize(picked, LOCAL_PLAYER).outcomes[0].skill).toBe('flag')
+  })
+
+  it('leaves plain countries games exactly as they were', () => {
+    const challenge = start().rounds.challenges[0]
+    expect(challenge).toEqual({ kind: 'locate', countryId: challenge.countryId })
+  })
+})

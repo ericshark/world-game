@@ -84,6 +84,52 @@ export function pickWeighted(entries: WeightedId[], count: number, random: Rando
 }
 
 /**
+ * Flags people confuse, as ISO 3166 codes. A flag round fills its options from the target's
+ * group first, so Chad is offered next to Romania rather than next to Japan.
+ */
+export const LOOK_ALIKE_FLAGS: readonly (readonly string[])[] = [
+  ['TD', 'RO', 'AD', 'MD'],
+  ['ID', 'MC', 'PL'],
+  ['IE', 'CI', 'IT', 'MX'],
+  ['NL', 'LU', 'RU', 'SK', 'SI', 'HR', 'RS'],
+  ['AU', 'NZ'],
+  ['NO', 'IS', 'DK', 'SE', 'FI'],
+  ['VE', 'CO', 'EC'],
+  ['SN', 'ML', 'GN', 'GH', 'CM', 'BF'],
+  ['US', 'LR', 'MY'],
+  ['SA', 'PK'],
+  ['BD', 'JP', 'PW'],
+  ['AT', 'LV', 'PE'],
+  ['EG', 'SY', 'YE', 'IQ', 'SD'],
+  ['HT', 'LI'],
+  ['BO', 'LT', 'ET'],
+]
+
+/** Countries whose flags are easily taken for the target's, in group order. */
+export function lookAlikes(geo: GeoData, targetId: string): string[] {
+  const code = geo.factsOf(targetId).iso2
+  const byCode = new Map(geo.playableIds.map((id) => [geo.factsOf(id).iso2, id]))
+  return LOOK_ALIKE_FLAGS.filter((group) => group.includes(code))
+    .flatMap((group) => group.filter((other) => other !== code))
+    .map((other) => byCode.get(other))
+    .filter((id): id is string => id !== undefined)
+}
+
+/**
+ * Multiple-choice options for picking a country's flag: the answer plus decoys, preferring
+ * look-alike flags, then neighbours and countries from the same part of the world.
+ */
+export function flagChoices(geo: GeoData, targetId: string, random: Random, count = 4): string[] {
+  // The most confusable flag (first in its group) is always offered; a second is chosen at random.
+  const [closest, ...others] = lookAlikes(geo, targetId)
+  const alikes = closest === undefined ? [] : [closest, ...shuffled(others, random).slice(0, 1)]
+  const rest = nameChoices(geo, targetId, random, geo.playableIds.length).filter(
+    (id) => id !== targetId && !alikes.includes(id),
+  )
+  return shuffled([targetId, ...[...alikes, ...rest].slice(0, count - 1)], random)
+}
+
+/**
  * Multiple-choice options for naming a country: the answer plus plausible decoys, preferring
  * neighbours and countries from the same part of the world.
  */

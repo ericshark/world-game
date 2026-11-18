@@ -113,3 +113,15 @@ from the first plan was not built. Adding it later needs one extra stored flag.
 advisories. Dependabot PRs are merged, not closed, once their checks pass. Each 2.0 milestone is
 tagged `v2-mN` locally; tags do not deploy. Render deploys from `main`, so a push to `main` needs
 the owner's approval. The `codex/world-game-next-level` branch was deleted from the remote.
+
+## Flags: a separate skill, and the artwork (2026-11-18)
+
+`flag-icons` is used because it is MIT, covers all 197 playable places (including XK, TW, PS and
+VA) and uses ISO codes the facts file already carries. The licence text is shipped in
+`public/flags/LICENSE` and credited on the credits page. Flags are a new `'flag'` skill rather than
+a variant of `'name'`, so flag knowledge and naming knowledge stay separate in the review schedule
+and the Passport. Mastery, Expert and world knowledge ignore it: knowing a flag says nothing about
+where a country is, and ranks stay about geography. Flag rounds are always multiple choice, because
+there is no fair way to type a flag. Flag choices and the answer being the country mean the alt
+text is empty while a flag is the question. The Daily generator was not changed, so existing
+dailies and the golden test are unaffected.

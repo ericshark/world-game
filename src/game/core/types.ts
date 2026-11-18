@@ -5,10 +5,15 @@ import type { Category } from './categories'
 export type PlayerId = string
 export const LOCAL_PLAYER: PlayerId = 'local'
 
+/** How a country is presented in a Locate or Identify round. */
+export type ChallengeShow = 'name' | 'flag'
+
 /** Find the country on the globe. */
 export interface LocateChallenge {
   kind: 'locate'
   countryId: string
+  /** What the player is shown: the country's name (the default) or its flag. */
+  show?: ChallengeShow
 }
 
 /** Find the country's capital city on the globe. */
@@ -23,6 +28,11 @@ export interface IdentifyChallenge {
   countryId: string
   /** Multiple-choice options (easy), or null to type the answer. */
   choices: string[] | null
+  /**
+   * With `'flag'` the player picks the highlighted country's flag from `choices` (always set),
+   * instead of naming it.
+   */
+  show?: ChallengeShow
 }
 
 /** Name a country that fits the category, then find it on the globe (Rare Earth). */
@@ -112,7 +122,7 @@ export type ModeId =
   'pinpoint' | 'rush' | 'rare-earth' | 'mystery' | 'journey' | 'daily' | 'battle' | 'learn'
 
 /** Skills tracked per country across all modes. */
-export type Skill = 'locate' | 'capital' | 'name' | 'recall' | 'visit'
+export type Skill = 'locate' | 'capital' | 'name' | 'flag' | 'recall' | 'visit'
 
 export interface CountryOutcome {
   countryId: string

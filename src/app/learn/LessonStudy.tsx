@@ -3,6 +3,7 @@ import type { Lesson } from '../../game/modes/curriculum'
 import { frameCountry } from '../../globe/framing'
 import { CONTEXT_PAINT, TARGET_PAINT, type GlobeScene } from '../../globe/scene'
 import { FactCard } from '../../ui/FactCard'
+import { Flag } from '../../ui/Flag'
 import { Hud } from '../../ui/Hud'
 import { useApp } from '../AppContext'
 import { useGlobeStage, useStageScene } from '../globeStage'
@@ -68,9 +69,12 @@ export function LessonStudy({ lesson, onDone, onQuit }: LessonStudyProps) {
       <div className="action-bar">
         <section className="study" aria-labelledby="study-title" aria-live="polite">
           <p className="eyebrow">Meet the countries</p>
-          <h2 className="study__name" id="study-title">
-            {geo.nameOf(id)}
-          </h2>
+          <div className="study__title">
+            <Flag geo={geo} id={id} size="medium" testId="study-flag" />
+            <h2 className="study__name" id="study-title">
+              {geo.nameOf(id)}
+            </h2>
+          </div>
           {facts.neighbors.length > 0 && (
             <p className="study__note">
               Borders{' '}

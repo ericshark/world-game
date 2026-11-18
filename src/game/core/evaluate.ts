@@ -187,11 +187,11 @@ export function missedResult(targetId: string): MissedResult {
 export function skillOf(challenge: Challenge): Skill {
   switch (challenge.kind) {
     case 'locate':
-      return 'locate'
+      return challenge.show === 'flag' ? 'flag' : 'locate'
     case 'capital':
       return 'capital'
     case 'identify':
-      return 'name'
+      return challenge.show === 'flag' ? 'flag' : 'name'
     case 'category':
       return 'recall'
   }

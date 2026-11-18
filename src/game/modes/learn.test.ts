@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { loadTestGeoData } from '../../test/loadTestCountries'
 import { LOCAL_PLAYER, type Submission } from '../core/types'
 import type { CountrySkills } from '../profile/profile'
-import { buildCurriculum, lessonProgress, nextLesson } from './curriculum'
+import { buildCurriculum, countryKnown, lessonProgress, nextLesson } from './curriculum'
 import { learn, type LearnConfig, type LearnState } from './learn'
 import {
   buildQueue,
@@ -13,6 +13,7 @@ import {
   SESSION_SIZE,
   type LearnItem,
 } from './learnQueue'
+import { masteryOf } from '../profile/mastery'
 import { REGIONS } from '../../geo/countries'
 import { emptyProfile } from '../profile/profile'
 import { recordSession } from '../profile/record'
@@ -63,9 +64,10 @@ describe('building a session', () => {
 
   it('asks a new lesson every skill of every country, with naming assisted', () => {
     const queue = buildQueue({ countries: {}, now: NOW, seed: 's', lesson })
-    expect(queue.length).toBe(Math.min(lesson.ids.length * 3, SESSION_SIZE + 5))
+    expect(queue.length).toBe(Math.min(lesson.ids.length * 4, SESSION_SIZE + 5))
     expect(new Set(queue.map((q) => q.countryId))).toEqual(new Set(lesson.ids))
     expect(queue.filter((q) => q.skill === 'name').every((q) => q.assist)).toBe(true)
+    expect(queue.filter((q) => q.skill === 'flag').every((q) => q.assist)).toBe(true)
   })
 
   it('is deterministic for a seed and avoids asking about one country twice in a row', () => {
@@ -256,5 +258,51 @@ describe('a regional exam', () => {
     expect(again.certificates.Oceania).toBe(passed.endedAt)
     const failed = learn.summarize(play(5), LOCAL_PLAYER)
     expect(recordSession(emptyProfile(), failed, geo).profile.certificates).toEqual({})
+  })
+})
+
+describe('flags in Learn', () => {
+  const ids = geo.playableIds.slice(0, 2)
+  const start = (assist: boolean) =>
+    learn.start({
+      config: {
+        title: 'Flags',
+        queue: ids.map((countryId) => ({ countryId, skill: 'flag', assist })),
+      },
+      seed: 'x',
+      now: 0,
+      geo,
+      players: [LOCAL_PLAYER],
+    })
+
+  it('picks the flag from look-alikes while it is new, and places it on the globe once known', () => {
+    for (const challenge of start(true).rounds.challenges) {
+      expect(challenge).toMatchObject({ kind: 'identify', show: 'flag' })
+    }
+    for (const challenge of start(false).rounds.challenges) {
+      expect(challenge).toMatchObject({ kind: 'locate', show: 'flag' })
+    }
+  })
+
+  it('records the flag skill, and a miss is still asked once more', () => {
+    let state = start(true)
+    const before = state
+    const target = state.rounds.challenges[0].countryId
+    const other = geo.playableIds.find((id) => id !== target)!
+    state = learn.reduce(
+      state,
+      { type: 'submit', playerId: LOCAL_PLAYER, submission: { answerId: other, at: 1 } },
+      geo,
+    )
+    expect(learn.outcomesBetween(before, state, LOCAL_PLAYER)).toEqual([
+      expect.objectContaining({ skill: 'flag', success: false }),
+    ])
+    expect(state.rounds.challenges).toHaveLength(3)
+  })
+
+  it('does not change what finding and naming mean for knowing a country', () => {
+    const flagOnly = { flag: { attempts: 5, hits: 5, totalKm: 0, recent: [true, true, true] } }
+    expect(countryKnown(flagOnly)).toBe(false)
+    expect(masteryOf(flagOnly)).toBe('unseen')
   })
 })

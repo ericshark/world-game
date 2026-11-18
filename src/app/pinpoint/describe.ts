@@ -5,7 +5,15 @@ const DIFFICULTY_LABEL = { easy: 'Easy', normal: 'Normal', hard: 'Hard' }
 /** "Capitals · Europe · Hard · Night". */
 export function describeConfig(config: PinpointConfig): string {
   const kind =
-    config.variant === 'name' ? 'Name It' : config.target === 'capitals' ? 'Capitals' : 'Countries'
+    config.target === 'flags'
+      ? config.variant === 'name'
+        ? 'Pick the flag'
+        : 'Flags'
+      : config.variant === 'name'
+        ? 'Name It'
+        : config.target === 'capitals'
+          ? 'Capitals'
+          : 'Countries'
   return [
     kind,
     config.region,

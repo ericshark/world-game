@@ -1,5 +1,5 @@
 import { MAX_POINTS } from '../../geo/scoring'
-import { evaluateChallenge, type ScoringOptions } from '../core/evaluate'
+import { evaluateChallenge, skillOf, type ScoringOptions } from '../core/evaluate'
 import type { ModeRules } from '../core/mode'
 import { createRandom } from '../core/random'
 import {
@@ -11,7 +11,7 @@ import {
 } from '../core/rounds'
 import { REGIONS, type Region } from '../../geo/countries'
 import { mistakenFor } from '../core/confusions'
-import { nameChoices } from '../core/targets'
+import { flagChoices, nameChoices } from '../core/targets'
 import type { CountryChallenge, CountryOutcome, RoundResult } from '../core/types'
 import type { LearnItem } from './learnQueue'
 
@@ -51,11 +51,24 @@ function challengeFor(item: LearnItem, geo: Parameters<typeof nameChoices>[0], s
       choices: assist ? nameChoices(geo, countryId, random) : null,
     } satisfies CountryChallenge
   }
+  if (skill === 'flag') {
+    // Picking a flag from options while it is new or just forgotten; placing it on the globe once
+    // it is known, which is harder because nothing is offered.
+    const random = createRandom(`${seed}:${countryId}:flag`)
+    return assist
+      ? ({
+          kind: 'identify',
+          countryId,
+          choices: flagChoices(geo, countryId, random),
+          show: 'flag',
+        } satisfies CountryChallenge)
+      : ({ kind: 'locate', countryId, show: 'flag' } satisfies CountryChallenge)
+  }
   return { kind: skill, countryId } satisfies CountryChallenge
 }
 
 function keyOf(challenge: CountryChallenge) {
-  return `${challenge.kind}:${challenge.countryId}`
+  return `${challenge.kind}:${'show' in challenge ? challenge.show : ''}:${challenge.countryId}`
 }
 
 /**
@@ -133,7 +146,7 @@ export const learn: ModeRules<LearnConfig, LearnState> = {
 }
 
 function outcomeOf(result: RoundResult, challenge: CountryChallenge): CountryOutcome {
-  const skill = challenge.kind === 'identify' ? 'name' : challenge.kind
+  const skill = skillOf(challenge)
   return {
     countryId: result.targetId,
     skill,

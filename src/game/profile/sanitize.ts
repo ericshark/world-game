@@ -16,7 +16,7 @@ const MODES: readonly ModeId[] = [
   'learn',
   'battle',
 ]
-const SKILLS: readonly Skill[] = ['locate', 'capital', 'name', 'recall', 'visit']
+const SKILLS: readonly Skill[] = ['locate', 'capital', 'name', 'flag', 'recall', 'visit']
 const COUNTRY_ID = /^[A-Z0-9]{2,8}$/
 const DATE_KEY = /^\d{4}-\d{2}-\d{2}$/
 
