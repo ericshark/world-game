@@ -44,7 +44,7 @@
     "@types/three": "^0.186.0",
     "@types/ws": "^8.18.2",
     "@vitejs/plugin-react": "^6.1.2",
-    "mapshaper": "^0.7.92",
+    "mapshaper": "^0.7.101",
     "oxlint": "^1.88.0",
     "prettier": "^3.9.10",
     "sharp": "^0.35.5",
