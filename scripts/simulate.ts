@@ -25,7 +25,7 @@ const mean = (values: number[]) => values.reduce((a, b) => a + b, 0) / values.le
 
 export function roundScores(
   skill: BotSkill,
-  kind: Challenge['kind'],
+  kind: Exclude<Challenge['kind'], 'city'>,
   region: ScoringRegion,
   count: number,
 ): number[] {

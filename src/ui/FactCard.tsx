@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { useCities } from '../app/useCities'
+import type { CityIndex } from '../geo/cities'
 import type { GeoData } from '../geo/facts'
 import type { Units } from '../game/profile/settings'
 import { formatArea, formatPopulation } from '../screens/format'
@@ -8,13 +10,18 @@ interface FactCardProps {
   geo: GeoData
   id: string
   units: Units
+  /** Supplied when already loaded; otherwise lazy-loaded once on first reveal. */
+  cities?: CityIndex | null
 }
 
 const NEIGHBORS_SHOWN = 6
 
 /** What's worth knowing about a country, shown at the reveal. */
-export function FactCard({ geo, id, units }: FactCardProps) {
+export function FactCard({ geo, id, units, cities }: FactCardProps) {
   const [expanded, setExpanded] = useState(false)
+  const { cities: loadedCities } = useCities(cities === undefined)
+  const cityIndex = cities ?? loadedCities
+  const majorCities = cityIndex ? cityIndex.byCountry(id) : []
   const facts = geo.factsOf(id)
   const feature = geo.feature(id)
   const neighbors = facts.neighbors.map((n) => geo.nameOf(n))
@@ -45,6 +52,12 @@ export function FactCard({ geo, id, units }: FactCardProps) {
           <dt>Region</dt>
           <dd>{facts.subregion || feature.properties.region}</dd>
         </div>
+        {majorCities.length > 0 && (
+          <div className="facts__wide">
+            <dt>Major cities</dt>
+            <dd>{majorCities.map((city) => city.name).join(', ')}</dd>
+          </div>
+        )}
         {expanded && (
           <>
             <div>

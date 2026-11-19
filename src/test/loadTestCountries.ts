@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs'
+import { CityIndex, type CitiesFile } from '../geo/cities'
 import { CountryIndex, type CountryCollection } from '../geo/countries'
 import { GeoData, type FactsFile } from '../geo/facts'
 
@@ -10,6 +11,11 @@ export function loadTestCountries(): CountryIndex {
 /** Shapes plus facts, as the game loads them. */
 export function loadTestGeoData(): GeoData {
   return new GeoData(loadTestCountries(), readData<FactsFile>('facts.json'))
+}
+
+/** The curated major cities, read from disk for tests. */
+export function loadTestCities(): CityIndex {
+  return new CityIndex(readData<CitiesFile>('cities.json').cities)
 }
 
 function readData<T>(file: string): T {

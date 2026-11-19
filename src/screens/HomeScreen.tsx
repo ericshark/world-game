@@ -8,7 +8,7 @@ import { cosmeticById, TITLES } from '../game/profile/cosmetics'
 import { dailyNumber, dailyStreak } from '../game/profile/daily'
 import { nextGoal } from '../game/profile/goals'
 import { countByMastery, explorerRank } from '../game/profile/mastery'
-import { dueReviews, worldKnowledge } from '../game/profile/review'
+import { countDueReviews, worldKnowledge } from '../game/profile/review'
 import { levelForXp } from '../game/profile/xp'
 import { Icon } from '../ui/Icon'
 import { formatNumber } from './format'
@@ -106,8 +106,9 @@ export function HomeScreen() {
 function LearnCard() {
   const { navigate, profile, geo } = useApp()
   const [now] = useState(() => Date.now())
-  const due = dueReviews(profile.countries, now).length
-  const started = Object.keys(profile.countries).length > 0
+  const due = countDueReviews(profile, now)
+  const started =
+    Object.keys(profile.countries).length > 0 || Object.keys(profile.places).length > 0
   return (
     <button
       type="button"

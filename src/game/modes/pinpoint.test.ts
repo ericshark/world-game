@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { loadTestGeoData } from '../../test/loadTestCountries'
+import { loadTestCities, loadTestGeoData } from '../../test/loadTestCountries'
 import { LOCAL_PLAYER, type Submission } from '../core/types'
+import { emptyProfile } from '../profile/profile'
+import { recordOutcomes } from '../profile/record'
 import {
   DEFAULT_PINPOINT_CONFIG,
   pinpoint,
@@ -11,10 +13,11 @@ import {
 } from './pinpoint'
 
 const geo = loadTestGeoData()
+const cities = loadTestCities()
 const world = DEFAULT_PINPOINT_CONFIG
 
 function start(config: PinpointConfig = world, seed = 'seed-1'): PinpointState {
-  return pinpoint.start({ config, seed, now: 0, geo, players: [LOCAL_PLAYER] })
+  return pinpoint.start({ config, seed, now: 0, geo, cities, players: [LOCAL_PLAYER] })
 }
 
 function submit(state: PinpointState, submission: Submission): PinpointState {
@@ -24,12 +27,13 @@ function submit(state: PinpointState, submission: Submission): PinpointState {
 /** A perfect answer for whatever the current challenge is. */
 function answer(state: PinpointState, at: number): PinpointState {
   const challenge = state.rounds.challenges[state.rounds.round]
-  const facts = geo.factsOf(challenge.countryId)
   switch (challenge.kind) {
     case 'locate':
-      return submit(state, { pin: facts.label, at })
+      return submit(state, { pin: geo.factsOf(challenge.countryId).label, at })
     case 'capital':
-      return submit(state, { pin: facts.capitals[0].at, at })
+      return submit(state, { pin: geo.factsOf(challenge.countryId).capitals[0].at, at })
+    case 'city':
+      return submit(state, { pin: challenge.at, at })
     case 'identify':
       return submit(state, { answerId: challenge.countryId, at })
   }
@@ -177,5 +181,47 @@ describe('pinpoint flags', () => {
   it('leaves plain countries games exactly as they were', () => {
     const challenge = start().rounds.challenges[0]
     expect(challenge).toEqual({ kind: 'locate', countryId: challenge.countryId })
+  })
+})
+
+describe('pinpoint cities', () => {
+  const config: PinpointConfig = { ...world, target: 'cities', region: 'Europe' }
+
+  it('picks 10 distinct non-capital cities, scores like capitals, and records into profile.places', () => {
+    const state = start(config)
+    expect(state.rounds.challenges).toHaveLength(ROUNDS_PER_GAME)
+    const cityIds = state.rounds.challenges.map((c) => (c.kind === 'city' ? c.cityId : ''))
+    expect(new Set(cityIds).size).toBe(ROUNDS_PER_GAME)
+    for (const c of state.rounds.challenges) {
+      expect(c.kind).toBe('city')
+      if (c.kind === 'city') {
+        expect(geo.feature(c.countryId).properties.region).toBe('Europe')
+      }
+    }
+    expect(pinpointSkill(config)).toBe('city')
+
+    const finished = playThrough(state)
+    const summary = pinpoint.summarize(finished, LOCAL_PLAYER)
+    expect(summary.score).toBe(10_000)
+    expect(summary.bestKey).toBe('pinpoint:cities:Europe:normal')
+    expect(
+      summary.outcomes.every((o) => o.skill === 'city' && o.placeKey?.startsWith('city:')),
+    ).toBe(true)
+
+    const profile = recordOutcomes(emptyProfile(), summary.outcomes, 100)
+    expect(Object.keys(profile.countries)).toHaveLength(0)
+    expect(Object.keys(profile.places)).toHaveLength(ROUNDS_PER_GAME)
+  })
+
+  it('respects difficulty and omits no-micro from city best keys', () => {
+    const easy = start({ ...config, region: 'World', difficulty: 'easy' })
+    for (const c of easy.rounds.challenges) {
+      if (c.kind === 'city') {
+        expect(cities.get(c.cityId)!.difficulty).toBeLessThanOrEqual(0.55)
+      }
+    }
+    const hard = start({ ...config, difficulty: 'hard', skipMicro: true, night: true })
+    expect(pinpoint.deadline(hard)).toBe(20_000)
+    expect(pinpoint.summarize(hard, LOCAL_PLAYER).bestKey).toBe('pinpoint:cities:Europe:hard:night')
   })
 })

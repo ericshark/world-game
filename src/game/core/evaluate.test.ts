@@ -1,14 +1,17 @@
 import { describe, expect, it } from 'vitest'
-import { loadTestGeoData } from '../../test/loadTestCountries'
+import { loadTestCities, loadTestGeoData } from '../../test/loadTestCountries'
 import {
   evaluateCapital,
   evaluateChallenge,
+  evaluateCity,
   evaluateIdentify,
   evaluateLocate,
   NEIGHBOR_POINTS,
+  skillOf,
 } from './evaluate'
 
 const geo = loadTestGeoData()
+const cities = loadTestCities()
 const world = { region: 'World' as const, cutoffScale: 1 }
 
 describe('evaluateLocate', () => {
@@ -105,5 +108,46 @@ describe('evaluateChallenge', () => {
         world,
       ).kind,
     ).toBe('missed')
+  })
+})
+
+describe('evaluateCity', () => {
+  const sydney = cities.get('aus-sydney')!
+  const challenge = {
+    kind: 'city' as const,
+    cityId: sydney.id,
+    countryId: sydney.countryId,
+    name: sydney.name,
+    at: sydney.at,
+  }
+
+  it('scores a pin within 25 km as a bullseye and falls off like capitals', () => {
+    const hit = evaluateCity(geo, challenge, sydney.at, world)
+    expect(hit).toMatchObject({
+      kind: 'city',
+      targetId: 'city:aus-sydney',
+      countryId: 'AUS',
+      cityName: 'Sydney',
+      points: 1000,
+      hit: true,
+    })
+
+    // Canberra is ~240 km away: partial points, not a hit.
+    const canberra = geo.factsOf('AUS').capitals[0].at
+    const miss = evaluateCity(geo, challenge, canberra, world)
+    expect(miss.hit).toBe(false)
+    expect(miss.points).toBeGreaterThan(600)
+    expect(miss.points).toBeLessThan(1000)
+    expect(miss.clickedId).toBe('AUS')
+  })
+
+  it('marks a timed-out city challenge as missed and uses the city skill', () => {
+    expect(skillOf(challenge)).toBe('city')
+    expect(evaluateChallenge(geo, challenge, undefined, world)).toEqual({
+      kind: 'missed',
+      targetId: 'city:aus-sydney',
+      points: 0,
+      hit: false,
+    })
   })
 })

@@ -65,6 +65,11 @@ export function botSubmission(
         ),
         at,
       }
+    case 'city':
+      return {
+        pin: guessNear(geo, challenge.at, challenge.countryId, profile, random, 0.4),
+        at,
+      }
     case 'identify': {
       const knows = random() < profile.knows * (1 - 0.5 * geo.difficulty(challenge.countryId))
       if (knows) return { answerId: challenge.countryId, at }

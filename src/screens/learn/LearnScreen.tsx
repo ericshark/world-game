@@ -1,35 +1,55 @@
 import { useMemo, useState } from 'react'
 import { useApp } from '../../app/AppContext'
+import { useCities } from '../../app/useCities'
 import { useGlobeShift } from '../../app/useLayoutShift'
+import { cityKey } from '../../geo/cities'
 import { REGIONS } from '../../geo/countries'
 import {
+  buildCityDecks,
   buildCurriculum,
+  cityDeckProgress,
   countryKnown,
   examTarget,
   lessonProgress,
   nextLesson,
 } from '../../game/modes/curriculum'
 import { confusedPairs } from '../../game/modes/learnQueue'
-import { dueReviews, isExpert, nextDueAt, worldKnowledge } from '../../game/profile/review'
+import {
+  countDueReviews,
+  isExpert,
+  isLearned,
+  nextDueAt,
+  worldKnowledge,
+} from '../../game/profile/review'
+import { Choice } from '../../ui/controls'
 import { Icon } from '../../ui/Icon'
 import { formatDue } from './format'
 
-/** The course: reviews that are due, the next lesson, and every lesson with its progress. */
+type Track = 'countries' | 'cities'
+
+/** The course: reviews that are due, the next lesson, and every lesson or city deck. */
 export function LearnScreen({ onClose }: { onClose: () => void }) {
   const { geo, profile, navigate } = useApp()
   const [now] = useState(() => Date.now())
+  const [track, setTrack] = useState<Track>('countries')
+  const { cities, error: citiesError, retry: retryCities } = useCities(track === 'cities')
   useGlobeShift({ x: -0.15, y: 0 }, { x: 0, y: 0.22 })
 
   const curriculum = useMemo(() => buildCurriculum(geo), [geo])
-  const { countries } = profile
-  const due = dueReviews(countries, now).length
-  const upcoming = nextDueAt(countries, now)
+  const cityDecks = useMemo(() => (cities ? buildCityDecks(geo, cities) : []), [geo, cities])
+  const { countries, places } = profile
+  const due = countDueReviews(profile, now)
+  const upcoming = nextDueAt(countries, now, places)
   const next = nextLesson(countries, curriculum)
   const known = geo.playableIds.filter((id) => countryKnown(countries[id])).length
   const expert = geo.playableIds.filter((id) => isExpert(countries[id])).length
   const knowledge = Math.round(worldKnowledge(countries, geo.playableIds) * 100)
   const pairs = confusedPairs(profile.confusions).slice(0, 4)
   const open = (target: string) => navigate({ name: 'learn-play', target })
+
+  const knownCities = cities
+    ? cities.all.filter((city) => isLearned(places[cityKey(city.id)])).length
+    : 0
 
   return (
     <div className="screen screen--passport">
@@ -102,67 +122,134 @@ export function LearnScreen({ onClose }: { onClose: () => void }) {
           </div>
         )}
 
+        <Choice
+          label="Course"
+          value={track}
+          onChange={setTrack}
+          options={[
+            { value: 'countries', label: 'Countries' },
+            { value: 'cities', label: 'Major cities' },
+          ]}
+        />
+
         <div className="passport__body">
-          <div className="field">
-            <p className="field__label">Exams</p>
-            <ul className="lessons">
-              {REGIONS.map((region) => {
-                const earned = profile.certificates[region]
-                const count = geo.playableIds.filter(
-                  (id) => geo.feature(id).properties.region === region,
-                ).length
-                return (
-                  <li key={region}>
-                    <button
-                      type="button"
-                      className={`lesson${earned ? ' is-done' : ''}`}
-                      onClick={() => open(examTarget(region))}
-                    >
-                      <span className="lesson__title">{region}</span>
-                      <span className="lesson__names">
-                        Find all {count} countries with no help. Pass with 90%.
-                      </span>
-                      <span className="lesson__progress">
-                        {earned
-                          ? `✓ Certificate · ${new Date(earned).toLocaleDateString()}`
-                          : 'Take exam'}
-                      </span>
-                    </button>
-                  </li>
-                )
-              })}
-            </ul>
-          </div>
-          {REGIONS.map((region) => (
-            <div className="field" key={region}>
-              <p className="field__label">{region}</p>
-              <ul className="lessons">
-                {curriculum
-                  .filter((lesson) => lesson.region === region)
-                  .map((lesson) => {
-                    const { known: done, total } = lessonProgress(countries, lesson)
+          {track === 'countries' ? (
+            <>
+              <div className="field">
+                <p className="field__label">Exams</p>
+                <ul className="lessons">
+                  {REGIONS.map((region) => {
+                    const earned = profile.certificates[region]
+                    const count = geo.playableIds.filter(
+                      (id) => geo.feature(id).properties.region === region,
+                    ).length
                     return (
-                      <li key={lesson.id}>
+                      <li key={region}>
                         <button
                           type="button"
-                          className={`lesson${done === total ? ' is-done' : ''}`}
-                          onClick={() => open(lesson.id)}
+                          className={`lesson${earned ? ' is-done' : ''}`}
+                          onClick={() => open(examTarget(region))}
                         >
-                          <span className="lesson__title">{lesson.title}</span>
+                          <span className="lesson__title">{region}</span>
                           <span className="lesson__names">
-                            {lesson.ids.map((id) => geo.nameOf(id)).join(', ')}
+                            Find all {count} countries with no help. Pass with 90%.
                           </span>
                           <span className="lesson__progress">
-                            {done === total ? '✓ ' : ''}
-                            {done} / {total}
+                            {earned
+                              ? `✓ Certificate · ${new Date(earned).toLocaleDateString()}`
+                              : 'Take exam'}
                           </span>
                         </button>
                       </li>
                     )
                   })}
-              </ul>
-            </div>
-          ))}
+                </ul>
+              </div>
+              {REGIONS.map((region) => (
+                <div className="field" key={region}>
+                  <p className="field__label">{region}</p>
+                  <ul className="lessons">
+                    {curriculum
+                      .filter((lesson) => lesson.region === region)
+                      .map((lesson) => {
+                        const { known: done, total } = lessonProgress(countries, lesson)
+                        return (
+                          <li key={lesson.id}>
+                            <button
+                              type="button"
+                              className={`lesson${done === total ? ' is-done' : ''}`}
+                              onClick={() => open(lesson.id)}
+                            >
+                              <span className="lesson__title">{lesson.title}</span>
+                              <span className="lesson__names">
+                                {lesson.ids.map((id) => geo.nameOf(id)).join(', ')}
+                              </span>
+                              <span className="lesson__progress">
+                                {done === total ? '✓ ' : ''}
+                                {done} / {total}
+                              </span>
+                            </button>
+                          </li>
+                        )
+                      })}
+                  </ul>
+                </div>
+              ))}
+            </>
+          ) : citiesError ? (
+            <p className="error" role="alert">
+              Could not load major cities.{' '}
+              <button type="button" className="button button--link" onClick={retryCities}>
+                Try again
+              </button>
+            </p>
+          ) : !cities ? (
+            <p className="passport__hint">Loading major cities…</p>
+          ) : (
+            <>
+              <p className="passport__hint">
+                {knownCities} / {cities.all.length} major cities learned. Cities stay on their own
+                track and do not affect country ranks.
+              </p>
+              {REGIONS.map((region) => {
+                const decks = cityDecks.filter((deck) => deck.region === region)
+                if (decks.length === 0) return null
+                return (
+                  <div className="field" key={region}>
+                    <p className="field__label">{region}</p>
+                    <ul className="lessons">
+                      {decks.map((deck) => {
+                        const { known: done, total } = cityDeckProgress(places, deck)
+                        const preview = deck.cityIds
+                          .slice(0, 5)
+                          .map((id) => cities.get(id)?.name ?? id)
+                          .join(', ')
+                        return (
+                          <li key={deck.id}>
+                            <button
+                              type="button"
+                              className={`lesson${done === total ? ' is-done' : ''}`}
+                              onClick={() => open(deck.id)}
+                            >
+                              <span className="lesson__title">{deck.title}</span>
+                              <span className="lesson__names">
+                                {preview}
+                                {deck.cityIds.length > 5 ? ', …' : ''}
+                              </span>
+                              <span className="lesson__progress">
+                                {done === total ? '✓ ' : ''}
+                                {done} / {total}
+                              </span>
+                            </button>
+                          </li>
+                        )
+                      })}
+                    </ul>
+                  </div>
+                )
+              })}
+            </>
+          )}
         </div>
       </section>
     </div>

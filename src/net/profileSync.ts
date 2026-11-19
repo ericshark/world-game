@@ -58,6 +58,7 @@ export function hasProgress(profile: Profile): boolean {
     profile.history.length > 0 ||
     Object.keys(profile.bests).length > 0 ||
     Object.keys(profile.countries).length > 0 ||
+    Object.keys(profile.places).length > 0 ||
     Object.keys(profile.daily).length > 0 ||
     Object.keys(profile.achievements).length > 0
   )

@@ -1,6 +1,6 @@
 # Roadmap
 
-Where World Game 2.0 stands and what comes next. Last updated 2026-11-18. The original v1 build is
+Where World Game 2.0 stands and what comes next. Last updated 2026-11-19. The original v1 build is
 recorded in [history-v1](history-v1.md); design choices are in [decisions](decisions.md).
 
 2.0 turns the game into a geography trainer: optional borders, then learning and review, then
@@ -15,8 +15,8 @@ flags, cities, and states and provinces, then a polish pass. Physical geography 
 | M1        | Optional country borders                     | Done   | `v2-m1`  |
 | M2        | Learn: reviews, lessons, Atlas, exams        | Done   | `v2-m2`  |
 | M3        | Flags                                        | Done   | `v2-m3`  |
-| M4        | Major cities                                 | Next   |          |
-| M5        | States and provinces (prototype first)       | Later  |          |
+| M4        | Major cities                                 | Done   | `v2-m4`  |
+| M5        | States and provinces (prototype first)       | Next   |          |
 | M6        | Polish, offline install, launch pass (2.0.0) | Later  |          |
 
 The site is live at <https://world-game-0qhx.onrender.com> on Render's free plan (v1.0.0 plus
@@ -24,12 +24,10 @@ commits up to `59b8d3a`). Hosting is deferred; nothing in M3 onward needs it.
 
 ## Up next
 
-1. Merge the open Dependabot PRs. As of 2026-11-18 only #3 (mapshaper) and #5 (d3-geo) are open
-   with green checks; **#4 (prettier) has a failing `e2e` check**, and #1 (vitest) and #2
-   (@vitejs/plugin-react) are closed unmerged. Merged, not closed. Merging into `main` deploys, so
-   ask first.
-2. The tags `v2-m0` to `v2-m2` are pushed. `v2-m3` is local only.
-3. Build M4 (below).
+1. Dependabot PRs #3 (`mapshaper`), #5 (`d3-geo`) and #4 (`prettier`, rebased) are merged.
+2. Tags `v2-m0` to `v2-m3` are pushed. `v2-m4` (and M4 on `main`) is local only; push when ready
+   to deploy.
+3. Build M5 (below).
 
 ## Milestones
 
@@ -87,15 +85,17 @@ deploys to production**, so pushes need approval.
   additions to `pinpoint.test.ts` and `learn.test.ts`, `e2e/flags.spec.ts`, and `a11y.spec.ts`
   entries.
 
-### M4. Major cities
+### M4. Major cities: done (`v2-m4`)
 
-- Natural Earth populated places (public domain) into `public/data/cities.json`: about 250
-  non-capital cities, capped per country, with curated includes and excludes in `data/`.
-  Lazy-loaded.
+- Natural Earth populated places (public domain) compiled into `public/data/cities.json` (250
+  non-capital cities across 70 countries, capped at 6 per country, with curated includes, excludes
+  and renames in `data/cities.json`) via `scripts/build-cities.mjs`. Lazy-loaded via
+  `src/geo/cities.ts`.
 - `CityChallenge`, scored like capitals, with skill `'city'`. Stats go in a capped `profile.places`
-  map (keys `city:<id>`), so per-country stats are unchanged.
-- Surfaces: a Pinpoint target "Cities", city decks in Learn, city markers in the Atlas, cities on
-  `FactCard`.
+  map (limit 600, keys `city:<id>`), leaving per-country stats and ranks unchanged while merging
+  into due reviews.
+- Surfaces: a Pinpoint target "Cities" (Find it only), regional "Major cities" decks in Learn, city
+  markers and "Fly to city:" links in the Atlas, and a "Major cities" row on `FactCard`.
 
 ### M5. States and provinces (large; prototype first)
 

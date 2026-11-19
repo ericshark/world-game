@@ -1,26 +1,39 @@
+import { cityKey, type CityIndex } from '../../geo/cities'
 import type { Skill } from '../core/types'
 import { createRandom, shuffled } from '../core/random'
-import { dueReviews, isLearned, reviewState } from '../profile/review'
+import { duePlaceReviews, dueReviews, isLearned, reviewState } from '../profile/review'
 import type { CountrySkills } from '../profile/profile'
-import type { Lesson } from './curriculum'
+import type { CountryStats } from '../profile/stats'
+import type { CityDeck, Lesson } from './curriculum'
 
-/** One question of a Learn session. */
-export interface LearnItem {
+export interface CountryLearnItem {
   countryId: string
   skill: Extract<Skill, 'locate' | 'name' | 'capital' | 'flag'>
   /** Offer multiple choice (naming) because it is new or was just forgotten. */
   assist: boolean
 }
 
+export interface CityLearnItem {
+  cityId: string
+  countryId: string
+  skill: 'city'
+  assist: false
+}
+
+/** One question of a Learn session. */
+export type LearnItem = CountryLearnItem | CityLearnItem
+
 /** Questions in a session, not counting the re-asked misses. */
 export const SESSION_SIZE = 15
 /** Reviews that may ride along with a lesson. */
 const LESSON_REVIEWS = 5
 
-const LESSON_SKILLS: LearnItem['skill'][] = ['locate', 'name', 'capital', 'flag']
+const LESSON_SKILLS: CountryLearnItem['skill'][] = ['locate', 'name', 'capital', 'flag']
 
 interface QueueOptions {
   countries: Record<string, CountrySkills>
+  places?: Record<string, CountryStats>
+  cities?: CityIndex
   now: number
   seed: string
   /** The lesson to teach; without one the session only reviews what is due. */
@@ -29,19 +42,58 @@ interface QueueOptions {
 
 /**
  * A session's questions. A lesson asks every skill of its countries that has never been
- * answered right, then adds a few due reviews. A review session asks the most overdue skills.
- * Questions are mixed so the same country never comes twice in a row where it can be avoided.
+ * answered right, then adds a few due reviews. A review session asks the most overdue skills
+ * across countries and major cities. Questions are mixed so the same country or city never comes
+ * twice in a row where it can be avoided.
  */
-export function buildQueue({ countries, now, seed, lesson }: QueueOptions): LearnItem[] {
+export function buildQueue({
+  countries,
+  places = {},
+  cities,
+  now,
+  seed,
+  lesson,
+}: QueueOptions): LearnItem[] {
   const random = createRandom(seed)
-  const reviews = dueReviews(countries, now)
+  const countryDue = dueReviews(countries, now).map((item) => ({
+    overdueDays: item.overdueDays,
+    box: item.box,
+    sortKey: item.countryId,
+    item: {
+      countryId: item.countryId,
+      skill: item.skill as CountryLearnItem['skill'],
+      assist: item.box <= 1 && (item.skill === 'name' || item.skill === 'flag'),
+    } satisfies LearnItem,
+  }))
 
   if (!lesson) {
-    return reviews.slice(0, SESSION_SIZE).map((item) => ({
-      countryId: item.countryId,
-      skill: item.skill as LearnItem['skill'],
-      assist: item.box <= 1 && (item.skill === 'name' || item.skill === 'flag'),
-    }))
+    const cityDue = cities
+      ? duePlaceReviews(places, now).flatMap((item) => {
+          const city = cities.get(item.cityId)
+          return city
+            ? [
+                {
+                  overdueDays: item.overdueDays,
+                  box: item.box,
+                  sortKey: item.cityId,
+                  item: {
+                    cityId: city.id,
+                    countryId: city.countryId,
+                    skill: 'city' as const,
+                    assist: false as const,
+                  } satisfies LearnItem,
+                },
+              ]
+            : []
+        })
+      : []
+    return [...countryDue, ...cityDue]
+      .sort(
+        (a, b) =>
+          b.overdueDays - a.overdueDays || a.box - b.box || a.sortKey.localeCompare(b.sortKey),
+      )
+      .slice(0, SESSION_SIZE)
+      .map((entry) => entry.item)
   }
 
   const fresh: LearnItem[] = lesson.ids.flatMap((countryId) =>
@@ -52,33 +104,56 @@ export function buildQueue({ countries, now, seed, lesson }: QueueOptions): Lear
     })),
   )
   const taught = new Set(fresh.map((item) => `${item.countryId}:${item.skill}`))
-  const extra = reviews
-    .filter((item) => !taught.has(`${item.countryId}:${item.skill}`))
+  const extra = countryDue
+    .filter(({ item }) => !taught.has(`${item.countryId}:${item.skill}`))
     .slice(0, LESSON_REVIEWS)
-    .map((item) => ({
-      countryId: item.countryId,
-      skill: item.skill as LearnItem['skill'],
-      assist: item.box <= 1 && (item.skill === 'name' || item.skill === 'flag'),
-    }))
+    .map(({ item }) => item)
   return separateRepeats(
     shuffled([...fresh, ...extra], random).slice(0, SESSION_SIZE + LESSON_REVIEWS),
   )
 }
 
-/** Moves questions about the same country apart, keeping the order otherwise. */
+/** Questions for a major-city deck: unlearned cities first, or the whole deck once finished. */
+export function buildCityDeckQueue(
+  deck: CityDeck,
+  cities: CityIndex,
+  places: Record<string, CountryStats>,
+  seed: string,
+): LearnItem[] {
+  const unlearned = deck.cityIds.filter((id) => !isLearned(places[cityKey(id)]))
+  const ask = unlearned.length > 0 ? unlearned : deck.cityIds
+  const items: CityLearnItem[] = ask.flatMap((cityId) => {
+    const city = cities.get(cityId)
+    return city
+      ? [{ cityId: city.id, countryId: city.countryId, skill: 'city', assist: false }]
+      : []
+  })
+  return shuffled(items, createRandom(seed))
+}
+
+function subjectOf(item: LearnItem): string {
+  return item.skill === 'city' ? item.cityId : item.countryId
+}
+
+/** Moves questions about the same country or city apart, keeping the order otherwise. */
 export function separateRepeats(items: LearnItem[]): LearnItem[] {
   const result: LearnItem[] = []
   const waiting = [...items]
   while (waiting.length > 0) {
     const last = result[result.length - 1]
-    const index = waiting.findIndex((item) => item.countryId !== last?.countryId)
+    const index = waiting.findIndex((item) => !last || subjectOf(item) !== subjectOf(last))
     result.push(...waiting.splice(index === -1 ? 0 : index, 1))
   }
   return result
 }
 
 /** Skills whose answer the player has already learned, for the "weak spot" summary. */
-export function boxOf(countries: Record<string, CountrySkills>, item: LearnItem): number {
+export function boxOf(
+  countries: Record<string, CountrySkills>,
+  item: LearnItem,
+  places: Record<string, CountryStats> = {},
+): number {
+  if (item.skill === 'city') return reviewState(places[cityKey(item.cityId)]).box
   return reviewState(countries[item.countryId]?.[item.skill]).box
 }
 

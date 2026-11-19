@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { play, vibrate } from '../../audio/sound'
+import type { CityIndex } from '../../geo/cities'
 import type { LonLat } from '../../geo/coords'
 import type { ModeRules } from '../../game/core/mode'
 import { roundsDeadline, type RoundsState } from '../../game/core/rounds'
@@ -67,8 +68,10 @@ export interface RoundGameProps<Config, State extends RoundModeState> {
   roundTimeMs: number | null
   /** Offer country names while typing. */
   suggestions: boolean
-  /** Hard mode asks for a capital without saying whose it is. */
+  /** Hard mode asks for a capital or city without saying whose it is. */
   hideCapitalCountry?: boolean
+  /** Lazy-loaded major cities, when this mode uses city challenges. */
+  cities?: CityIndex
   /** The player's stats, for practice modes. */
   stats?: StatsByCountry
   /** Offer "play again" and a challenge link; off for sessions built from the player's stats. */
@@ -94,7 +97,7 @@ export interface RoundGameProps<Config, State extends RoundModeState> {
 export function RoundGame<Config, State extends RoundModeState>(
   props: RoundGameProps<Config, State>,
 ) {
-  const { rules, config, mode, roundTimeMs, suggestions, stats, seed, daily } = props
+  const { rules, config, mode, roundTimeMs, suggestions, stats, cities, seed, daily } = props
   const app = useApp()
   const { geo, preferences } = app
   const stage = useGameStage({ night: props.night })
@@ -113,7 +116,7 @@ export function RoundGame<Config, State extends RoundModeState>(
       onOutcomes: app.recordOutcomes,
       onFinish: record,
     },
-    { config, stats, seed, resume: daily?.saved as State | undefined },
+    { config, stats, cities, seed, resume: daily?.saved as State | undefined },
     daily?.remote,
   )
   usePauseWhile(session, intro.open)
@@ -128,6 +131,7 @@ export function RoundGame<Config, State extends RoundModeState>(
   const placing =
     challenge?.kind === 'locate' ||
     challenge?.kind === 'capital' ||
+    challenge?.kind === 'city' ||
     (challenge?.kind === 'category' && answerId !== null)
 
   const setPin = (pin: LonLat | null) => {
@@ -144,7 +148,7 @@ export function RoundGame<Config, State extends RoundModeState>(
   const playAgain = () => {
     clearRecorded()
     resetRound()
-    session.start(config, { stats })
+    session.start(config, { stats, cities })
   }
 
   // The camera follows the game: a fresh view for each round, then framing the reveal.
@@ -168,7 +172,7 @@ export function RoundGame<Config, State extends RoundModeState>(
     if (current.kind === 'category') {
       const answers = [...current.category.valid, ...current.category.lenient]
       stage.flyTo(frameMany(answers.map((id) => geo.factsOf(id).label)))
-    } else if (shown.kind === 'locate' || shown.kind === 'capital') {
+    } else if (shown.kind === 'locate' || shown.kind === 'capital' || shown.kind === 'city') {
       stage.flyTo(framePair(shown.guess, shown.nearest))
     }
   })
@@ -255,7 +259,12 @@ export function RoundGame<Config, State extends RoundModeState>(
       view: 'game',
       round: rounds?.round ?? null,
       phase: rounds?.phase ?? null,
-      targetId: challenge?.kind === 'category' ? answerId : (challenge?.countryId ?? null),
+      targetId:
+        challenge?.kind === 'category'
+          ? answerId
+          : challenge?.kind === 'city'
+            ? challenge.cityId
+            : (challenge?.countryId ?? null),
       draftPin,
     }),
     placePin: (point) => {
@@ -264,6 +273,7 @@ export function RoundGame<Config, State extends RoundModeState>(
     targetPoint: () => {
       if (!challenge) return null
       if (challenge.kind === 'category') return answerId ? geo.factsOf(answerId).label : null
+      if (challenge.kind === 'city') return challenge.at
       const facts = geo.factsOf(challenge.countryId)
       return challenge.kind === 'capital' ? facts.capitals[0].at : facts.label
     },
@@ -368,7 +378,7 @@ export function RoundGame<Config, State extends RoundModeState>(
                 estimated={Boolean(daily?.remote)}
               />
             ) : (
-              <FactCard geo={geo} id={challenge.countryId} units={units} />
+              <FactCard geo={geo} id={challenge.countryId} units={units} cities={cities} />
             )}
           </ResultCard>
         ) : (

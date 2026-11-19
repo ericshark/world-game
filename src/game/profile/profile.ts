@@ -1,3 +1,4 @@
+import { cityIdFromKey } from '../../geo/cities'
 import type { ModeId, Skill } from '../core/types'
 import type { CountryStats, StatsByCountry } from './stats'
 import {
@@ -7,6 +8,7 @@ import {
   sanitizeCountries,
   sanitizeDaily,
   sanitizeHistory,
+  sanitizePlaces,
   sanitizeTimes,
   sanitizeCertificates,
   sanitizeConfusions,
@@ -55,6 +57,8 @@ export type CountrySkills = Partial<Record<Skill, CountryStats>>
 export interface Profile {
   version: 2
   countries: Record<string, CountrySkills>
+  /** Stats for non-country places (`city:<id>`, etc.), kept separate from country stats. */
+  places: Record<string, CountryStats>
   bests: Record<string, PersonalBest>
   /** Finished games, oldest first, capped in length. */
   history: HistoryEntry[]
@@ -85,6 +89,7 @@ export function emptyProfile(): Profile {
   return {
     version: 2,
     countries: {},
+    places: {},
     bests: {},
     history: [],
     xp: 0,
@@ -105,6 +110,7 @@ export function loadProfile(storage?: JsonStorage): Profile {
     return {
       version: 2,
       countries: sanitizeCountries(saved.countries),
+      places: sanitizePlaces(saved.places),
       bests: sanitizeBests(saved.bests),
       history: sanitizeHistory(saved.history),
       xp: sanitizeXp(saved.xp),
@@ -137,8 +143,16 @@ export function clearProfile(storage?: JsonStorage): void {
   removeKey(LEGACY_STATS_KEY, storage)
 }
 
-/** One skill's stats for every country that has any. */
+/** One skill's stats for every country (or major city) that has any. */
 export function skillStats(profile: Profile, skill: Skill): StatsByCountry {
+  if (skill === 'city') {
+    const result: StatsByCountry = {}
+    for (const [key, entry] of Object.entries(profile.places)) {
+      const id = cityIdFromKey(key)
+      if (id) result[id] = entry
+    }
+    return result
+  }
   const result: StatsByCountry = {}
   for (const [id, skills] of Object.entries(profile.countries)) {
     const stats = skills[skill]

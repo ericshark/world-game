@@ -1,23 +1,31 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useApp } from '../../app/AppContext'
+import { useCities } from '../../app/useCities'
 import { useGlobeStage, useStagePicking, useStageScene } from '../../app/globeStage'
 import { useGlobeShift } from '../../app/useLayoutShift'
+import type { City } from '../../geo/cities'
 import { REGIONS, type Region } from '../../geo/countries'
+import { MIN_CAMERA_DISTANCE } from '../../globe/constants'
 import { frameCountry, frameMany } from '../../globe/framing'
-import { CONTEXT_PAINT, TARGET_PAINT, type GlobeScene } from '../../globe/scene'
-import { Choice } from '../../ui/controls'
+import { CONTEXT_PAINT, TARGET_PAINT, type GlobeScene, type MarkerSpec } from '../../globe/scene'
+import { Choice, Switch } from '../../ui/controls'
 import { FactCard } from '../../ui/FactCard'
 import { Icon } from '../../ui/Icon'
 
+const REGION_MARKERS_LIMIT = 12
+
 /**
- * Free exploration: borders on, tap any country to see its name, capital, neighbours and facts.
- * It never scores anything, which is why names may be shown here and nowhere in the games.
+ * Free exploration: borders on, tap any country to see its name, capital, major cities,
+ * neighbours and facts. Never scores anything, which is why names may be shown here.
  */
 export function AtlasScreen({ onClose }: { onClose: () => void }) {
   const { geo, preferences } = useApp()
   const stage = useGlobeStage()
+  const { cities } = useCities()
   const [region, setRegion] = useState<Region>('Europe')
   const [selected, setSelected] = useState<string | null>(null)
+  const [focusedCity, setFocusedCity] = useState<string | null>(null)
+  const [showCities, setShowCities] = useState(true)
   useGlobeShift({ x: -0.15, y: 0 }, { x: 0, y: 0.22 })
 
   useEffect(() => {
@@ -37,15 +45,36 @@ export function AtlasScreen({ onClose }: { onClose: () => void }) {
     [geo, region],
   )
 
+  const regionCities = useMemo(
+    () =>
+      cities
+        ? [...cities.inRegion(geo, region)]
+            .sort((a, b) => a.difficulty - b.difficulty || a.id.localeCompare(b.id))
+            .slice(0, REGION_MARKERS_LIMIT)
+        : [],
+    [cities, geo, region],
+  )
+
+  const selectedCities = useMemo(
+    () => (selected && cities ? cities.byCountry(selected) : []),
+    [selected, cities],
+  )
+
   const select = (id: string) => {
     setSelected(id)
+    setFocusedCity(null)
     stage.flyTo(frameCountry(geo.feature(id), geo.factsOf(id).label))
   }
   const chooseRegion = (next: Region) => {
     setRegion(next)
     setSelected(null)
+    setFocusedCity(null)
     const ids = geo.playableIds.filter((id) => geo.feature(id).properties.region === next)
     stage.flyTo(frameMany(ids.map((id) => geo.factsOf(id).label)))
+  }
+  const focusCity = (city: City) => {
+    setFocusedCity(city.id)
+    stage.flyTo({ center: city.at, distance: MIN_CAMERA_DISTANCE })
   }
 
   useStagePicking((point) => {
@@ -54,8 +83,28 @@ export function AtlasScreen({ onClose }: { onClose: () => void }) {
   })
 
   const scene = useMemo<GlobeScene>(() => {
-    if (!selected) return { paints: [], pins: [], arcs: [] }
+    if (!selected) {
+      return {
+        paints: [],
+        pins: [],
+        arcs: [],
+        markers: showCities
+          ? regionCities.map((city) => ({
+              at: city.at,
+              label: city.name,
+              kind: 'major' as const,
+            }))
+          : [],
+      }
+    }
     const facts = geo.factsOf(selected)
+    const cityMarkers: MarkerSpec[] = showCities
+      ? selectedCities.map((city) => ({
+          at: city.at,
+          label: city.name,
+          kind: focusedCity === city.id ? 'goal' : 'major',
+        }))
+      : []
     return {
       paints: [
         ...facts.neighbors.map((id) => ({ id, ...CONTEXT_PAINT })),
@@ -71,9 +120,10 @@ export function AtlasScreen({ onClose }: { onClose: () => void }) {
           kind: 'start' as const,
         })),
         { at: facts.capitals[0].at, label: facts.capitals[0].name, kind: 'city' },
+        ...cityMarkers,
       ],
     }
-  }, [geo, selected])
+  }, [geo, selected, showCities, regionCities, selectedCities, focusedCity])
   useStageScene(scene)
 
   return (
@@ -97,10 +147,27 @@ export function AtlasScreen({ onClose }: { onClose: () => void }) {
           onChange={chooseRegion}
           options={REGIONS.map((r) => ({ value: r, label: r }))}
         />
+        <Switch label="Major cities" checked={showCities} onChange={setShowCities} />
         {selected && (
           <div className="country-card">
             <h3 className="country-card__name">{geo.nameOf(selected)}</h3>
-            <FactCard geo={geo} id={selected} units={preferences.units} />
+            <FactCard geo={geo} id={selected} units={preferences.units} cities={cities} />
+            {selectedCities.length > 0 && (
+              <p className="passport__hint">
+                Fly to city:{' '}
+                {selectedCities.map((city) => (
+                  <button
+                    type="button"
+                    key={city.id}
+                    className={`button button--link${focusedCity === city.id ? ' is-selected' : ''}`}
+                    aria-pressed={focusedCity === city.id}
+                    onClick={() => focusCity(city)}
+                  >
+                    {city.name}
+                  </button>
+                ))}
+              </p>
+            )}
             {geo.factsOf(selected).neighbors.length > 0 && (
               <p className="passport__hint">
                 Neighbours:{' '}

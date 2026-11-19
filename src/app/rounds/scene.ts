@@ -76,24 +76,40 @@ export function roundScene(
       }
     }
     case 'locate':
-    case 'capital': {
-      const isCapital = result.kind === 'capital'
+    case 'capital':
+    case 'city': {
+      const isPoint = result.kind === 'capital' || result.kind === 'city'
       const clicked =
         result.clickedId && result.clickedId !== targetId
           ? [{ id: result.clickedId, ...CLICKED_PAINT }]
           : []
-      const target = { id: targetId, ...(isCapital ? TARGET_AREA_PAINT : TARGET_PAINT) }
-      // A capital is a labelled city; a country pulses so even a tiny one is easy to spot.
-      const capital = isCapital ? capitalNearest(geo, targetId, result.nearest) : null
+      const target = { id: targetId, ...(isPoint ? TARGET_AREA_PAINT : TARGET_PAINT) }
+      // A capital or major city is a labelled point; a country pulses so even a tiny one is easy to spot.
+      const marker =
+        result.kind === 'capital'
+          ? capitalNearest(geo, targetId, result.nearest)
+          : result.kind === 'city'
+            ? { at: result.nearest, name: result.cityName }
+            : null
       return {
         paints: [...neighbors, ...clicked, target],
         ...pinAndArc(result.guess, result.nearest, result.distanceKm > 0.5),
-        markers: capital ? [{ at: capital.at, label: capital.name, kind: 'city' }] : [],
-        pulses: isCapital ? [] : [{ id: targetId, color: TARGET_COLOR }],
+        markers: marker ? [{ at: marker.at, label: marker.name, kind: 'city' }] : [],
+        pulses: isPoint ? [] : [{ id: targetId, color: TARGET_COLOR }],
       }
     }
     default:
-      return { ...EMPTY_SCENE, paints: [...neighbors, { id: targetId, ...TARGET_PAINT }] }
+      return {
+        ...EMPTY_SCENE,
+        paints: [
+          ...neighbors,
+          { id: targetId, ...(challenge.kind === 'city' ? TARGET_AREA_PAINT : TARGET_PAINT) },
+        ],
+        markers:
+          challenge.kind === 'city'
+            ? [{ at: challenge.at, label: challenge.name, kind: 'city' }]
+            : [],
+      }
   }
 }
 

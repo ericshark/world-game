@@ -106,6 +106,10 @@ Pinpoint's setup combines a few choices:
 - **Countries / Capitals** (Find it only). A capital is a point: pins within 25 km score 1,000,
   and points fall to 0 at 1,000 km (World and Oceania), 750 km (other continents) or 500 km
   (Europe). Countries with several official capitals accept any of them.
+- **Cities** (Find it only). Major non-capital cities from `public/data/cities.json` (250 cities
+  across 70 countries, lazy-loaded). Scored like capitals (25 km bullseye; 0 at 1,000 km, 750 km or
+  500 km by region), with "in Country" shown in the prompt. "Practise my weak cities" targets weak
+  cities in the pool, and "Skip micro-states" is hidden.
 - **Difficulty.**
   - Easy keeps the better-known half of the region (at least 12 countries), scores with
     zero-point distances ×1.4, and offers 4 multiple-choice answers in Name It.
@@ -273,6 +277,24 @@ Flag artwork is the `flag-icons` package (MIT), copied by `scripts/build-flags.m
 - **Mastery.** Flags are their own track and do not count towards Found, Mastered, Expert or
   world knowledge.
 - Flag rounds are not in battles, dailies or ranked play.
+
+### Major cities
+
+Major non-capital cities (250 cities across 70 countries) live in `public/data/cities.json` and
+load on demand so players can learn cities beyond capitals without inflating first load.
+
+- **Prompt & scoring.** City rounds are Find it only, show `in <country>` beneath the city name and
+  score by distance using the same bands as capitals (25 km bullseye; 0 at 1,000 km in World and
+  Oceania, 750 km on other continents or 500 km in Europe).
+- **Learn.** A **Major cities** course switch splits the 250 cities into regional decks of up to
+  10 cities, studying and quizzing with borders shown. Due city reviews mix into Learn and Home
+  review counts.
+- **Atlas & `FactCard`.** Countries list their major cities on `FactCard`, and the Atlas adds a
+  **Major cities** marker toggle (showing regional highlights or the selected country's cities) plus
+  **Fly to city:** links.
+- **Mastery & Passport.** City stats are kept in `profile.places` (`city:<id>`, capped at 600) under
+  skill `'city'`, leaving Found, Mastered, Expert, world knowledge and mix-up confusions unchanged.
+  Cities are not in battles, dailies or ranked play.
 
 ## Progression
 

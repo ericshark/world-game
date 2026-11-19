@@ -61,6 +61,15 @@ export function Prompt({
           )}
         </>
       )
+    case 'city':
+      return (
+        <>
+          <h1 className="prompt__text">
+            Find <strong data-testid="target-name">{challenge.name}</strong>
+          </h1>
+          {showCapitalCountry && <p className="prompt__sub">in {nameOf(challenge.countryId)}</p>}
+        </>
+      )
     case 'locate':
       if (challenge.show === 'flag') {
         return (

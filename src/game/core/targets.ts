@@ -1,3 +1,4 @@
+import type { City } from '../../geo/cities'
 import type { CountryFeature } from '../../geo/countries'
 import type { GeoData } from '../../geo/facts'
 import type { ScoringRegion } from '../../geo/scoring'
@@ -49,6 +50,24 @@ export function weightByDifficulty(
     }
     case 'hard':
       return ids.map((id) => ({ id, weight: 0.2 + 2 * geo.difficulty(id) }))
+  }
+}
+
+/** Mirrors `weightByDifficulty` over the curated major cities list. */
+export function weightCitiesByDifficulty(
+  cities: readonly City[],
+  difficulty: Difficulty,
+): WeightedId[] {
+  switch (difficulty) {
+    case 'normal':
+      return cities.map((city) => ({ id: city.id, weight: 1 }))
+    case 'easy': {
+      const sorted = [...cities].sort((a, b) => a.difficulty - b.difficulty)
+      const count = Math.min(sorted.length, Math.max(EASY_MIN_POOL, Math.ceil(sorted.length / 2)))
+      return sorted.slice(0, count).map((city) => ({ id: city.id, weight: 1 }))
+    }
+    case 'hard':
+      return cities.map((city) => ({ id: city.id, weight: 0.2 + 2 * city.difficulty }))
   }
 }
 

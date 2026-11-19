@@ -11,6 +11,7 @@ async function answer(page: import('@playwright/test').Page, name: string) {
 
 async function playMystery(page: import('@playwright/test').Page) {
   await page.getByRole('button', { name: /^Mystery Country/ }).click()
+  await page.waitForFunction(() => window.__worldGame !== undefined)
   const gotIt = page.getByRole('button', { name: 'Got it' })
   if (await gotIt.isVisible()) await gotIt.click()
   await answer(page, 'Japan')
@@ -64,6 +65,7 @@ test('the server never sends tomorrow’s answers to the browser', async ({ page
 test('a finished ranked daily shows up on the leaderboard', async ({ page }) => {
   await openGame(page, '/#/daily')
   await page.getByRole('button', { name: /^Daily Route/ }).click()
+  await page.waitForFunction(() => window.__worldGame !== undefined)
   const gotIt = page.getByRole('button', { name: 'Got it' })
   if (await gotIt.isVisible()) await gotIt.click()
   await page.getByRole('button', { name: 'Give up' }).click()

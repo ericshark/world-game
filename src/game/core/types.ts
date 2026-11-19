@@ -22,6 +22,15 @@ export interface CapitalChallenge {
   countryId: string
 }
 
+/** Find a major non-capital city on the globe. */
+export interface CityChallenge {
+  kind: 'city'
+  cityId: string
+  countryId: string
+  name: string
+  at: LonLat
+}
+
 /** Name the country highlighted on the globe. */
 export interface IdentifyChallenge {
   kind: 'identify'
@@ -41,8 +50,9 @@ export interface CategoryChallenge {
   category: Category
 }
 
-/** Challenges about one known country. */
-export type CountryChallenge = LocateChallenge | CapitalChallenge | IdentifyChallenge
+/** Challenges about one known country or a place inside it. */
+export type CountryChallenge =
+  LocateChallenge | CapitalChallenge | CityChallenge | IdentifyChallenge
 
 export type Challenge = CountryChallenge | CategoryChallenge
 
@@ -81,6 +91,12 @@ export interface CapitalResult extends PinResult {
   capitalName: string
 }
 
+export interface CityResult extends PinResult {
+  kind: 'city'
+  cityName: string
+  countryId: string
+}
+
 export interface IdentifyResult {
   kind: 'identify'
   targetId: string
@@ -116,16 +132,18 @@ export interface MissedResult {
 }
 
 export type RoundResult =
-  LocateResult | CapitalResult | IdentifyResult | CategoryResult | MissedResult
+  LocateResult | CapitalResult | CityResult | IdentifyResult | CategoryResult | MissedResult
 
 export type ModeId =
   'pinpoint' | 'rush' | 'rare-earth' | 'mystery' | 'journey' | 'daily' | 'battle' | 'learn'
 
-/** Skills tracked per country across all modes. */
-export type Skill = 'locate' | 'capital' | 'name' | 'flag' | 'recall' | 'visit'
+/** Skills tracked per country (or per place) across all modes. */
+export type Skill = 'locate' | 'capital' | 'name' | 'flag' | 'city' | 'recall' | 'visit'
 
 export interface CountryOutcome {
   countryId: string
+  /** Set for non-country places (such as `city:<id>`), stored in `profile.places` instead. */
+  placeKey?: string
   skill: Skill
   success: boolean
   distanceKm?: number

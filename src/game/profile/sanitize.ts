@@ -16,14 +16,16 @@ const MODES: readonly ModeId[] = [
   'learn',
   'battle',
 ]
-const SKILLS: readonly Skill[] = ['locate', 'capital', 'name', 'flag', 'recall', 'visit']
+const SKILLS: readonly Skill[] = ['locate', 'capital', 'name', 'flag', 'city', 'recall', 'visit']
 const COUNTRY_ID = /^[A-Z0-9]{2,8}$/
+const PLACE_KEY = /^[a-z]+:[a-z0-9][a-z0-9-]{0,60}$/
 const DATE_KEY = /^\d{4}-\d{2}-\d{2}$/
 
 /** The most entries any one table may hold; far more than a real profile ever reaches. */
 export const MAX_BESTS = 500
 export const MAX_ACHIEVEMENTS = 300
 export const MAX_DAILY_DAYS = 800
+export const MAX_PLACES = 600
 export const HISTORY_LIMIT = 300
 /** The largest backup file or cloud profile that is read at all. */
 export const MAX_PROFILE_BYTES = 1_500_000
@@ -75,6 +77,33 @@ export function sanitizeCountries(value: unknown): Record<string, CountrySkills>
     if (Object.keys(clean).length > 0) result[id] = clean
   }
   return result
+}
+
+/** Keeps the most recently active non-country place entries when the table grows past its cap. */
+export function capPlaces(places: Record<string, CountryStats>): Record<string, CountryStats> {
+  const entries = Object.entries(places)
+  if (entries.length <= MAX_PLACES) return places
+  return Object.fromEntries(
+    entries
+      .sort(
+        (a, b) =>
+          (b[1].dueAt ?? 0) - (a[1].dueAt ?? 0) ||
+          b[1].attempts - a[1].attempts ||
+          a[0].localeCompare(b[0]),
+      )
+      .slice(0, MAX_PLACES),
+  )
+}
+
+export function sanitizePlaces(value: unknown): Record<string, CountryStats> {
+  const result: Record<string, CountryStats> = {}
+  if (!isObject(value)) return result
+  for (const [key, raw] of Object.entries(value)) {
+    if (!PLACE_KEY.test(key)) continue
+    const entry = stats(raw)
+    if (entry) result[key] = entry
+  }
+  return capPlaces(result)
 }
 
 export function sanitizeBests(value: unknown): Record<string, PersonalBest> {

@@ -52,7 +52,7 @@ export function sanitizePinpointConfig(saved: Partial<PinpointConfig>): Pinpoint
   return {
     region: isRegion(saved.region) ? saved.region : d.region,
     difficulty: oneOf<Difficulty>(saved.difficulty, ['easy', 'normal', 'hard'], d.difficulty),
-    target: oneOf(saved.target, ['countries', 'capitals', 'flags'], d.target),
+    target: oneOf(saved.target, ['countries', 'capitals', 'cities', 'flags'], d.target),
     variant: oneOf(saved.variant, ['find', 'name'], d.variant),
     night: saved.night === true,
     skipMicro: saved.skipMicro === true,

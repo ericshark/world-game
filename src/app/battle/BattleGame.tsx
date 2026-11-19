@@ -93,6 +93,7 @@ export function BattleGame({ host, recorded, rating, onPlayAgain, onHome }: Batt
   const placing =
     challenge?.kind === 'locate' ||
     challenge?.kind === 'capital' ||
+    challenge?.kind === 'city' ||
     (challenge?.kind === 'category' && draft.answerId !== null)
 
   // Camera: an overview while answering, then everyone's pins at the reveal.
@@ -182,6 +183,7 @@ export function BattleGame({ host, recorded, rating, onPlayAgain, onHome }: Batt
       if (!challenge) return null
       if (challenge.kind === 'category')
         return draft.answerId ? geo.factsOf(draft.answerId).label : null
+      if (challenge.kind === 'city') return challenge.at
       const facts = geo.factsOf(challenge.countryId)
       return challenge.kind === 'capital' ? facts.capitals[0].at : facts.label
     },

@@ -69,6 +69,7 @@ test.describe('accessibility', () => {
   for (const [choices, name] of [
     [['Flags'], 'flag to find'],
     [['Name it', 'Flags'], 'flag to pick'],
+    [['Cities'], 'cities'],
   ] as const) {
     test(`playing Pinpoint: ${name}`, async ({ page }) => {
       await openGame(page, '/')
@@ -76,6 +77,26 @@ test.describe('accessibility', () => {
       await audit(page, name)
     })
   }
+
+  test('learn major cities tab', async ({ page }) => {
+    await openGame(page, '/#/learn')
+    await page.getByRole('radio', { name: 'Major cities', exact: true }).click()
+    await page.getByText(/major cities learned/).waitFor()
+    await audit(page, 'learn major cities')
+  })
+
+  test('city deck study', async ({ page }) => {
+    await openGame(page, '/#/learn/cities-oceania-1')
+    await page.getByText('Meet the cities').waitFor()
+    await audit(page, 'city deck study')
+  })
+
+  test('atlas with major cities', async ({ page }) => {
+    await openGame(page, '/#/atlas')
+    await page.getByRole('button', { name: 'France', exact: true }).click()
+    await page.locator('.country-card .facts').getByText('Major cities').waitFor()
+    await audit(page, 'atlas with major cities')
+  })
 
   for (const mode of ['GeoRush', 'Mystery Country', 'World Journey', 'Rare Earth']) {
     test(`playing ${mode}`, async ({ page }) => {

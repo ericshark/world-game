@@ -1,3 +1,4 @@
+import type { CityIndex } from '../../geo/cities'
 import type { GeoData } from '../../geo/facts'
 import type { StatsByCountry } from '../profile/stats'
 import type { CountryOutcome, PlayerId, SessionSummary, Submission } from './types'
@@ -17,6 +18,8 @@ export interface StartParams<Config> {
   seed: string
   now: number
   geo: GeoData
+  /** Lazy-loaded major cities, supplied by modes and targets that need them. */
+  cities?: CityIndex
   players: PlayerId[]
   /** The local player's stats, for modes that adapt to them (weak-country practice). */
   stats?: StatsByCountry

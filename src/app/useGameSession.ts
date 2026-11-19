@@ -1,3 +1,4 @@
+import type { CityIndex } from '../geo/cities'
 import type { GeoData } from '../geo/facts'
 import type { ModeRules, SessionEvent } from '../game/core/mode'
 import type { CountryOutcome, SessionSummary } from '../game/core/types'
@@ -15,7 +16,10 @@ interface Callbacks {
 export interface GameSession<Config, State, Event> {
   state: State | null
   /** Starts another game; ranked dailies are played once, so this only works locally. */
-  start(config: Config, options?: { seed?: string; stats?: StatsByCountry }): State
+  start(
+    config: Config,
+    options?: { seed?: string; stats?: StatsByCountry; cities?: CityIndex },
+  ): State
   send(event: Event): Promise<State | null>
   end(): void
 }
@@ -32,6 +36,7 @@ export function useGameSession<Config, State, Event extends { type: string } = S
     config: Config
     seed?: string
     stats?: StatsByCountry
+    cities?: CityIndex
     /** Carries on with a game saved earlier instead of starting a new one. */
     resume?: State | null
   },

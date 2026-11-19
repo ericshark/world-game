@@ -1,3 +1,5 @@
+import { cityKey, type CityIndex } from '../../geo/cities'
+import type { GeoData } from '../../geo/facts'
 import { MAX_POINTS } from '../../geo/scoring'
 import { evaluateChallenge, skillOf, type ScoringOptions } from '../core/evaluate'
 import type { ModeRules } from '../core/mode'
@@ -41,7 +43,18 @@ const OPTIONS: ScoringOptions = { region: 'World', cutoffScale: 1.4 }
 
 export const DEFAULT_LEARN_CONFIG: LearnConfig = { queue: [], title: 'Review' }
 
-function challengeFor(item: LearnItem, geo: Parameters<typeof nameChoices>[0], seed: string) {
+function challengeFor(item: LearnItem, geo: GeoData, seed: string, cities?: CityIndex) {
+  if (item.skill === 'city') {
+    const city = cities?.get(item.cityId)
+    if (!city) throw new Error(`Unknown city: ${item.cityId}`)
+    return {
+      kind: 'city',
+      cityId: city.id,
+      countryId: city.countryId,
+      name: city.name,
+      at: city.at,
+    } satisfies CountryChallenge
+  }
   const { countryId, skill, assist } = item
   if (skill === 'name') {
     const random = createRandom(`${seed}:${countryId}`)
@@ -68,6 +81,7 @@ function challengeFor(item: LearnItem, geo: Parameters<typeof nameChoices>[0], s
 }
 
 function keyOf(challenge: CountryChallenge) {
+  if (challenge.kind === 'city') return `city:${challenge.cityId}`
   return `${challenge.kind}:${'show' in challenge ? challenge.show : ''}:${challenge.countryId}`
 }
 
@@ -76,8 +90,8 @@ function keyOf(challenge: CountryChallenge) {
  * wrongly comes back once at the end of the session.
  */
 export const learn: ModeRules<LearnConfig, LearnState> = {
-  start({ config, seed, now, geo, players }) {
-    const challenges = config.queue.map((item) => challengeFor(item, geo, seed))
+  start({ config, seed, now, geo, cities, players }) {
+    const challenges = config.queue.map((item) => challengeFor(item, geo, seed, cities))
     return {
       config,
       seed,
@@ -147,6 +161,15 @@ export const learn: ModeRules<LearnConfig, LearnState> = {
 
 function outcomeOf(result: RoundResult, challenge: CountryChallenge): CountryOutcome {
   const skill = skillOf(challenge)
+  if (challenge.kind === 'city') {
+    return {
+      countryId: challenge.countryId,
+      placeKey: cityKey(challenge.cityId),
+      skill,
+      success: result.hit,
+      distanceKm: result.kind === 'city' ? result.distanceKm : undefined,
+    }
+  }
   return {
     countryId: result.targetId,
     skill,

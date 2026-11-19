@@ -62,7 +62,9 @@ export function battleScene(
   } else {
     paints.push({
       id: challenge.countryId,
-      ...(challenge.kind === 'capital' ? TARGET_AREA_PAINT : TARGET_PAINT),
+      ...(challenge.kind === 'capital' || challenge.kind === 'city'
+        ? TARGET_AREA_PAINT
+        : TARGET_PAINT),
     })
   }
 
@@ -80,6 +82,8 @@ export function battleScene(
   if (challenge.kind === 'capital') {
     const capital = geo.factsOf(challenge.countryId).capitals[0]
     markers.push({ at: capital.at, label: capital.name, kind: 'city' })
+  } else if (challenge.kind === 'city') {
+    markers.push({ at: challenge.at, label: challenge.name, kind: 'city' })
   }
   const pulses =
     challenge.kind === 'category' ? [] : [{ id: challenge.countryId, color: TARGET_COLOR }]

@@ -1,10 +1,19 @@
 import { describe, expect, it } from 'vitest'
-import { loadTestGeoData } from '../../test/loadTestCountries'
+import { loadTestCities, loadTestGeoData } from '../../test/loadTestCountries'
+import { cityKey } from '../../geo/cities'
 import { LOCAL_PLAYER, type Submission } from '../core/types'
 import type { CountrySkills } from '../profile/profile'
-import { buildCurriculum, countryKnown, lessonProgress, nextLesson } from './curriculum'
+import {
+  buildCityDecks,
+  buildCurriculum,
+  cityDeckProgress,
+  countryKnown,
+  lessonProgress,
+  nextLesson,
+} from './curriculum'
 import { learn, type LearnConfig, type LearnState } from './learn'
 import {
+  buildCityDeckQueue,
   buildQueue,
   confusedPairs,
   examQueue,
@@ -16,9 +25,11 @@ import {
 import { masteryOf } from '../profile/mastery'
 import { REGIONS } from '../../geo/countries'
 import { emptyProfile } from '../profile/profile'
-import { recordSession } from '../profile/record'
+import { recordOutcomes, recordSession } from '../profile/record'
+import { duePlaceReviews } from '../profile/review'
 
 const geo = loadTestGeoData()
+const cities = loadTestCities()
 const DAY = 86_400_000
 const NOW = 500 * DAY
 
@@ -304,5 +315,86 @@ describe('flags in Learn', () => {
     const flagOnly = { flag: { attempts: 5, hits: 5, totalKm: 0, recent: [true, true, true] } }
     expect(countryKnown(flagOnly)).toBe(false)
     expect(masteryOf(flagOnly)).toBe('unseen')
+  })
+})
+
+describe('major cities in Learn', () => {
+  const decks = buildCityDecks(geo, cities)
+
+  it('builds regional decks covering every major city exactly once', () => {
+    const allIds = decks.flatMap((d) => d.cityIds)
+    expect(allIds).toHaveLength(cities.all.length)
+    expect(new Set(allIds)).toEqual(new Set(cities.all.map((c) => c.id)))
+    expect(new Set(decks.map((d) => d.id)).size).toBe(decks.length)
+    for (const deck of decks) {
+      expect(deck.id).toMatch(/^cities-/)
+      for (const id of deck.cityIds) {
+        expect(geo.feature(cities.get(id)!.countryId).properties.region).toBe(deck.region)
+      }
+    }
+  })
+
+  it('plays a city deck, re-asks misses once, updates places only, and schedules city reviews', () => {
+    const oceania = decks.find((d) => d.region === 'Oceania')!
+    const queue = buildCityDeckQueue(oceania, cities, {}, 'seed-city')
+    expect(queue).toHaveLength(oceania.cityIds.length)
+
+    let state = learn.start({
+      config: { title: oceania.title, queue },
+      seed: 'seed-city',
+      now: NOW,
+      geo,
+      cities,
+      players: [LOCAL_PLAYER],
+    })
+    let profile = emptyProfile()
+
+    // Miss the first city; hit every other round including the re-ask.
+    let missedOnce = false
+    while (!learn.isFinished(state)) {
+      const challenge = state.rounds.challenges[state.rounds.round]
+      expect(challenge.kind).toBe('city')
+      if (challenge.kind === 'city') {
+        const pin: [number, number] = !missedOnce ? [0, -89] : challenge.at
+        missedOnce = true
+        const before = state
+        state = learn.reduce(
+          state,
+          { type: 'submit', playerId: LOCAL_PLAYER, submission: { pin, at: NOW } },
+          geo,
+        )
+        profile = recordOutcomes(profile, learn.outcomesBetween(before, state, LOCAL_PLAYER), NOW)
+        state = learn.reduce(state, { type: 'next', at: NOW + 10 }, geo)
+      }
+    }
+
+    // One re-ask added.
+    expect(state.rounds.challenges).toHaveLength(oceania.cityIds.length + 1)
+    expect(Object.keys(profile.countries)).toHaveLength(0)
+    expect(Object.keys(profile.masteredAt)).toHaveLength(0)
+    expect(Object.keys(profile.places)).toHaveLength(oceania.cityIds.length)
+    expect(cityDeckProgress(profile.places, oceania)).toEqual({
+      known: oceania.cityIds.length,
+      total: oceania.cityIds.length,
+    })
+
+    // Completed decks remain replayable (asks the whole deck again).
+    expect(buildCityDeckQueue(oceania, cities, profile.places, 's2')).toHaveLength(
+      oceania.cityIds.length,
+    )
+
+    // Due city reviews show up alongside due country reviews.
+    const dueLater = duePlaceReviews(profile.places, NOW + 2 * DAY)
+    expect(dueLater).toHaveLength(oceania.cityIds.length)
+    const review = buildQueue({
+      countries: {},
+      places: profile.places,
+      cities,
+      now: NOW + 2 * DAY,
+      seed: 'rev',
+    })
+    expect(review.length).toBeGreaterThan(0)
+    expect(review.every((item) => item.skill === 'city')).toBe(true)
+    expect(profile.places[cityKey(oceania.cityIds[0])]?.attempts).toBeGreaterThanOrEqual(1)
   })
 })

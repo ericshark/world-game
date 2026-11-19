@@ -100,7 +100,10 @@ export function CreditsScreen({ onClose }: { onClose: () => void }) {
               Earth imagery: NASA Visible Earth, <em>Blue Marble</em> (day) and{' '}
               <em>Black Marble</em> (night). Public domain.
             </li>
-            <li>Country borders, capitals, populations and areas: Natural Earth. Public domain.</li>
+            <li>
+              Country borders, capitals, major cities, populations and areas: Natural Earth. Public
+              domain.
+            </li>
             <li>
               Flags: <a href="https://github.com/lipis/flag-icons">flag-icons</a> by Panayiotis
               Lipiridis, MIT licence. Copyright (c) 2013 Panayiotis Lipiridis. The full licence text

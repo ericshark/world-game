@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import type { CityIndex } from '../geo/cities'
 import type { GeoData } from '../geo/facts'
 import type { ModeRules, SessionEvent } from '../game/core/mode'
 import { randomSeed } from '../game/core/random'
@@ -21,6 +22,7 @@ export interface LocalSession<Config, State, Event> {
 interface StartOptions {
   seed?: string
   stats?: StatsByCountry
+  cities?: CityIndex
 }
 
 interface InitialGame<Config, State> extends StartOptions {
@@ -127,7 +129,7 @@ function startGame<Config, State, Event>(
   rules: ModeRules<Config, State, Event>,
   geo: GeoData,
   config: Config,
-  { seed = randomSeed(), stats }: StartOptions,
+  { seed = randomSeed(), stats, cities }: StartOptions,
 ): State {
-  return rules.start({ config, seed, now: Date.now(), geo, players: [LOCAL_PLAYER], stats })
+  return rules.start({ config, seed, now: Date.now(), geo, cities, players: [LOCAL_PLAYER], stats })
 }

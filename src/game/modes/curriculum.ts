@@ -1,10 +1,14 @@
+import { cityKey, type CityIndex } from '../../geo/cities'
 import { REGIONS, type Region } from '../../geo/countries'
 import type { GeoData } from '../../geo/facts'
 import { LEARN_SKILLS, isLearned } from '../profile/review'
 import type { CountrySkills } from '../profile/profile'
+import type { CountryStats } from '../profile/stats'
 
 /** Countries per lesson, give or take one. */
 const LESSON_SIZE = 5
+/** Major cities per regional deck, give or take a couple. */
+const CITY_DECK_SIZE = 10
 
 export interface Lesson {
   id: string
@@ -122,6 +126,48 @@ export function nextLesson(
       return known < total
     }) ?? null
   )
+}
+
+export interface CityDeck {
+  id: string
+  title: string
+  region: Region
+  /** In teaching order: most famous cities first. */
+  cityIds: string[]
+}
+
+/** Regional major-city decks, generated from `cities.json` so they follow the data. */
+export function buildCityDecks(geo: GeoData, cities: CityIndex): CityDeck[] {
+  const decks: CityDeck[] = []
+  for (const region of REGIONS) {
+    const list = [...cities.inRegion(geo, region)].sort(
+      (a, b) => a.difficulty - b.difficulty || a.id.localeCompare(b.id),
+    )
+    if (list.length === 0) continue
+    const count = Math.max(1, Math.round(list.length / CITY_DECK_SIZE))
+    let start = 0
+    for (let i = 0; i < count; i++) {
+      const end = start + Math.ceil((list.length - start) / (count - i))
+      decks.push({
+        id: `cities-${slug(region)}-${i + 1}`,
+        title: count === 1 ? region : `${region} · ${i + 1} of ${count}`,
+        region,
+        cityIds: list.slice(start, end).map((c) => c.id),
+      })
+      start = end
+    }
+  }
+  return decks
+}
+
+export function cityDeckProgress(
+  places: Record<string, CountryStats>,
+  deck: CityDeck,
+): LessonProgress {
+  return {
+    known: deck.cityIds.filter((id) => isLearned(places[cityKey(id)])).length,
+    total: deck.cityIds.length,
+  }
 }
 
 export { LEARN_SKILLS }

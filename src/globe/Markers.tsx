@@ -20,6 +20,7 @@ const PIN_DROP_HEIGHT = 0.06
 const LABEL_MIN_FACING = 0.25
 const MARKER_COLORS: Record<MarkerSpec['kind'], string> = {
   city: '#ffffff',
+  major: '#7dd3fc',
   start: '#bfe0ff',
   goal: TARGET_COLOR,
 }
@@ -76,11 +77,11 @@ function PlaceMarker({ at, label, kind }: MarkerSpec) {
   return (
     <group ref={group} position={normal} quaternion={quaternion}>
       <mesh position={[0, 0.002, 0]} rotation={[-Math.PI / 2, 0, 0]} raycast={() => null}>
-        <ringGeometry args={[0.006, 0.011, 24]} />
+        <ringGeometry args={kind === 'major' ? [0.0045, 0.0085, 20] : [0.006, 0.011, 24]} />
         <meshBasicMaterial color={MARKER_COLORS[kind]} toneMapped={false} />
       </mesh>
       <Html position={[0, 0.02, 0]} zIndexRange={[5, 0]} style={{ pointerEvents: 'none' }}>
-        <span ref={text} className={`globe-label globe-label--${kind}`}>
+        <span ref={text} className={`globe-label globe-label--${kind}`} data-marker={kind}>
           {label}
         </span>
       </Html>

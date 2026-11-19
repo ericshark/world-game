@@ -13,7 +13,9 @@ export function describeConfig(config: PinpointConfig): string {
         ? 'Name It'
         : config.target === 'capitals'
           ? 'Capitals'
-          : 'Countries'
+          : config.target === 'cities'
+            ? 'Cities'
+            : 'Countries'
   return [
     kind,
     config.region,

@@ -61,6 +61,16 @@ export function verdictOf(result: RoundResult, challenge: Challenge, geo: GeoDat
           <strong>{result.capitalName}</strong> was here
         </>
       )
+    case 'city':
+      return result.hit ? (
+        <>
+          Bullseye: <strong>{result.cityName}</strong>
+        </>
+      ) : (
+        <>
+          <strong>{result.cityName}</strong> was here
+        </>
+      )
     case 'locate':
       if (result.hit) {
         return (
@@ -84,7 +94,9 @@ export function verdictOf(result: RoundResult, challenge: Challenge, geo: GeoDat
           <strong>
             {challenge.kind === 'capital'
               ? geo.factsOf(challenge.countryId).capitals[0].name
-              : target}
+              : challenge.kind === 'city'
+                ? challenge.name
+                : target}
           </strong>
         </>
       )
@@ -106,7 +118,8 @@ export function detailOf(result: RoundResult, geo: GeoData, units: Units): strin
           : 'placed perfectly'
       return `${result.rarityPoints} for rarity · ${placed}`
     }
-    case 'capital': {
+    case 'capital':
+    case 'city': {
       const where = result.clickedId ? `in ${geo.nameOf(result.clickedId)}` : 'in the ocean'
       return `${formatDistance(result.distanceKm, units)} away · your pin was ${where}`
     }
@@ -133,9 +146,11 @@ export function roundRow(challenge: Challenge, result: RoundResult, geo: GeoData
   const label =
     challenge.kind === 'capital'
       ? `${geo.factsOf(challenge.countryId).capitals[0].name}, ${name}`
-      : name
+      : challenge.kind === 'city'
+        ? `${challenge.name}, ${name}`
+        : name
   const detail =
-    (result.kind === 'locate' || result.kind === 'capital') && !result.hit
+    (result.kind === 'locate' || result.kind === 'capital' || result.kind === 'city') && !result.hit
       ? formatDistance(result.distanceKm, units)
       : gradeOf(result).label
   return { label, detail }

@@ -1,3 +1,4 @@
+import { cityIdFromKey } from '../../geo/cities'
 import type { Skill } from '../core/types'
 import type { CountrySkills } from './profile'
 import type { CountryStats } from './stats'
@@ -95,7 +96,11 @@ export function dueReviews(
 }
 
 /** The next time anything comes due, or null when nothing is waiting. */
-export function nextDueAt(countries: Record<string, CountrySkills>, now: number): number | null {
+export function nextDueAt(
+  countries: Record<string, CountrySkills>,
+  now: number,
+  places: Record<string, CountryStats> = {},
+): number | null {
   let soonest: number | null = null
   for (const held of Object.values(countries)) {
     for (const skill of LEARN_SKILLS) {
@@ -105,7 +110,47 @@ export function nextDueAt(countries: Record<string, CountrySkills>, now: number)
       if (dueAt > now && (soonest === null || dueAt < soonest)) soonest = dueAt
     }
   }
+  for (const [key, stats] of Object.entries(places)) {
+    if (!cityIdFromKey(key) || !isLearned(stats)) continue
+    const { dueAt } = reviewState(stats)
+    if (dueAt > now && (soonest === null || dueAt < soonest)) soonest = dueAt
+  }
   return soonest
+}
+
+export interface PlaceReviewItem {
+  placeKey: string
+  cityId: string
+  skill: 'city'
+  overdueDays: number
+  box: number
+}
+
+/** Learned cities in `profile.places` that are due for review, most overdue first. */
+export function duePlaceReviews(
+  places: Record<string, CountryStats>,
+  now: number,
+): PlaceReviewItem[] {
+  const items: PlaceReviewItem[] = []
+  for (const [placeKey, stats] of Object.entries(places)) {
+    const cityId = cityIdFromKey(placeKey)
+    if (!cityId || !isLearned(stats)) continue
+    const { box, dueAt } = reviewState(stats)
+    if (dueAt <= now) {
+      items.push({ placeKey, cityId, skill: 'city', box, overdueDays: (now - dueAt) / DAY_MS })
+    }
+  }
+  return items.sort(
+    (a, b) => b.overdueDays - a.overdueDays || a.box - b.box || a.cityId.localeCompare(b.cityId),
+  )
+}
+
+/** Total due reviews across countries and cities, without needing `cities.json` loaded. */
+export function countDueReviews(
+  profile: { countries: Record<string, CountrySkills>; places: Record<string, CountryStats> },
+  now: number,
+): number {
+  return dueReviews(profile.countries, now).length + duePlaceReviews(profile.places, now).length
 }
 
 /** Remembered across weeks in every core skill: the step above Mastered. */

@@ -28,11 +28,11 @@ export interface ArcSpec {
   style?: TrailStyle
 }
 
-/** A labelled point: a capital city, or where a journey starts and ends. */
+/** A labelled point: a capital or major city, or where a journey starts and ends. */
 export interface MarkerSpec {
   at: LonLat
   label: string
-  kind: 'city' | 'start' | 'goal'
+  kind: 'city' | 'major' | 'start' | 'goal'
 }
 
 /** A country that briefly pulses to draw the eye, e.g. the answer as it is revealed. */

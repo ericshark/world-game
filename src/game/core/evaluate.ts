@@ -1,4 +1,5 @@
 import { geoDistance } from 'd3-geo'
+import { cityKey } from '../../geo/cities'
 import type { LonLat } from '../../geo/coords'
 import { EARTH_RADIUS_KM, nearestPointOnCountry } from '../../geo/distance'
 import type { GeoData } from '../../geo/facts'
@@ -9,6 +10,8 @@ import type {
   CategoryChallenge,
   CategoryResult,
   Challenge,
+  CityChallenge,
+  CityResult,
   IdentifyResult,
   LocateResult,
   MissedResult,
@@ -53,6 +56,10 @@ export function evaluateChallenge(
       return submission?.pin
         ? evaluateCapital(geo, challenge.countryId, submission.pin, options)
         : missedResult(challenge.countryId)
+    case 'city':
+      return submission?.pin
+        ? evaluateCity(geo, challenge, submission.pin, options)
+        : missedResult(cityKey(challenge.cityId))
     case 'identify':
       return submission?.answerId
         ? evaluateIdentify(
@@ -148,6 +155,28 @@ export function evaluateCapital(
   }
 }
 
+export function evaluateCity(
+  geo: GeoData,
+  challenge: CityChallenge,
+  guess: LonLat,
+  { region, cutoffScale }: ScoringOptions,
+): CityResult {
+  const distanceKm = geoDistance(guess, challenge.at) * EARTH_RADIUS_KM
+  const { points, hit } = scoreCapitalGuess(distanceKm, region, cutoffScale)
+  return {
+    kind: 'city',
+    targetId: cityKey(challenge.cityId),
+    countryId: challenge.countryId,
+    cityName: challenge.name,
+    guess,
+    clickedId: geo.countries.countryAt(guess)?.properties.id ?? null,
+    distanceKm,
+    nearest: challenge.at,
+    points,
+    hit,
+  }
+}
+
 export function evaluateIdentify(
   geo: GeoData,
   targetId: string,
@@ -190,6 +219,8 @@ export function skillOf(challenge: Challenge): Skill {
       return challenge.show === 'flag' ? 'flag' : 'locate'
     case 'capital':
       return 'capital'
+    case 'city':
+      return 'city'
     case 'identify':
       return challenge.show === 'flag' ? 'flag' : 'name'
     case 'category':

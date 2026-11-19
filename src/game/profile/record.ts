@@ -9,18 +9,23 @@ import { completeGoals, type WeeklyGoal } from './weekly'
 import { levelForXp, sessionXp, XP_PER_ACHIEVEMENT } from './xp'
 
 export { HISTORY_LIMIT } from './sanitize'
-import { HISTORY_LIMIT, MAX_CONFUSIONS } from './sanitize'
+import { capPlaces, HISTORY_LIMIT, MAX_CONFUSIONS } from './sanitize'
 
 /**
- * Adds a revealed round's outcomes to the per-country stats. Done round by round, so a game the
- * player quits early still counts for practice. Countries mastered for the first time are
- * stamped, so the results screen can celebrate them.
+ * Adds a revealed round's outcomes to the per-country (or per-place) stats. Done round by round,
+ * so a game the player quits early still counts for practice. Countries mastered for the first
+ * time are stamped, so the results screen can celebrate them.
  */
 export function recordOutcomes(profile: Profile, outcomes: CountryOutcome[], at: number): Profile {
   const countries = { ...profile.countries }
+  const places = { ...profile.places }
   const masteredAt = { ...profile.masteredAt }
   const confusions = { ...profile.confusions }
-  for (const { countryId, skill, success, distanceKm, mistakenFor } of outcomes) {
+  for (const { countryId, placeKey, skill, success, distanceKm, mistakenFor } of outcomes) {
+    if (placeKey) {
+      places[placeKey] = recordAttempt(places[placeKey], success, distanceKm, at)
+      continue
+    }
     if (mistakenFor)
       confusions[`${countryId}>${mistakenFor}`] =
         (confusions[`${countryId}>${mistakenFor}`] ?? 0) + 1
@@ -29,7 +34,13 @@ export function recordOutcomes(profile: Profile, outcomes: CountryOutcome[], at:
     countries[countryId] = skills
     if (!(countryId in masteredAt) && masteryOf(skills) === 'mastered') masteredAt[countryId] = at
   }
-  return { ...profile, countries, masteredAt, confusions: capConfusions(confusions) }
+  return {
+    ...profile,
+    countries,
+    places: capPlaces(places),
+    masteredAt,
+    confusions: capConfusions(confusions),
+  }
 }
 
 export interface RecordedSession {

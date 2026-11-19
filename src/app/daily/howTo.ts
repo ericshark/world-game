@@ -32,5 +32,7 @@ export function dailyRoundTip(challenge: Challenge, round: number): string {
       return 'Think rare · rarer right answers score more, then place yours'
     case 'capital':
       return 'Capital · find the city itself, not just its country'
+    case 'city':
+      return 'City · find the city itself, not just its country'
   }
 }

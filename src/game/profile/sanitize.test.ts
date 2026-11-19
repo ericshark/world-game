@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { createBackup, readBackup } from './backup'
 import { emptyProfile, loadProfile, saveProfile, type Profile } from './profile'
-import { MAX_PROFILE_BYTES } from './sanitize'
+import { MAX_PLACES, MAX_PROFILE_BYTES } from './sanitize'
 import { memoryStorage } from './storage'
 import { DEFAULT_PREFERENCES } from './settings'
 
@@ -86,6 +86,31 @@ describe('loading a damaged profile', () => {
   it('caps the history', () => {
     const entry = { mode: 'pinpoint', bestKey: 'k', score: 1, maxScore: 10, endedAt: 1 }
     expect(load({ version: 2, history: Array(1000).fill(entry) }).history).toHaveLength(300)
+  })
+
+  it('sanitizes and caps places entries while preserving valid city stats', () => {
+    const many = Object.fromEntries(
+      Array.from({ length: MAX_PLACES + 50 }, (_, i) => [
+        `city:c-${i}`,
+        { ...goodStats, box: 1, dueAt: i + 1 },
+      ]),
+    )
+    const profile = load({
+      version: 2,
+      places: {
+        ...many,
+        'BAD KEY': goodStats,
+        'city:broken': { attempts: 1, hits: 5 },
+      },
+    })
+    expect(Object.keys(profile.places)).toHaveLength(MAX_PLACES)
+    expect(profile.places['BAD KEY']).toBeUndefined()
+    expect(profile.places['city:broken']).toBeUndefined()
+    expect(profile.places[`city:c-${MAX_PLACES + 49}`]).toEqual({
+      ...goodStats,
+      box: 1,
+      dueAt: MAX_PLACES + 50,
+    })
   })
 })
 

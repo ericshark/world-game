@@ -11,10 +11,10 @@ const RECENT_HITS_FOR_MASTERY = 3
  * last 4 tries of some skill, or right in two different skills (say, finding and naming it).
  */
 export function masteryOf(skills: CountrySkills | undefined): Mastery {
-  // Flags are their own track (see the Flags target): knowing a flag says nothing about where a
-  // country is, so it does not count towards finding or mastering one.
+  // Flags and cities are their own tracks: knowing them says nothing about where a country is,
+  // so they do not count towards finding or mastering one.
   const tried = Object.entries(skills ?? {})
-    .filter(([skill, stats]) => skill !== 'flag' && stats && stats.attempts > 0)
+    .filter(([skill, stats]) => skill !== 'flag' && skill !== 'city' && stats && stats.attempts > 0)
     .map(([, stats]) => stats)
   if (tried.length === 0) return 'unseen'
   const hit = tried.filter((stats) => stats!.hits > 0)

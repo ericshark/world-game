@@ -125,3 +125,18 @@ where a country is, and ranks stay about geography. Flag rounds are always multi
 there is no fair way to type a flag. Flag choices and the answer being the country mean the alt
 text is empty while a flag is the question. The Daily generator was not changed, so existing
 dailies and the golden test are unaffected.
+
+## Major cities: separate place stats and lazy city data (2026-11-19)
+
+Major cities come from Natural Earth populated places compiled by `scripts/build-cities.mjs` from
+rules in `data/cities.json` (excluding capitals and cities within 30 km of one, capping at 6 per
+country, applying curated includes, excludes and renames, and keeping fold-distinct names across 250
+cities). Keeping them in `public/data/cities.json` and lazy-loading on demand avoids adding 29 KB
+of city data to the initial bundle when players only use country or flag modes.
+
+Stats live in a capped `profile.places` map (`city:<id>`, up to 600 entries) under skill `'city'`
+instead of sharing `profile.countries`. That leaves country Found, Mastered, Expert, world knowledge
+and confusion tracking unchanged while sharing the review schedule and Passport summary. City rounds
+are Find it only (showing the country disambiguates names and avoids typing 250 global city
+spellings) and stay out of Daily, Battle and Ranked play so ranked play stays about countries and
+capitals.

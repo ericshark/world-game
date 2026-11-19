@@ -116,6 +116,51 @@ describe('recordOutcomes', () => {
     })
   })
 
+  it('records placeKey outcomes into places without altering country stats or mastery', () => {
+    let profile = emptyProfile()
+    profile = recordOutcomes(
+      profile,
+      [
+        {
+          countryId: 'AUS',
+          placeKey: 'city:aus-sydney',
+          skill: 'city',
+          success: true,
+          distanceKm: 5,
+        },
+        {
+          countryId: 'FRA',
+          placeKey: 'city:fra-lyon',
+          skill: 'city',
+          success: false,
+          distanceKm: 300,
+        },
+      ],
+      10,
+    )
+    expect(profile.countries).toEqual({})
+    expect(profile.masteredAt).toEqual({})
+    expect(profile.confusions).toEqual({})
+    expect(skillStats(profile, 'city')).toEqual({
+      'aus-sydney': {
+        attempts: 1,
+        hits: 1,
+        totalKm: 5,
+        recent: [true],
+        box: 1,
+        dueAt: 10 + 86_400_000,
+      },
+      'fra-lyon': {
+        attempts: 1,
+        hits: 0,
+        totalKm: 300,
+        recent: [false],
+        box: 1,
+        dueAt: 10 + 86_400_000,
+      },
+    })
+  })
+
   it('stamps the moment a country is first mastered', () => {
     let profile = emptyProfile()
     for (let at = 1; at <= 4; at++) {
