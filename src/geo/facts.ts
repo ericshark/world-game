@@ -52,11 +52,28 @@ export interface FactsFile {
 }
 
 /**
+ * The small interface shared by world geography (`GeoData`) and per-country state/province
+ * packs (`SubdivisionPack`), so locate, identify, name choices and difficulty weighting run
+ * unchanged on either.
+ */
+export interface PlacePack {
+  readonly countries: CountryIndex
+  readonly names: NameMatcher
+  readonly playableIds: string[]
+  feature(id: string): CountryFeature
+  factsOf(
+    id: string,
+  ): Pick<CountryFacts, 'subregion' | 'areaKm2' | 'label' | 'neighbors' | 'aliases'>
+  nameOf(id: string): string
+  difficulty(id: string): number
+}
+
+/**
  * Everything the game rules know about the world: shapes for hit-testing plus facts, distances,
  * name matching and difficulty. Built once at load and shared by every mode (and, later, by the
  * multiplayer server), so it must not depend on the browser.
  */
-export class GeoData {
+export class GeoData implements PlacePack {
   readonly countries: CountryIndex
   readonly names: NameMatcher
   /** Playable country ids, sorted. */

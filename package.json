@@ -19,6 +19,7 @@
     "format:check": "prettier --check .",
     "build:data": "node scripts/build-countries.mjs",
     "build:cities": "node scripts/build-cities.mjs",
+    "build:sub": "node scripts/build-subdivisions.mjs",
     "build:texture": "node scripts/build-texture.mjs",
     "build:flags": "node scripts/build-flags.mjs"
   },

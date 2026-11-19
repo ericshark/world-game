@@ -1,4 +1,5 @@
 import { cityIdFromKey } from '../../geo/cities'
+import { parseSubPlaceKey, type SubPackId } from '../../geo/subdivisions'
 import type { ModeId, Skill } from '../core/types'
 import type { CountryStats, StatsByCountry } from './stats'
 import {
@@ -144,7 +145,15 @@ export function clearProfile(storage?: JsonStorage): void {
 }
 
 /** One skill's stats for every country (or major city) that has any. */
-export function skillStats(profile: Profile, skill: Skill): StatsByCountry {
+export function skillStats(profile: Profile, skill: Skill, subPack?: SubPackId): StatsByCountry {
+  if (subPack) {
+    const result: StatsByCountry = {}
+    for (const [key, entry] of Object.entries(profile.places)) {
+      const parsed = parseSubPlaceKey(key)
+      if (parsed && parsed.packId === subPack) result[parsed.unitId] = entry
+    }
+    return result
+  }
   if (skill === 'city') {
     const result: StatsByCountry = {}
     for (const [key, entry] of Object.entries(profile.places)) {

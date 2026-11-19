@@ -2,7 +2,7 @@ import { geoDistance } from 'd3-geo'
 import { cityKey } from '../../geo/cities'
 import type { LonLat } from '../../geo/coords'
 import { EARTH_RADIUS_KM, nearestPointOnCountry } from '../../geo/distance'
-import type { GeoData } from '../../geo/facts'
+import type { GeoData, PlacePack } from '../../geo/facts'
 import { MAX_POINTS, scoreCapitalGuess, scoreGuess, type ScoringRegion } from '../../geo/scoring'
 import { rarities } from './categories'
 import type {
@@ -27,6 +27,8 @@ export interface ScoringOptions {
   region: ScoringRegion
   /** >1 is more forgiving (easy), <1 stricter (hard). */
   cutoffScale: number
+  /** Overrides the region's zero-points distance (used by state/province packs). */
+  zeroPointsKm?: number
   /** Answers the player already gave this game; naming one again does not count. */
   usedAnswers?: readonly string[]
 }
@@ -40,17 +42,22 @@ export function evaluateChallenge(
   challenge: Challenge,
   given: Submission | undefined,
   options: ScoringOptions,
+  pack?: PlacePack,
 ): RoundResult {
+  const placePack: PlacePack =
+    (challenge.kind === 'locate' || challenge.kind === 'identify') && challenge.packId && pack
+      ? pack
+      : geo
   // Answers arrive from players (and, online, from the network): one naming no known place
   // counts as no answer rather than reaching code that expects a real country.
   const submission =
-    given?.answerId && !geo.countries.get(given.answerId)
+    given?.answerId && !placePack.countries.get(given.answerId)
       ? { ...given, answerId: undefined }
       : given
   switch (challenge.kind) {
     case 'locate':
       return submission?.pin
-        ? evaluateLocate(geo, challenge.countryId, submission.pin, options)
+        ? evaluateLocate(placePack, challenge.countryId, submission.pin, options)
         : missedResult(challenge.countryId)
     case 'capital':
       return submission?.pin
@@ -63,7 +70,7 @@ export function evaluateChallenge(
     case 'identify':
       return submission?.answerId
         ? evaluateIdentify(
-            geo,
+            placePack,
             challenge.countryId,
             submission.answerId,
             Boolean(submission.hintUsed),
@@ -111,14 +118,20 @@ export function evaluateCategory(
 }
 
 export function evaluateLocate(
-  geo: GeoData,
+  geo: PlacePack,
   targetId: string,
   guess: LonLat,
-  { region, cutoffScale }: ScoringOptions,
+  { region, cutoffScale, zeroPointsKm }: ScoringOptions,
 ): LocateResult {
   const target = geo.feature(targetId)
   const { distanceKm, nearest } = nearestPointOnCountry(guess, target)
-  const { points, hit } = scoreGuess(distanceKm, target.properties, region, cutoffScale)
+  const { points, hit } = scoreGuess(
+    distanceKm,
+    target.properties,
+    region,
+    cutoffScale,
+    zeroPointsKm,
+  )
   return {
     kind: 'locate',
     targetId,
@@ -178,7 +191,7 @@ export function evaluateCity(
 }
 
 export function evaluateIdentify(
-  geo: GeoData,
+  geo: PlacePack,
   targetId: string,
   answerId: string,
   hintUsed: boolean,

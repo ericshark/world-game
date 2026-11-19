@@ -1,10 +1,17 @@
 import { cityKey, type CityIndex } from '../../geo/cities'
+import { subPlaceKey, type SubPackId, type SubdivisionPack } from '../../geo/subdivisions'
 import type { Skill } from '../core/types'
 import { createRandom, shuffled } from '../core/random'
-import { duePlaceReviews, dueReviews, isLearned, reviewState } from '../profile/review'
+import {
+  duePlaceReviews,
+  dueReviews,
+  dueSubReviews,
+  isLearned,
+  reviewState,
+} from '../profile/review'
 import type { CountrySkills } from '../profile/profile'
 import type { CountryStats } from '../profile/stats'
-import type { CityDeck, Lesson } from './curriculum'
+import type { CityDeck, Lesson, SubLesson } from './curriculum'
 
 export interface CountryLearnItem {
   countryId: string
@@ -20,8 +27,16 @@ export interface CityLearnItem {
   assist: false
 }
 
+export interface SubLearnItem {
+  unitId: string
+  packId: SubPackId
+  countryId: SubPackId
+  skill: 'locate' | 'name'
+  assist: boolean
+}
+
 /** One question of a Learn session. */
-export type LearnItem = CountryLearnItem | CityLearnItem
+export type LearnItem = CountryLearnItem | CityLearnItem | SubLearnItem
 
 /** Questions in a session, not counting the re-asked misses. */
 export const SESSION_SIZE = 15
@@ -34,6 +49,7 @@ interface QueueOptions {
   countries: Record<string, CountrySkills>
   places?: Record<string, CountryStats>
   cities?: CityIndex
+  subdivisions?: Partial<Record<SubPackId, SubdivisionPack>>
   now: number
   seed: string
   /** The lesson to teach; without one the session only reviews what is due. */
@@ -43,13 +59,14 @@ interface QueueOptions {
 /**
  * A session's questions. A lesson asks every skill of its countries that has never been
  * answered right, then adds a few due reviews. A review session asks the most overdue skills
- * across countries and major cities. Questions are mixed so the same country or city never comes
- * twice in a row where it can be avoided.
+ * across countries, major cities and states/provinces. Questions are mixed so the same place
+ * never comes twice in a row where it can be avoided.
  */
 export function buildQueue({
   countries,
   places = {},
   cities,
+  subdivisions,
   now,
   seed,
   lesson,
@@ -87,7 +104,28 @@ export function buildQueue({
             : []
         })
       : []
-    return [...countryDue, ...cityDue]
+    const subDue = subdivisions
+      ? dueSubReviews(places, now).flatMap((item) => {
+          const pack = subdivisions[item.packId]
+          return pack && pack.countries.get(item.unitId)
+            ? [
+                {
+                  overdueDays: item.overdueDays,
+                  box: item.box,
+                  sortKey: `${item.packId}:${item.unitId}`,
+                  item: {
+                    unitId: item.unitId,
+                    packId: item.packId,
+                    countryId: item.packId,
+                    skill: 'locate' as const,
+                    assist: false,
+                  } satisfies LearnItem,
+                },
+              ]
+            : []
+        })
+      : []
+    return [...countryDue, ...cityDue, ...subDue]
       .sort(
         (a, b) =>
           b.overdueDays - a.overdueDays || a.box - b.box || a.sortKey.localeCompare(b.sortKey),
@@ -131,7 +169,25 @@ export function buildCityDeckQueue(
   return shuffled(items, createRandom(seed))
 }
 
+/** Questions for a state/province lesson: find and name unlearned units first, or the whole lesson once finished. */
+export function buildSubLessonQueue(
+  lesson: SubLesson,
+  places: Record<string, CountryStats>,
+  seed: string,
+): LearnItem[] {
+  const unlearned = lesson.unitIds.filter(
+    (id) => !isLearned(places[subPlaceKey(lesson.packId, id)]),
+  )
+  const ask = unlearned.length > 0 ? unlearned : lesson.unitIds
+  const items: SubLearnItem[] = ask.flatMap((unitId): SubLearnItem[] => [
+    { unitId, packId: lesson.packId, countryId: lesson.packId, skill: 'locate', assist: false },
+    { unitId, packId: lesson.packId, countryId: lesson.packId, skill: 'name', assist: true },
+  ])
+  return separateRepeats(shuffled(items, createRandom(seed)))
+}
+
 function subjectOf(item: LearnItem): string {
+  if ('packId' in item) return `${item.packId}:${item.unitId}`
   return item.skill === 'city' ? item.cityId : item.countryId
 }
 
@@ -153,6 +209,7 @@ export function boxOf(
   item: LearnItem,
   places: Record<string, CountryStats> = {},
 ): number {
+  if ('packId' in item) return reviewState(places[subPlaceKey(item.packId, item.unitId)]).box
   if (item.skill === 'city') return reviewState(places[cityKey(item.cityId)]).box
   return reviewState(countries[item.countryId]?.[item.skill]).box
 }

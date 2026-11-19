@@ -1,5 +1,6 @@
 import type { LonLat } from '../../geo/coords'
 import type { GeoData } from '../../geo/facts'
+import type { SubPackId, SubdivisionPack } from '../../geo/subdivisions'
 import { rarities, rarityTier, type RarityTier } from '../../game/core/categories'
 import type { RoundsState } from '../../game/core/rounds'
 import { LOCAL_PLAYER, type Challenge } from '../../game/core/types'
@@ -29,10 +30,72 @@ export function roundScene(
   rounds: RoundsState<Challenge> | null,
   draftPin: LonLat | null,
   geo: GeoData,
+  subdivisions?: Partial<Record<SubPackId, SubdivisionPack>>,
 ): GlobeScene {
   if (!rounds || rounds.phase === 'finished') return EMPTY_SCENE
   const challenge = rounds.challenges[rounds.round]
   const result = rounds.phase === 'revealed' ? rounds.results[rounds.round][LOCAL_PLAYER] : null
+  const packId =
+    (challenge.kind === 'locate' || challenge.kind === 'identify') && challenge.packId
+      ? (challenge.packId as SubPackId)
+      : undefined
+  const pack = packId ? subdivisions?.[packId] : undefined
+
+  if (packId && pack && (challenge.kind === 'locate' || challenge.kind === 'identify')) {
+    if (!result) {
+      if (challenge.kind === 'identify') {
+        return {
+          ...EMPTY_SCENE,
+          subPack: {
+            id: packId,
+            paints: [{ id: challenge.countryId, ...QUESTION_PAINT }],
+          },
+        }
+      }
+      return {
+        ...EMPTY_SCENE,
+        pins: draftPin ? [ownPin(draftPin)] : [],
+        subPack: { id: packId, paints: [] },
+      }
+    }
+
+    const targetId = challenge.countryId
+    const neighbors = pack.factsOf(targetId).neighbors.map((id) => ({ id, ...CONTEXT_PAINT }))
+    if (result.kind === 'identify') {
+      const answered =
+        result.answerId !== targetId ? [{ id: result.answerId, ...CLICKED_PAINT }] : []
+      return {
+        ...EMPTY_SCENE,
+        subPack: {
+          id: packId,
+          paints: [...neighbors, ...answered, { id: targetId, ...TARGET_PAINT }],
+          pulses: [{ id: targetId, color: TARGET_COLOR }],
+        },
+      }
+    }
+    if (result.kind === 'locate') {
+      const clicked =
+        result.clickedId && result.clickedId !== targetId
+          ? [{ id: result.clickedId, ...CLICKED_PAINT }]
+          : []
+      return {
+        paints: [],
+        ...pinAndArc(result.guess, result.nearest, result.distanceKm > 0.5),
+        subPack: {
+          id: packId,
+          paints: [...neighbors, ...clicked, { id: targetId, ...TARGET_PAINT }],
+          pulses: [{ id: targetId, color: TARGET_COLOR }],
+        },
+      }
+    }
+    return {
+      ...EMPTY_SCENE,
+      subPack: {
+        id: packId,
+        paints: [...neighbors, { id: targetId, ...TARGET_PAINT }],
+      },
+    }
+  }
 
   if (!result) {
     if (challenge.kind === 'identify') {

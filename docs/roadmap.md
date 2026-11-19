@@ -16,8 +16,8 @@ flags, cities, and states and provinces, then a polish pass. Physical geography 
 | M2        | Learn: reviews, lessons, Atlas, exams        | Done   | `v2-m2`  |
 | M3        | Flags                                        | Done   | `v2-m3`  |
 | M4        | Major cities                                 | Done   | `v2-m4`  |
-| M5        | States and provinces (prototype first)       | Next   |          |
-| M6        | Polish, offline install, launch pass (2.0.0) | Later  |          |
+| M5        | States and provinces (prototype first)       | Done   | `v2-m5`  |
+| M6        | Polish, offline install, launch pass (2.0.0) | Next   |          |
 
 The site is live at <https://world-game-0qhx.onrender.com> on Render's free plan (v1.0.0 plus
 commits up to `59b8d3a`). Hosting is deferred; nothing in M3 onward needs it.
@@ -25,9 +25,9 @@ commits up to `59b8d3a`). Hosting is deferred; nothing in M3 onward needs it.
 ## Up next
 
 1. Dependabot PRs #3 (`mapshaper`), #5 (`d3-geo`) and #4 (`prettier`, rebased) are merged.
-2. Tags `v2-m0` to `v2-m3` are pushed. `v2-m4` (and M4 on `main`) is local only; push when ready
-   to deploy.
-3. Build M5 (below).
+2. Tags `v2-m0` to `v2-m3` are pushed. `v2-m4` and `v2-m5` (and M4–M5 on `main`) are local only;
+   push when ready to deploy.
+3. Build M6 (below).
 
 ## Milestones
 
@@ -97,16 +97,25 @@ deploys to production**, so pushes need approval.
 - Surfaces: a Pinpoint target "Cities" (Find it only), regional "Major cities" decks in Learn, city
   markers and "Fly to city:" links in the Atlas, and a "Major cities" row on `FactCard`.
 
-### M5. States and provinces (large; prototype first)
+### M5. States and provinces: done (`v2-m5`)
 
-- Natural Earth admin-1, one lazy pack per country in `public/data/sub/<ID>.json`. First packs: USA,
-  Canada, Mexico, Brazil, Australia, India, China, Germany.
-- Packs load into their own `CountryIndex` behind a small interface, so the existing locate and
-  identify evaluators run unchanged. Zero-points distance scales with size.
-- Main risk: at high zoom the 4096 px paint overlay and the satellite texture go soft. Prototype
-  USA and Germany first. Vector drawing may be needed for pack shapes.
-- Surfaces: a "States & provinces" target, lessons per pack, per-pack progress. Not in battles,
-  dailies or ranked play.
+- Natural Earth 1:10m admin-1 states and provinces compiled by `scripts/build-subdivisions.mjs`
+  (`npm run build:sub`) into one lazy pack per country in `public/data/sub/<ID>.json` (`USA` 51,
+  `CAN` 13, `MEX` 32, `BRA` 27, `AUS` 8, `IND` 36, `CHN` 31, `DEU` 16).
+- Each pack loads on demand via `src/geo/subdivisions.ts` into its own `CountryIndex` and
+  `NameMatcher` behind the `PlacePack` interface, so `evaluateLocate`, `evaluateIdentify`,
+  `nameChoices` and `weightByDifficulty` run unchanged with an area-scaled zero-points distance
+  (350 km in Germany up to ~1,200 km in Canada and the United States).
+- Prototyping USA and Germany showed that at high zoom (`MIN_CAMERA_DISTANCE = 1.7`) the 4096 px
+  (2048 px on phones) equirectangular canvas overlay only gives 4–10 px across small states
+  (Saarland, Bremen, Berlin, Rhode Island), making rasterized shapes look soft. Pack fills, outlines
+  and internal borders are therefore drawn as 3D vectors on the sphere in
+  `src/globe/SubdivisionVectorLayer.tsx` (recorded in [decisions](decisions.md)).
+- Surfaces: a Pinpoint target "States & provinces" (Find it and Name it) with a country picker,
+  a "States & provinces" course switch in Learn with per-pack progress and lessons (study + quiz),
+  and due reviews in `profile.places` (`sub:<pack>:<unit>`). Not in battles, dailies or ranked play.
+- Tests: `src/geo/subdivisions.test.ts`, additions to `evaluate.test.ts`, `pinpoint.test.ts` and
+  `learn.test.ts`, `e2e/subdivisions.spec.ts`, and `a11y.spec.ts` entries.
 
 ### M6. Polish and launch pass (last)
 

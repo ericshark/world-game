@@ -3,23 +3,34 @@ import { randomSeed } from '../../game/core/random'
 import {
   buildCityDecks,
   buildCurriculum,
+  buildSubLessons,
   regionOfExam,
   type CityDeck,
   type Lesson,
+  type SubLesson,
 } from '../../game/modes/curriculum'
 import { EXAM_PASS_SHARE, learn } from '../../game/modes/learn'
-import { buildCityDeckQueue, buildQueue, examQueue, mixupQueue } from '../../game/modes/learnQueue'
-import { duePlaceReviews, nextDueAt } from '../../game/profile/review'
+import {
+  buildCityDeckQueue,
+  buildQueue,
+  buildSubLessonQueue,
+  examQueue,
+  mixupQueue,
+} from '../../game/modes/learnQueue'
+import { duePlaceReviews, dueSubReviews, nextDueAt } from '../../game/profile/review'
 import type { CityIndex } from '../../geo/cities'
 import type { Region } from '../../geo/countries'
+import { isSubPackId, type SubPackId, type SubdivisionPack } from '../../geo/subdivisions'
 import type { HowToStep } from '../../ui/HowToPlay'
 import { Sheet } from '../../ui/Sheet'
 import { formatDue } from '../../screens/learn/format'
 import { useApp } from '../AppContext'
 import { RoundGame } from '../rounds/RoundGame'
 import { useCities } from '../useCities'
+import { useSubdivisionPacks } from '../useSubdivisions'
 import { CityDeckStudy } from './CityDeckStudy'
 import { LessonStudy } from './LessonStudy'
+import { SubLessonStudy } from './SubLessonStudy'
 
 const HOW_TO: HowToStep[] = [
   {
@@ -45,21 +56,51 @@ interface LearnPlayProps {
   onHub: () => void
 }
 
+function parseSubLessonPack(target: string): SubPackId | null {
+  const match = target.match(/^sub-([a-z]{3})-\d+$/)
+  if (!match) return null
+  const upper = match[1].toUpperCase()
+  return isSubPackId(upper) ? upper : null
+}
+
 /** A lesson or city deck (study, then quiz) or a spaced review, built from the player's stats. */
 export function LearnPlay({ target, onHub }: LearnPlayProps) {
   const { profile } = useApp()
   const isCityDeck = target.startsWith('cities-')
+  const subPackFromTarget = parseSubLessonPack(target)
   const [hasCityReviews] = useState(() => duePlaceReviews(profile.places, Date.now()).length > 0)
+  const [dueSubPackIds] = useState<SubPackId[]>(() => [
+    ...new Set(dueSubReviews(profile.places, Date.now()).map((r) => r.packId)),
+  ])
+  const neededSubPackIds = useMemo<SubPackId[]>(
+    () => (subPackFromTarget ? [subPackFromTarget] : target === 'review' ? dueSubPackIds : []),
+    [subPackFromTarget, target, dueSubPackIds],
+  )
   const needsCities = isCityDeck || (target === 'review' && hasCityReviews)
-  const { cities, error, retry } = useCities(needsCities)
+  const needsSub = neededSubPackIds.length > 0
+  const { cities, error: citiesError, retry: retryCities } = useCities(needsCities)
+  const {
+    packs: subdivisions,
+    error: subError,
+    retry: retrySub,
+  } = useSubdivisionPacks(neededSubPackIds, needsSub)
 
-  if (needsCities && error) {
+  if ((needsCities && citiesError) || (needsSub && subError)) {
     return (
       <Sheet
-        title="Could not load major cities"
+        title={
+          needsSub && subError ? 'Could not load states & provinces' : 'Could not load major cities'
+        }
         onClose={onHub}
         footer={
-          <button type="button" className="button button--primary" onClick={retry}>
+          <button
+            type="button"
+            className="button button--primary"
+            onClick={() => {
+              if (needsCities && citiesError) retryCities()
+              if (needsSub && subError) retrySub()
+            }}
+          >
             Try again
           </button>
         }
@@ -71,22 +112,35 @@ export function LearnPlay({ target, onHub }: LearnPlayProps) {
     )
   }
 
-  if (needsCities && !cities) {
+  if ((needsCities && !cities) || (needsSub && !subdivisions)) {
     return (
       <div className="screen screen--center">
-        <p className="panel waiting">Loading cities…</p>
+        <p className="panel waiting">
+          {needsSub && !subdivisions ? 'Loading states & provinces…' : 'Loading cities…'}
+        </p>
       </div>
     )
   }
 
-  return <LearnPlayReady target={target} cities={cities ?? undefined} onHub={onHub} />
+  return (
+    <LearnPlayReady
+      target={target}
+      cities={cities ?? undefined}
+      subdivisions={subdivisions ?? undefined}
+      onHub={onHub}
+    />
+  )
 }
 
 function LearnPlayReady({
   target,
   cities,
+  subdivisions,
   onHub,
-}: LearnPlayProps & { cities: CityIndex | undefined }) {
+}: LearnPlayProps & {
+  cities: CityIndex | undefined
+  subdivisions: Partial<Record<SubPackId, SubdivisionPack>> | undefined
+}) {
   const { geo, profile } = useApp()
   const lesson = useMemo<Lesson | null>(
     () => buildCurriculum(geo).find((candidate) => candidate.id === target) ?? null,
@@ -95,6 +149,12 @@ function LearnPlayReady({
   const cityDeck = useMemo<CityDeck | null>(
     () => (cities ? (buildCityDecks(geo, cities).find((d) => d.id === target) ?? null) : null),
     [geo, cities, target],
+  )
+  const subPackId = parseSubLessonPack(target)
+  const subPack = subPackId ? (subdivisions?.[subPackId] ?? null) : null
+  const subLesson = useMemo<SubLesson | null>(
+    () => (subPack ? (buildSubLessons(subPack).find((l) => l.id === target) ?? null) : null),
+    [subPack, target],
   )
   const examRegion: Region | null = regionOfExam(target)
 
@@ -109,25 +169,35 @@ function LearnPlayReady({
         )
       : target === 'mixups'
         ? mixupQueue(profile.confusions, seed)
-        : cityDeck && cities
-          ? buildCityDeckQueue(cityDeck, cities, profile.places, seed)
-          : buildQueue({
-              countries: profile.countries,
-              places: profile.places,
-              cities,
-              now,
-              seed,
-              lesson: lesson ?? undefined,
-            })
+        : subLesson
+          ? buildSubLessonQueue(subLesson, profile.places, seed)
+          : cityDeck && cities
+            ? buildCityDeckQueue(cityDeck, cities, profile.places, seed)
+            : buildQueue({
+                countries: profile.countries,
+                places: profile.places,
+                cities,
+                subdivisions,
+                now,
+                seed,
+                lesson: lesson ?? undefined,
+              })
     return {
       now,
       queue,
       nextDue: nextDueAt(profile.countries, now, profile.places),
     }
   })
-  const [studied, setStudied] = useState(lesson === null && cityDeck === null)
+  const [studied, setStudied] = useState(lesson === null && cityDeck === null && subLesson === null)
 
-  if (target !== 'review' && target !== 'mixups' && !examRegion && !lesson && !cityDeck) {
+  if (
+    target !== 'review' &&
+    target !== 'mixups' &&
+    !examRegion &&
+    !lesson &&
+    !cityDeck &&
+    !subLesson
+  ) {
     return (
       <Sheet title="That lesson was not found" onClose={onHub}>
         <p>The course may have changed. Pick a lesson from the list.</p>
@@ -142,6 +212,16 @@ function LearnPlayReady({
       <CityDeckStudy
         deck={cityDeck}
         cities={cities}
+        onDone={() => setStudied(true)}
+        onQuit={onHub}
+      />
+    )
+  }
+  if (subLesson && subPack && !studied) {
+    return (
+      <SubLessonStudy
+        lesson={subLesson}
+        pack={subPack}
         onDone={() => setStudied(true)}
         onQuit={onHub}
       />
@@ -169,14 +249,16 @@ function LearnPlayReady({
     ? `${examRegion} exam`
     : target === 'mixups'
       ? 'Mix-ups'
-      : (cityDeck?.title ?? lesson?.title ?? 'Review')
+      : (subLesson?.title ?? cityDeck?.title ?? lesson?.title ?? 'Review')
   const citiesOnly = setup.queue.every((item) => item.skill === 'city')
+  const subOnly = setup.queue.every((item) => 'packId' in item)
 
   return (
     <RoundGame
       rules={learn}
       config={{ queue: setup.queue, title, exam: examRegion ? { region: examRegion } : undefined }}
       cities={cities}
+      subdivisions={subdivisions}
       mode="Learn"
       subtitle={title}
       introKey="learn"
@@ -199,7 +281,7 @@ function LearnPlayReady({
               value: String(new Set(results.filter((r) => !r.hit).map((r) => r.targetId)).size),
             },
         {
-          label: citiesOnly ? 'Cities' : 'Countries',
+          label: subOnly ? 'States & provinces' : citiesOnly ? 'Cities' : 'Countries',
           value: String(new Set(results.map((r) => r.targetId)).size),
         },
       ]}

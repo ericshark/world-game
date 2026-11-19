@@ -48,6 +48,12 @@ export interface GlobeScene {
   arcs: ArcSpec[]
   markers?: MarkerSpec[]
   pulses?: PulseSpec[]
+  /** State/province shapes drawn as vectors when a subdivision pack is active. */
+  subPack?: {
+    id: string
+    paints: CountryPaint[]
+    pulses?: PulseSpec[]
+  }
 }
 
 export const EMPTY_SCENE: GlobeScene = { paints: [], pins: [], arcs: [] }

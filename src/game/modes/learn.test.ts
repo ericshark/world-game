@@ -1,20 +1,29 @@
 import { describe, expect, it } from 'vitest'
-import { loadTestCities, loadTestGeoData } from '../../test/loadTestCountries'
+import {
+  loadTestCities,
+  loadTestGeoData,
+  loadTestSubdivisionPack,
+} from '../../test/loadTestCountries'
 import { cityKey } from '../../geo/cities'
+import { subPlaceKey } from '../../geo/subdivisions'
 import { LOCAL_PLAYER, type Submission } from '../core/types'
 import type { CountrySkills } from '../profile/profile'
 import {
   buildCityDecks,
   buildCurriculum,
+  buildSubLessons,
   cityDeckProgress,
   countryKnown,
   lessonProgress,
   nextLesson,
+  subLessonProgress,
+  subPackProgress,
 } from './curriculum'
 import { learn, type LearnConfig, type LearnState } from './learn'
 import {
   buildCityDeckQueue,
   buildQueue,
+  buildSubLessonQueue,
   confusedPairs,
   examQueue,
   mixupQueue,
@@ -26,10 +35,11 @@ import { masteryOf } from '../profile/mastery'
 import { REGIONS } from '../../geo/countries'
 import { emptyProfile } from '../profile/profile'
 import { recordOutcomes, recordSession } from '../profile/record'
-import { duePlaceReviews } from '../profile/review'
+import { countDueReviews, duePlaceReviews, dueSubReviews } from '../profile/review'
 
 const geo = loadTestGeoData()
 const cities = loadTestCities()
+const deu = loadTestSubdivisionPack('DEU')
 const DAY = 86_400_000
 const NOW = 500 * DAY
 
@@ -396,5 +406,73 @@ describe('major cities in Learn', () => {
     expect(review.length).toBeGreaterThan(0)
     expect(review.every((item) => item.skill === 'city')).toBe(true)
     expect(profile.places[cityKey(oceania.cityIds[0])]?.attempts).toBeGreaterThanOrEqual(1)
+  })
+})
+
+describe('states & provinces in Learn', () => {
+  const lessons = buildSubLessons(deu)
+
+  it('builds per-pack lessons covering every state or province once', () => {
+    const allIds = lessons.flatMap((l) => l.unitIds)
+    expect(allIds).toHaveLength(deu.playableIds.length)
+    expect(new Set(allIds)).toEqual(new Set(deu.playableIds))
+    for (const lesson of lessons) {
+      expect(lesson.id).toMatch(/^sub-deu-\d+$/)
+      expect(lesson.packId).toBe('DEU')
+    }
+  })
+
+  it('plays a state lesson, tracks per-pack progress, and includes due states in reviews', () => {
+    const first = lessons[0]
+    const queue = buildSubLessonQueue(first, {}, 'seed-sub')
+    expect(queue).toHaveLength(first.unitIds.length * 2)
+
+    let state = learn.start({
+      config: { title: first.title, queue },
+      seed: 'seed-sub',
+      now: NOW,
+      geo,
+      subdivisions: { DEU: deu },
+      players: [LOCAL_PLAYER],
+    })
+    let profile = emptyProfile()
+
+    while (!learn.isFinished(state)) {
+      const challenge = state.rounds.challenges[state.rounds.round]
+      const before = state
+      const submission: Submission =
+        challenge.kind === 'locate'
+          ? { pin: deu.factsOf(challenge.countryId).label, at: NOW }
+          : { answerId: challenge.countryId, at: NOW }
+      state = learn.reduce(state, { type: 'submit', playerId: LOCAL_PLAYER, submission }, geo, {
+        DEU: deu,
+      })
+      profile = recordOutcomes(profile, learn.outcomesBetween(before, state, LOCAL_PLAYER), NOW)
+      state = learn.reduce(state, { type: 'next', at: NOW + 10 }, geo, { DEU: deu })
+    }
+
+    expect(Object.keys(profile.countries)).toHaveLength(0)
+    expect(subLessonProgress(profile.places, first)).toEqual({
+      known: first.unitIds.length,
+      total: first.unitIds.length,
+    })
+    expect(subPackProgress(profile.places, 'DEU', deu.playableIds)).toEqual({
+      known: first.unitIds.length,
+      total: deu.playableIds.length,
+    })
+    expect(profile.places[subPlaceKey('DEU', first.unitIds[0])]?.hits).toBeGreaterThanOrEqual(1)
+
+    // Two days later, the learned states become due for review.
+    expect(dueSubReviews(profile.places, NOW + 2 * DAY)).toHaveLength(first.unitIds.length)
+    expect(countDueReviews(profile, NOW + 2 * DAY)).toBe(first.unitIds.length)
+    const review = buildQueue({
+      countries: {},
+      places: profile.places,
+      subdivisions: { DEU: deu },
+      now: NOW + 2 * DAY,
+      seed: 'rev-sub',
+    })
+    expect(review).toHaveLength(first.unitIds.length)
+    expect(review.every((item) => 'packId' in item && item.packId === 'DEU')).toBe(true)
   })
 })

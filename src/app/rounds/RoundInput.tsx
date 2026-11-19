@@ -1,4 +1,5 @@
 import type { Challenge } from '../../game/core/types'
+import type { SubPackId, SubdivisionPack } from '../../geo/subdivisions'
 import { AnswerInput } from '../../ui/AnswerInput'
 import { Flag } from '../../ui/Flag'
 import { Icon } from '../../ui/Icon'
@@ -16,6 +17,7 @@ interface RoundInputProps {
   usedAnswers: ReadonlySet<string>
   /** First-game coaching on how to use the globe. */
   coach: boolean
+  subdivisions?: Partial<Record<SubPackId, SubdivisionPack>>
   onAnswer: (id: string) => void
   onHint: () => void
   onChangeAnswer: () => void
@@ -29,8 +31,14 @@ interface RoundInputProps {
  */
 export function RoundInput(props: RoundInputProps) {
   const { geo, preferences } = useApp()
-  const { challenge } = props
-  const nameOf = (id: string) => geo.nameOf(id)
+  const { challenge, subdivisions } = props
+  const packId =
+    (challenge.kind === 'locate' || challenge.kind === 'identify') && challenge.packId
+      ? (challenge.packId as SubPackId)
+      : undefined
+  const pack = packId ? subdivisions?.[packId] : undefined
+  const nameOf = (id: string) => (pack && pack.countries.get(id) ? pack.nameOf(id) : geo.nameOf(id))
+  const matcher = pack ? pack.names : geo.names
 
   if (challenge.kind === 'identify') {
     return (
@@ -63,10 +71,10 @@ export function RoundInput(props: RoundInputProps) {
         ) : (
           <AnswerInput
             key={props.round}
-            matcher={geo.names}
+            matcher={matcher}
             nameOf={nameOf}
             suggestions={props.suggestions}
-            placeholder="Country name"
+            placeholder={pack ? 'State or province name' : 'Country name'}
             submitLabel="Answer"
             onSubmit={props.onAnswer}
           />

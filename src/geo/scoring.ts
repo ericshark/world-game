@@ -40,16 +40,19 @@ export interface GuessScore {
 
 /**
  * @param cutoffScale stretches (easy) or shrinks (hard) the distance at which points reach 0.
+ * @param zeroPointsKm overrides the region's zero-points distance (used by state/province packs).
  */
 export function scoreGuess(
   distanceKm: number,
   target: Pick<CountryProperties, 'isMicro'>,
   region: ScoringRegion,
   cutoffScale = 1,
+  zeroPointsKm?: number,
 ): GuessScore {
   const hit = distanceKm === 0 || (target.isMicro && distanceKm <= MICRO_HIT_RADIUS_KM)
   if (hit) return { points: MAX_POINTS, hit }
-  return { points: falloff(distanceKm, ZERO_POINTS_DISTANCE_KM[region] * cutoffScale), hit }
+  const baseKm = zeroPointsKm ?? ZERO_POINTS_DISTANCE_KM[region]
+  return { points: falloff(distanceKm, baseKm * cutoffScale), hit }
 }
 
 export function scoreCapitalGuess(

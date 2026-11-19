@@ -1,17 +1,22 @@
 import { useMemo, useState } from 'react'
 import { useApp } from '../../app/AppContext'
 import { useCities } from '../../app/useCities'
+import { useSubdivisionPack } from '../../app/useSubdivisions'
 import { useGlobeShift } from '../../app/useLayoutShift'
 import { cityKey } from '../../geo/cities'
 import { REGIONS } from '../../geo/countries'
+import { SUB_PACKS, subPackMeta, type SubPackId } from '../../geo/subdivisions'
 import {
   buildCityDecks,
   buildCurriculum,
+  buildSubLessons,
   cityDeckProgress,
   countryKnown,
   examTarget,
   lessonProgress,
   nextLesson,
+  subLessonProgress,
+  subPackProgress,
 } from '../../game/modes/curriculum'
 import { confusedPairs } from '../../game/modes/learnQueue'
 import {
@@ -25,18 +30,25 @@ import { Choice } from '../../ui/controls'
 import { Icon } from '../../ui/Icon'
 import { formatDue } from './format'
 
-type Track = 'countries' | 'cities'
+type Track = 'countries' | 'cities' | 'subdivisions'
 
 /** The course: reviews that are due, the next lesson, and every lesson or city deck. */
 export function LearnScreen({ onClose }: { onClose: () => void }) {
   const { geo, profile, navigate } = useApp()
   const [now] = useState(() => Date.now())
   const [track, setTrack] = useState<Track>('countries')
+  const [subPackId, setSubPackId] = useState<SubPackId>('USA')
   const { cities, error: citiesError, retry: retryCities } = useCities(track === 'cities')
+  const {
+    pack: subPack,
+    error: subError,
+    retry: retrySub,
+  } = useSubdivisionPack(subPackId, track === 'subdivisions')
   useGlobeShift({ x: -0.15, y: 0 }, { x: 0, y: 0.22 })
 
   const curriculum = useMemo(() => buildCurriculum(geo), [geo])
   const cityDecks = useMemo(() => (cities ? buildCityDecks(geo, cities) : []), [geo, cities])
+  const subLessons = useMemo(() => (subPack ? buildSubLessons(subPack) : []), [subPack])
   const { countries, places } = profile
   const due = countDueReviews(profile, now)
   const upcoming = nextDueAt(countries, now, places)
@@ -50,6 +62,8 @@ export function LearnScreen({ onClose }: { onClose: () => void }) {
   const knownCities = cities
     ? cities.all.filter((city) => isLearned(places[cityKey(city.id)])).length
     : 0
+  const packMeta = subPackMeta(subPackId)
+  const packProg = subPack ? subPackProgress(places, subPackId, subPack.playableIds) : null
 
   return (
     <div className="screen screen--passport">
@@ -124,11 +138,13 @@ export function LearnScreen({ onClose }: { onClose: () => void }) {
 
         <Choice
           label="Course"
+          layout="chips"
           value={track}
           onChange={setTrack}
           options={[
             { value: 'countries', label: 'Countries' },
             { value: 'cities', label: 'Major cities' },
+            { value: 'subdivisions', label: 'States & provinces' },
           ]}
         />
 
@@ -196,45 +212,102 @@ export function LearnScreen({ onClose }: { onClose: () => void }) {
                 </div>
               ))}
             </>
-          ) : citiesError ? (
-            <p className="error" role="alert">
-              Could not load major cities.{' '}
-              <button type="button" className="button button--link" onClick={retryCities}>
-                Try again
-              </button>
-            </p>
-          ) : !cities ? (
-            <p className="passport__hint">Loading major cities…</p>
-          ) : (
-            <>
-              <p className="passport__hint">
-                {knownCities} / {cities.all.length} major cities learned. Cities stay on their own
-                track and do not affect country ranks.
+          ) : track === 'cities' ? (
+            citiesError ? (
+              <p className="error" role="alert">
+                Could not load major cities.{' '}
+                <button type="button" className="button button--link" onClick={retryCities}>
+                  Try again
+                </button>
               </p>
-              {REGIONS.map((region) => {
-                const decks = cityDecks.filter((deck) => deck.region === region)
-                if (decks.length === 0) return null
-                return (
-                  <div className="field" key={region}>
-                    <p className="field__label">{region}</p>
+            ) : !cities ? (
+              <p className="passport__hint">Loading major cities…</p>
+            ) : (
+              <>
+                <p className="passport__hint">
+                  {knownCities} / {cities.all.length} major cities learned. Cities stay on their own
+                  track and do not affect country ranks.
+                </p>
+                {REGIONS.map((region) => {
+                  const decks = cityDecks.filter((deck) => deck.region === region)
+                  if (decks.length === 0) return null
+                  return (
+                    <div className="field" key={region}>
+                      <p className="field__label">{region}</p>
+                      <ul className="lessons">
+                        {decks.map((deck) => {
+                          const { known: done, total } = cityDeckProgress(places, deck)
+                          const preview = deck.cityIds
+                            .slice(0, 5)
+                            .map((id) => cities.get(id)?.name ?? id)
+                            .join(', ')
+                          return (
+                            <li key={deck.id}>
+                              <button
+                                type="button"
+                                className={`lesson${done === total ? ' is-done' : ''}`}
+                                onClick={() => open(deck.id)}
+                              >
+                                <span className="lesson__title">{deck.title}</span>
+                                <span className="lesson__names">
+                                  {preview}
+                                  {deck.cityIds.length > 5 ? ', …' : ''}
+                                </span>
+                                <span className="lesson__progress">
+                                  {done === total ? '✓ ' : ''}
+                                  {done} / {total}
+                                </span>
+                              </button>
+                            </li>
+                          )
+                        })}
+                      </ul>
+                    </div>
+                  )
+                })}
+              </>
+            )
+          ) : null}
+          {track === 'subdivisions' && (
+            <>
+              <Choice
+                label="Country"
+                layout="chips"
+                value={subPackId}
+                onChange={setSubPackId}
+                options={SUB_PACKS.map((p) => ({ value: p.id, label: p.name }))}
+              />
+              {subError ? (
+                <p className="error" role="alert">
+                  Could not load {packMeta.name}.{' '}
+                  <button type="button" className="button button--link" onClick={retrySub}>
+                    Try again
+                  </button>
+                </p>
+              ) : !subPack || !packProg ? (
+                <p className="passport__hint">Loading {packMeta.name}…</p>
+              ) : (
+                <>
+                  <p className="passport__hint">
+                    {packProg.known} / {packProg.total} {packMeta.name} {packMeta.unitLabel}{' '}
+                    learned. States and provinces stay on their own track and do not affect country
+                    ranks.
+                  </p>
+                  <div className="field">
+                    <p className="field__label">{packMeta.name}</p>
                     <ul className="lessons">
-                      {decks.map((deck) => {
-                        const { known: done, total } = cityDeckProgress(places, deck)
-                        const preview = deck.cityIds
-                          .slice(0, 5)
-                          .map((id) => cities.get(id)?.name ?? id)
-                          .join(', ')
+                      {subLessons.map((lesson) => {
+                        const { known: done, total } = subLessonProgress(places, lesson)
                         return (
-                          <li key={deck.id}>
+                          <li key={lesson.id}>
                             <button
                               type="button"
                               className={`lesson${done === total ? ' is-done' : ''}`}
-                              onClick={() => open(deck.id)}
+                              onClick={() => open(lesson.id)}
                             >
-                              <span className="lesson__title">{deck.title}</span>
+                              <span className="lesson__title">{lesson.title}</span>
                               <span className="lesson__names">
-                                {preview}
-                                {deck.cityIds.length > 5 ? ', …' : ''}
+                                {lesson.unitIds.map((id) => subPack.nameOf(id)).join(', ')}
                               </span>
                               <span className="lesson__progress">
                                 {done === total ? '✓ ' : ''}
@@ -246,8 +319,8 @@ export function LearnScreen({ onClose }: { onClose: () => void }) {
                       })}
                     </ul>
                   </div>
-                )
-              })}
+                </>
+              )}
             </>
           )}
         </div>

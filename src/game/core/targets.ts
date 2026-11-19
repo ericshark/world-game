@@ -1,6 +1,6 @@
 import type { City } from '../../geo/cities'
 import type { CountryFeature } from '../../geo/countries'
-import type { GeoData } from '../../geo/facts'
+import type { GeoData, PlacePack } from '../../geo/facts'
 import type { ScoringRegion } from '../../geo/scoring'
 import { accuracy, type CountryStats, type StatsByCountry } from '../profile/stats'
 import { shuffled, type Random } from './random'
@@ -38,7 +38,7 @@ export function targetPool(countries: CountryFeature[], options: PoolOptions): C
 export function weightByDifficulty(
   ids: string[],
   difficulty: Difficulty,
-  geo: GeoData,
+  geo: PlacePack,
 ): WeightedId[] {
   switch (difficulty) {
     case 'normal':
@@ -149,10 +149,10 @@ export function flagChoices(geo: GeoData, targetId: string, random: Random, coun
 }
 
 /**
- * Multiple-choice options for naming a country: the answer plus plausible decoys, preferring
- * neighbours and countries from the same part of the world.
+ * Multiple-choice options for naming a country (or state/province): the answer plus plausible
+ * decoys, preferring neighbours and places from the same part of the world.
  */
-export function nameChoices(geo: GeoData, targetId: string, random: Random, count = 4): string[] {
+export function nameChoices(geo: PlacePack, targetId: string, random: Random, count = 4): string[] {
   const facts = geo.factsOf(targetId)
   const region = geo.feature(targetId).properties.region
   const others = geo.playableIds.filter((id) => id !== targetId)

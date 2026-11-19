@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto'
-import { readdirSync, readFileSync } from 'node:fs'
+import { readdirSync, readFileSync, statSync } from 'node:fs'
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vitest/config'
 
@@ -9,11 +9,14 @@ import { defineConfig } from 'vitest/config'
  */
 function assetVersion(): string {
   const hash = createHash('sha1')
-  for (const directory of ['public/data', 'public/textures']) {
+  const walk = (directory: string) => {
     for (const name of readdirSync(directory).sort()) {
-      hash.update(name).update(readFileSync(`${directory}/${name}`))
+      const full = `${directory}/${name}`
+      if (statSync(full).isDirectory()) walk(full)
+      else hash.update(full).update(readFileSync(full))
     }
   }
+  for (const directory of ['public/data', 'public/textures']) walk(directory)
   return hash.digest('hex').slice(0, 10)
 }
 

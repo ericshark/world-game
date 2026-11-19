@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { play, vibrate } from '../../audio/sound'
 import type { CityIndex } from '../../geo/cities'
 import type { LonLat } from '../../geo/coords'
+import type { SubPackId, SubdivisionPack } from '../../geo/subdivisions'
 import type { ModeRules } from '../../game/core/mode'
 import { roundsDeadline, type RoundsState } from '../../game/core/rounds'
 import { LOCAL_PLAYER, type Challenge, type RoundResult } from '../../game/core/types'
@@ -72,6 +73,8 @@ export interface RoundGameProps<Config, State extends RoundModeState> {
   hideCapitalCountry?: boolean
   /** Lazy-loaded major cities, when this mode uses city challenges. */
   cities?: CityIndex
+  /** Lazy-loaded state/province packs, when this mode uses subdivision challenges. */
+  subdivisions?: Partial<Record<SubPackId, SubdivisionPack>>
   /** The player's stats, for practice modes. */
   stats?: StatsByCountry
   /** Offer "play again" and a challenge link; off for sessions built from the player's stats. */
@@ -97,7 +100,18 @@ export interface RoundGameProps<Config, State extends RoundModeState> {
 export function RoundGame<Config, State extends RoundModeState>(
   props: RoundGameProps<Config, State>,
 ) {
-  const { rules, config, mode, roundTimeMs, suggestions, stats, cities, seed, daily } = props
+  const {
+    rules,
+    config,
+    mode,
+    roundTimeMs,
+    suggestions,
+    stats,
+    cities,
+    subdivisions,
+    seed,
+    daily,
+  } = props
   const app = useApp()
   const { geo, preferences } = app
   const stage = useGameStage({ night: props.night })
@@ -116,7 +130,7 @@ export function RoundGame<Config, State extends RoundModeState>(
       onOutcomes: app.recordOutcomes,
       onFinish: record,
     },
-    { config, stats, cities, seed, resume: daily?.saved as State | undefined },
+    { config, stats, cities, subdivisions, seed, resume: daily?.saved as State | undefined },
     daily?.remote,
   )
   usePauseWhile(session, intro.open)
@@ -148,7 +162,7 @@ export function RoundGame<Config, State extends RoundModeState>(
   const playAgain = () => {
     clearRecorded()
     resetRound()
-    session.start(config, { stats, cities })
+    session.start(config, { stats, cities, subdivisions })
   }
 
   // The camera follows the game: a fresh view for each round, then framing the reveal.
@@ -160,12 +174,25 @@ export function RoundGame<Config, State extends RoundModeState>(
     if (cameraShot.current === shot) return
     cameraShot.current = shot
     const current = challenges[round]
+    const packId =
+      (current.kind === 'locate' || current.kind === 'identify') && current.packId
+        ? (current.packId as SubPackId)
+        : undefined
+    const pack = packId ? subdivisions?.[packId] : undefined
     if (phase === 'open') {
-      stage.flyTo(
-        current.kind === 'identify'
-          ? frameCountry(geo.feature(current.countryId), geo.factsOf(current.countryId).label)
-          : randomOverview(),
-      )
+      if (current.kind === 'identify') {
+        const placePack = pack ?? geo
+        stage.flyTo(
+          frameCountry(
+            placePack.feature(current.countryId),
+            placePack.factsOf(current.countryId).label,
+          ),
+        )
+      } else if (packId) {
+        stage.flyTo(frameCountry(geo.feature(packId), geo.factsOf(packId).label))
+      } else {
+        stage.flyTo(randomOverview())
+      }
       return
     }
     const shown = revealed[round][LOCAL_PLAYER]
@@ -223,7 +250,7 @@ export function RoundGame<Config, State extends RoundModeState>(
         }
       : null,
   )
-  useStageScene(roundScene(rounds ?? null, draftPin, geo))
+  useStageScene(roundScene(rounds ?? null, draftPin, geo, subdivisions))
 
   // A timed round keeps whatever pin is down when time runs out. It is stamped no later than
   // the deadline: a busy main thread can fire this timer late, and the pin was down in time.
@@ -274,6 +301,10 @@ export function RoundGame<Config, State extends RoundModeState>(
       if (!challenge) return null
       if (challenge.kind === 'category') return answerId ? geo.factsOf(answerId).label : null
       if (challenge.kind === 'city') return challenge.at
+      if ((challenge.kind === 'locate' || challenge.kind === 'identify') && challenge.packId) {
+        const pack = subdivisions?.[challenge.packId as SubPackId]
+        return pack ? pack.factsOf(challenge.countryId).label : null
+      }
       const facts = geo.factsOf(challenge.countryId)
       return challenge.kind === 'capital' ? facts.capitals[0].at : facts.label
     },
@@ -281,6 +312,12 @@ export function RoundGame<Config, State extends RoundModeState>(
 
   if (!state || !rounds) return null
   const units = preferences.units
+  const activePack =
+    challenge && (challenge.kind === 'locate' || challenge.kind === 'identify') && challenge.packId
+      ? subdivisions?.[challenge.packId as SubPackId]
+      : undefined
+  const resolveName = (id: string) =>
+    activePack && activePack.countries.get(id) ? activePack.nameOf(id) : geo.nameOf(id)
 
   if (rounds.phase === 'finished' && recorded) {
     return (
@@ -295,7 +332,7 @@ export function RoundGame<Config, State extends RoundModeState>(
         tiles={props.tiles(results, units)}
         rows={rounds.challenges.map((c, index) => ({
           key: `${index}`,
-          ...roundRow(c, results[index], geo, units),
+          ...roundRow(c, results[index], geo, units, subdivisions),
           points: results[index].points,
           tone: gradeOf(results[index]).tone,
         }))}
@@ -341,15 +378,15 @@ export function RoundGame<Config, State extends RoundModeState>(
         )}
         <Prompt
           challenge={challenge}
-          answerName={answerId ? geo.nameOf(answerId) : null}
+          answerName={answerId ? resolveName(answerId) : null}
           hintLetter={
             hintUsed && open && challenge.kind === 'identify'
-              ? geo.nameOf(challenge.countryId)[0]
+              ? resolveName(challenge.countryId)[0]
               : null
           }
           showCapitalCountry={!props.hideCapitalCountry}
           geo={geo}
-          nameOf={(id) => geo.nameOf(id)}
+          nameOf={resolveName}
           capitalOf={(id) => geo.factsOf(id).capitals[0].name}
           open={open}
         />
@@ -363,8 +400,8 @@ export function RoundGame<Config, State extends RoundModeState>(
         {result ? (
           <ResultCard
             grade={gradeOf(result)}
-            verdict={verdictOf(result, challenge, geo)}
-            detail={detailOf(result, geo, units)}
+            verdict={verdictOf(result, challenge, geo, subdivisions)}
+            detail={detailOf(result, geo, units, challenge, subdivisions)}
             points={result.points}
             nextLabel={rounds.round + 1 >= rounds.challenges.length ? 'See results' : 'Next'}
             onNext={next}
@@ -378,7 +415,16 @@ export function RoundGame<Config, State extends RoundModeState>(
                 estimated={Boolean(daily?.remote)}
               />
             ) : (
-              <FactCard geo={geo} id={challenge.countryId} units={units} cities={cities} />
+              <FactCard
+                geo={geo}
+                id={
+                  (challenge.kind === 'locate' || challenge.kind === 'identify') && challenge.packId
+                    ? challenge.packId
+                    : challenge.countryId
+                }
+                units={units}
+                cities={cities}
+              />
             )}
           </ResultCard>
         ) : (
@@ -391,6 +437,7 @@ export function RoundGame<Config, State extends RoundModeState>(
             suggestions={suggestions}
             usedAnswers={used}
             coach={!props.coach && firstGame && rounds.round === 0}
+            subdivisions={subdivisions}
             onAnswer={(id) => {
               if (challenge.kind === 'identify') submit({ answerId: id })
               else {

@@ -1,6 +1,7 @@
 import { cityKey, type CityIndex } from '../../geo/cities'
 import { REGIONS, type Region } from '../../geo/countries'
-import type { GeoData } from '../../geo/facts'
+import type { GeoData, PlacePack } from '../../geo/facts'
+import { subPlaceKey, type SubPackId, type SubdivisionPack } from '../../geo/subdivisions'
 import { LEARN_SKILLS, isLearned } from '../profile/review'
 import type { CountrySkills } from '../profile/profile'
 import type { CountryStats } from '../profile/stats'
@@ -59,7 +60,7 @@ export function buildCurriculum(geo: GeoData): Lesson[] {
 }
 
 /** Easiest first, then always a neighbour of what was just taught when one is left. */
-function teachingOrder(ids: string[], geo: GeoData): string[] {
+function teachingOrder(ids: string[], geo: PlacePack): string[] {
   const left = new Set(ids)
   const easiest = () =>
     [...left].sort((a, b) => geo.difficulty(a) - geo.difficulty(b) || a.localeCompare(b))[0]
@@ -167,6 +168,81 @@ export function cityDeckProgress(
   return {
     known: deck.cityIds.filter((id) => isLearned(places[cityKey(id)])).length,
     total: deck.cityIds.length,
+  }
+}
+
+export interface SubLesson {
+  id: string
+  packId: SubPackId
+  title: string
+  subregion: string
+  /** In teaching order: prominent states/provinces first, neighbours kept together. */
+  unitIds: string[]
+}
+
+/** Per-pack lessons of about 6–8 states or provinces, grouped by subregion when distinct. */
+export function buildSubLessons(pack: SubdivisionPack): SubLesson[] {
+  const bySubregion = new Map<string, string[]>()
+  for (const id of pack.playableIds) {
+    const subregion = pack.factsOf(id).subregion || pack.countryName
+    bySubregion.set(subregion, [...(bySubregion.get(subregion) ?? []), id])
+  }
+  const useGroups =
+    bySubregion.size > 1 && bySubregion.size <= Math.ceil(pack.playableIds.length / 3)
+  const groups = useGroups
+    ? [...bySubregion].map(([subregion, ids]) => ({
+        subregion,
+        ids: teachingOrder(ids, pack),
+        hardness: ids.reduce((sum, id) => sum + pack.difficulty(id), 0) / ids.length,
+      }))
+    : [
+        {
+          subregion: pack.countryName,
+          ids: teachingOrder(pack.playableIds, pack),
+          hardness: 0,
+        },
+      ]
+  groups.sort((a, b) => a.hardness - b.hardness || a.subregion.localeCompare(b.subregion))
+
+  const lessons: SubLesson[] = []
+  const chunkSize = 7
+  for (const { subregion, ids } of groups) {
+    const count = Math.max(1, Math.round(ids.length / chunkSize))
+    let start = 0
+    for (let i = 0; i < count; i++) {
+      const end = start + Math.ceil((ids.length - start) / (count - i))
+      const index = lessons.length + 1
+      lessons.push({
+        id: `sub-${pack.countryId.toLowerCase()}-${index}`,
+        packId: pack.countryId,
+        title: count === 1 ? subregion : `${subregion} · ${i + 1} of ${count}`,
+        subregion,
+        unitIds: ids.slice(start, end),
+      })
+      start = end
+    }
+  }
+  return lessons
+}
+
+export function subLessonProgress(
+  places: Record<string, CountryStats>,
+  lesson: SubLesson,
+): LessonProgress {
+  return {
+    known: lesson.unitIds.filter((id) => isLearned(places[subPlaceKey(lesson.packId, id)])).length,
+    total: lesson.unitIds.length,
+  }
+}
+
+export function subPackProgress(
+  places: Record<string, CountryStats>,
+  packId: SubPackId,
+  unitIds: readonly string[],
+): LessonProgress {
+  return {
+    known: unitIds.filter((id) => isLearned(places[subPlaceKey(packId, id)])).length,
+    total: unitIds.length,
   }
 }
 

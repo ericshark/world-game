@@ -1,6 +1,7 @@
 import { cityKey, type CityIndex } from '../../geo/cities'
 import type { GeoData } from '../../geo/facts'
 import { MAX_POINTS } from '../../geo/scoring'
+import { subPlaceKey, type SubPackId, type SubdivisionPack } from '../../geo/subdivisions'
 import { evaluateChallenge, skillOf, type ScoringOptions } from '../core/evaluate'
 import type { ModeRules } from '../core/mode'
 import { createRandom } from '../core/random'
@@ -43,7 +44,31 @@ const OPTIONS: ScoringOptions = { region: 'World', cutoffScale: 1.4 }
 
 export const DEFAULT_LEARN_CONFIG: LearnConfig = { queue: [], title: 'Review' }
 
-function challengeFor(item: LearnItem, geo: GeoData, seed: string, cities?: CityIndex) {
+function challengeFor(
+  item: LearnItem,
+  geo: GeoData,
+  seed: string,
+  cities?: CityIndex,
+  subdivisions?: Partial<Record<SubPackId, SubdivisionPack>>,
+) {
+  if ('packId' in item) {
+    const pack = subdivisions?.[item.packId]
+    if (!pack) throw new Error(`Unknown subdivision pack: ${item.packId}`)
+    if (item.skill === 'name') {
+      const random = createRandom(`${seed}:${item.packId}:${item.unitId}`)
+      return {
+        kind: 'identify',
+        countryId: item.unitId,
+        choices: item.assist ? nameChoices(pack, item.unitId, random) : null,
+        packId: item.packId,
+      } satisfies CountryChallenge
+    }
+    return {
+      kind: 'locate',
+      countryId: item.unitId,
+      packId: item.packId,
+    } satisfies CountryChallenge
+  }
   if (item.skill === 'city') {
     const city = cities?.get(item.cityId)
     if (!city) throw new Error(`Unknown city: ${item.cityId}`)
@@ -82,7 +107,8 @@ function challengeFor(item: LearnItem, geo: GeoData, seed: string, cities?: City
 
 function keyOf(challenge: CountryChallenge) {
   if (challenge.kind === 'city') return `city:${challenge.cityId}`
-  return `${challenge.kind}:${'show' in challenge ? challenge.show : ''}:${challenge.countryId}`
+  const packPrefix = 'packId' in challenge && challenge.packId ? `${challenge.packId}:` : ''
+  return `${challenge.kind}:${'show' in challenge ? challenge.show : ''}:${packPrefix}${challenge.countryId}`
 }
 
 /**
@@ -90,8 +116,10 @@ function keyOf(challenge: CountryChallenge) {
  * wrongly comes back once at the end of the session.
  */
 export const learn: ModeRules<LearnConfig, LearnState> = {
-  start({ config, seed, now, geo, cities, players }) {
-    const challenges = config.queue.map((item) => challengeFor(item, geo, seed, cities))
+  start({ config, seed, now, geo, cities, subdivisions, players }) {
+    const challenges = config.queue.map((item) =>
+      challengeFor(item, geo, seed, cities, subdivisions),
+    )
     return {
       config,
       seed,
@@ -102,11 +130,24 @@ export const learn: ModeRules<LearnConfig, LearnState> = {
     }
   },
 
-  reduce(state, event, geo) {
+  reduce(state, event, geo, subdivisions) {
     const evaluate = (
       challenge: CountryChallenge,
       submission: Parameters<typeof evaluateChallenge>[2],
-    ) => evaluateChallenge(geo, challenge, submission, OPTIONS)
+    ) => {
+      const packId =
+        (challenge.kind === 'locate' || challenge.kind === 'identify') && challenge.packId
+          ? (challenge.packId as SubPackId)
+          : undefined
+      const pack = packId ? subdivisions?.[packId] : undefined
+      return evaluateChallenge(
+        geo,
+        challenge,
+        submission,
+        pack ? { ...OPTIONS, zeroPointsKm: pack.zeroPointsKm } : OPTIONS,
+        pack,
+      )
+    }
     let rounds = reduceRounds(state.rounds, event, evaluate)
     if (rounds === state.rounds) return state
 
@@ -161,6 +202,15 @@ export const learn: ModeRules<LearnConfig, LearnState> = {
 
 function outcomeOf(result: RoundResult, challenge: CountryChallenge): CountryOutcome {
   const skill = skillOf(challenge)
+  if ((challenge.kind === 'locate' || challenge.kind === 'identify') && challenge.packId) {
+    return {
+      countryId: challenge.packId,
+      placeKey: subPlaceKey(challenge.packId as SubPackId, challenge.countryId),
+      skill,
+      success: result.hit,
+      distanceKm: result.kind === 'locate' ? result.distanceKm : undefined,
+    }
+  }
   if (challenge.kind === 'city') {
     return {
       countryId: challenge.countryId,

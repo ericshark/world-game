@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { CityIndex } from '../geo/cities'
 import type { GeoData } from '../geo/facts'
+import type { SubPackId, SubdivisionPack } from '../geo/subdivisions'
 import type { ModeRules, SessionEvent } from '../game/core/mode'
 import { randomSeed } from '../game/core/random'
 import { LOCAL_PLAYER, type CountryOutcome, type SessionSummary } from '../game/core/types'
@@ -23,6 +24,7 @@ interface StartOptions {
   seed?: string
   stats?: StatsByCountry
   cities?: CityIndex
+  subdivisions?: Partial<Record<SubPackId, SubdivisionPack>>
 }
 
 interface InitialGame<Config, State> extends StartOptions {
@@ -50,9 +52,11 @@ export function useLocalSession<Config, State, Event extends { type: string } = 
     return initial.resume ?? startGame(rules, geo, initial.config, initial)
   })
   const stateRef = useRef<State | null>(state)
+  const subdivisionsRef = useRef(initial?.subdivisions)
   const callbacksRef = useRef(callbacks)
   useEffect(() => {
     callbacksRef.current = callbacks
+    subdivisionsRef.current = initial?.subdivisions
   })
 
   const commit = useCallback((next: State | null) => {
@@ -63,7 +67,11 @@ export function useLocalSession<Config, State, Event extends { type: string } = 
   const start = useCallback(
     (config: Config, options: StartOptions = {}) => {
       if (!geo) throw new Error('Geography is not loaded yet')
-      const started = startGame(rules, geo, config, options)
+      if (options.subdivisions) subdivisionsRef.current = options.subdivisions
+      const started = startGame(rules, geo, config, {
+        ...options,
+        subdivisions: options.subdivisions ?? subdivisionsRef.current,
+      })
       commit(started)
       return started
     },
@@ -74,7 +82,7 @@ export function useLocalSession<Config, State, Event extends { type: string } = 
     (event: Event) => {
       const previous = stateRef.current
       if (!previous || !geo) return previous
-      const next = rules.reduce(previous, event, geo)
+      const next = rules.reduce(previous, event, geo, subdivisionsRef.current)
       if (next === previous) return previous
       commit(next)
 
@@ -129,7 +137,16 @@ function startGame<Config, State, Event>(
   rules: ModeRules<Config, State, Event>,
   geo: GeoData,
   config: Config,
-  { seed = randomSeed(), stats, cities }: StartOptions,
+  { seed = randomSeed(), stats, cities, subdivisions }: StartOptions,
 ): State {
-  return rules.start({ config, seed, now: Date.now(), geo, cities, players: [LOCAL_PLAYER], stats })
+  return rules.start({
+    config,
+    seed,
+    now: Date.now(),
+    geo,
+    cities,
+    subdivisions,
+    players: [LOCAL_PLAYER],
+    stats,
+  })
 }

@@ -140,3 +140,25 @@ and confusion tracking unchanged while sharing the review schedule and Passport 
 are Find it only (showing the country disambiguates names and avoids typing 250 global city
 spellings) and stay out of Daily, Battle and Ranked play so ranked play stays about countries and
 capitals.
+
+## States and provinces: vector shapes at high zoom, shared `PlacePack`, and `profile.places` (2026-11-19)
+
+Prototyping the USA and Germany admin-1 packs exposed how soft the 4096 px (and 2048 px on phones)
+equirectangular paint overlay gets at high zoom: 4096 px across 360° gives 11.38 px per degree (5.69
+px on phones), so smaller states such as Saarland (0.68°, ~8 px on desktop and ~4 px on phones),
+Rhode Island (0.87°, ~10 px), Bremen (0.59°, ~7 px) and Berlin (0.40°, ~5 px) blur into soft blobs
+when the camera zooms in to `MIN_CAMERA_DISTANCE = 1.7`. The underlying Blue Marble satellite texture
+stays acceptable as a backdrop, so `SubdivisionVectorLayer` draws pack shapes and shared subdivision
+borders as 3D vector meshes and line segments directly on the sphere (triangulating polygon rings
+with `THREE.ShapeUtils.triangulateShape` and subdividing large triangles so they hug the sphere
+above the Earth mesh). Country modes keep the fast reuse-canvas `CountryPaintLayer`.
+
+Each country's admin-1 pack (`public/data/sub/<ID>.json`, built by `scripts/build-subdivisions.mjs`
+for `USA`, `CAN`, `MEX`, `BRA`, `AUS`, `IND`, `CHN` and `DEU`) lazy-loads on demand into its own
+`CountryIndex` and `NameMatcher` behind `PlacePack`, so `evaluateLocate`, `evaluateIdentify`,
+`nameChoices` and `weightByDifficulty` run unchanged with a zero-points distance scaled by the host
+country's area (`clamp(sqrt(totalAreaKm2) * 0.38, 350, 1200)`, from 350 km in Germany to ~1,169 km
+in the United States and ~1,197 km in Canada). Stats live in `profile.places` under
+`sub:<pack>:<unit>` so country Found, Mastered, Expert and world knowledge stay untouched while due
+state/province reviews join Learn and Home review counts. States and provinces stay out of Daily,
+Battle and Ranked play.

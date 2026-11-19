@@ -8,10 +8,12 @@ import {
 } from '../../game/modes/pinpoint'
 import { skillStats } from '../../game/profile/profile'
 import { loadPinpointConfig, savePinpointConfig } from '../../game/profile/settings'
+import { SUB_PACKS, subPackMeta } from '../../geo/subdivisions'
 import { Choice, Switch } from '../../ui/controls'
 import { RegionChoice, SetupSheet } from '../../ui/SetupSheet'
 import { useApp } from '../AppContext'
 import { useCities } from '../useCities'
+import { useSubdivisionPack } from '../useSubdivisions'
 
 interface PinpointSetupProps {
   onClose: () => void
@@ -30,12 +32,24 @@ export function PinpointSetup({ onClose, onPlay }: PinpointSetupProps) {
   const activeConfig =
     effectiveTarget === config.target ? config : { ...config, target: effectiveTarget }
   const isCities = effectiveTarget === 'cities'
+  const isSub = effectiveTarget === 'subdivisions'
+  const subPackId = activeConfig.subPack ?? 'USA'
+  const packMeta = subPackMeta(subPackId)
 
   const { cities, error: citiesError, retry: retryCities } = useCities(isCities)
+  const { pack, error: subError, retry: retrySub } = useSubdivisionPack(subPackId, isSub)
 
   let poolSize = 0
-  let note = 'Loading cities…'
-  if (isCities) {
+  let note = isSub ? `Loading ${packMeta.name}…` : 'Loading cities…'
+  if (isSub) {
+    if (pack) {
+      poolSize = weightByDifficulty(pack.playableIds, activeConfig.difficulty, pack).length
+      const rounds = Math.min(ROUNDS_PER_GAME, poolSize)
+      note = `${poolSize} ${packMeta.unitLabel} in the pool · ${rounds} rounds`
+    } else if (subError) {
+      note = `Could not load ${packMeta.name}`
+    }
+  } else if (isCities) {
     if (cities) {
       poolSize = weightCitiesByDifficulty(
         cities.inRegion(geo, activeConfig.region),
@@ -54,8 +68,14 @@ export function PinpointSetup({ onClose, onPlay }: PinpointSetupProps) {
   }
 
   const rounds = Math.min(ROUNDS_PER_GAME, poolSize)
-  const canPlay = isCities ? cities !== null && rounds > 0 : rounds > 0
-  const hasStats = Object.keys(skillStats(profile, pinpointSkill(activeConfig))).length > 0
+  const canPlay = isSub
+    ? pack !== null && rounds > 0
+    : isCities
+      ? cities !== null && rounds > 0
+      : rounds > 0
+  const hasStats =
+    Object.keys(skillStats(profile, pinpointSkill(activeConfig), isSub ? subPackId : undefined))
+      .length > 0
 
   return (
     <SetupSheet
@@ -80,6 +100,7 @@ export function PinpointSetup({ onClose, onPlay }: PinpointSetupProps) {
       />
       <Choice
         label="Targets"
+        layout="chips"
         value={effectiveTarget}
         onChange={(target) => update({ target })}
         options={[
@@ -106,6 +127,14 @@ export function PinpointSetup({ onClose, onPlay }: PinpointSetupProps) {
                 ? 'We show a flag, you find its country on the globe.'
                 : 'We highlight a country, you pick its flag.',
           },
+          {
+            value: 'subdivisions',
+            label: 'States & provinces',
+            hint:
+              config.variant === 'find'
+                ? 'Find states, provinces and territories inside a country.'
+                : 'We highlight a state or province, you name it.',
+          },
         ]}
       />
       {isCities && citiesError && (
@@ -116,7 +145,25 @@ export function PinpointSetup({ onClose, onPlay }: PinpointSetupProps) {
           </button>
         </p>
       )}
-      <RegionChoice value={config.region} onChange={(region) => update({ region })} />
+      {isSub && subError && (
+        <p className="error" role="alert">
+          Could not load {packMeta.name}.{' '}
+          <button type="button" className="button button--link" onClick={retrySub}>
+            Try again
+          </button>
+        </p>
+      )}
+      {isSub ? (
+        <Choice
+          label="Country"
+          layout="chips"
+          value={subPackId}
+          onChange={(subPack) => update({ subPack })}
+          options={SUB_PACKS.map((p) => ({ value: p.id, label: p.name }))}
+        />
+      ) : (
+        <RegionChoice value={config.region} onChange={(region) => update({ region })} />
+      )}
       <Choice
         label="Difficulty"
         value={config.difficulty}
@@ -127,21 +174,31 @@ export function PinpointSetup({ onClose, onPlay }: PinpointSetupProps) {
             label: 'Easy',
             hint: isCities
               ? 'Famous cities, generous scoring.'
-              : config.variant === 'name' && effectiveTarget !== 'flags'
-                ? 'Well-known countries, multiple choice.'
-                : 'Well-known countries, generous scoring.',
+              : isSub
+                ? config.variant === 'name'
+                  ? 'Prominent states & provinces, multiple choice.'
+                  : 'Prominent states & provinces, generous scoring.'
+                : config.variant === 'name' && effectiveTarget !== 'flags'
+                  ? 'Well-known countries, multiple choice.'
+                  : 'Well-known countries, generous scoring.',
           },
           {
             value: 'normal',
             label: 'Normal',
-            hint: isCities ? 'Every city, standard scoring.' : 'Every country, standard scoring.',
+            hint: isCities
+              ? 'Every city, standard scoring.'
+              : isSub
+                ? 'Every state or province, standard scoring.'
+                : 'Every country, standard scoring.',
           },
           {
             value: 'hard',
             label: 'Hard',
             hint: isCities
               ? 'Lesser-known cities come up more, stricter scoring, 20 seconds a round.'
-              : 'Obscure countries come up more, stricter scoring, 20 seconds a round.',
+              : isSub
+                ? 'Smaller states & provinces come up more, stricter scoring, 20 seconds a round.'
+                : 'Obscure countries come up more, stricter scoring, 20 seconds a round.',
           },
         ]}
       />
@@ -152,7 +209,7 @@ export function PinpointSetup({ onClose, onPlay }: PinpointSetupProps) {
           checked={config.night}
           onChange={(night) => update({ night })}
         />
-        {!isCities && (
+        {!isCities && !isSub && (
           <Switch
             label="Skip micro-states"
             description="Tiny countries like Monaco, Nauru and Grenada"
@@ -161,12 +218,20 @@ export function PinpointSetup({ onClose, onPlay }: PinpointSetupProps) {
           />
         )}
         <Switch
-          label={isCities ? 'Practise my weak cities' : 'Practise my weak countries'}
+          label={
+            isCities
+              ? 'Practise my weak cities'
+              : isSub
+                ? 'Practise my weak states & provinces'
+                : 'Practise my weak countries'
+          }
           description={
             hasStats
               ? isCities
                 ? 'Cities you often miss come up more'
-                : 'Countries you often miss come up more'
+                : isSub
+                  ? 'States and provinces you often miss come up more'
+                  : 'Countries you often miss come up more'
               : 'Play a game first so there is something to practise'
           }
           checked={config.practiceWeak}

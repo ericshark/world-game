@@ -1,4 +1,5 @@
 import { cityIdFromKey } from '../../geo/cities'
+import { parseSubPlaceKey, type SubPackId } from '../../geo/subdivisions'
 import type { Skill } from '../core/types'
 import type { CountrySkills } from './profile'
 import type { CountryStats } from './stats'
@@ -111,7 +112,7 @@ export function nextDueAt(
     }
   }
   for (const [key, stats] of Object.entries(places)) {
-    if (!cityIdFromKey(key) || !isLearned(stats)) continue
+    if ((!cityIdFromKey(key) && !parseSubPlaceKey(key)) || !isLearned(stats)) continue
     const { dueAt } = reviewState(stats)
     if (dueAt > now && (soonest === null || dueAt < soonest)) soonest = dueAt
   }
@@ -122,6 +123,15 @@ export interface PlaceReviewItem {
   placeKey: string
   cityId: string
   skill: 'city'
+  overdueDays: number
+  box: number
+}
+
+export interface SubReviewItem {
+  placeKey: string
+  packId: SubPackId
+  unitId: string
+  skill: 'locate'
   overdueDays: number
   box: number
 }
@@ -145,12 +155,39 @@ export function duePlaceReviews(
   )
 }
 
-/** Total due reviews across countries and cities, without needing `cities.json` loaded. */
+/** Learned states/provinces in `profile.places` that are due for review, most overdue first. */
+export function dueSubReviews(places: Record<string, CountryStats>, now: number): SubReviewItem[] {
+  const items: SubReviewItem[] = []
+  for (const [placeKey, stats] of Object.entries(places)) {
+    const parsed = parseSubPlaceKey(placeKey)
+    if (!parsed || !isLearned(stats)) continue
+    const { box, dueAt } = reviewState(stats)
+    if (dueAt <= now) {
+      items.push({
+        placeKey,
+        packId: parsed.packId,
+        unitId: parsed.unitId,
+        skill: 'locate',
+        box,
+        overdueDays: (now - dueAt) / DAY_MS,
+      })
+    }
+  }
+  return items.sort(
+    (a, b) => b.overdueDays - a.overdueDays || a.box - b.box || a.unitId.localeCompare(b.unitId),
+  )
+}
+
+/** Total due reviews across countries, cities and subdivisions, without needing packs loaded. */
 export function countDueReviews(
   profile: { countries: Record<string, CountrySkills>; places: Record<string, CountryStats> },
   now: number,
 ): number {
-  return dueReviews(profile.countries, now).length + duePlaceReviews(profile.places, now).length
+  return (
+    dueReviews(profile.countries, now).length +
+    duePlaceReviews(profile.places, now).length +
+    dueSubReviews(profile.places, now).length
+  )
 }
 
 /** Remembered across weeks in every core skill: the step above Mastered. */

@@ -1,5 +1,6 @@
 import type { CityIndex } from '../geo/cities'
 import type { GeoData } from '../geo/facts'
+import type { SubPackId, SubdivisionPack } from '../geo/subdivisions'
 import type { ModeRules, SessionEvent } from '../game/core/mode'
 import type { CountryOutcome, SessionSummary } from '../game/core/types'
 import type { StatsByCountry } from '../game/profile/stats'
@@ -18,7 +19,12 @@ export interface GameSession<Config, State, Event> {
   /** Starts another game; ranked dailies are played once, so this only works locally. */
   start(
     config: Config,
-    options?: { seed?: string; stats?: StatsByCountry; cities?: CityIndex },
+    options?: {
+      seed?: string
+      stats?: StatsByCountry
+      cities?: CityIndex
+      subdivisions?: Partial<Record<SubPackId, SubdivisionPack>>
+    },
   ): State
   send(event: Event): Promise<State | null>
   end(): void
@@ -37,6 +43,7 @@ export function useGameSession<Config, State, Event extends { type: string } = S
     seed?: string
     stats?: StatsByCountry
     cities?: CityIndex
+    subdivisions?: Partial<Record<SubPackId, SubdivisionPack>>
     /** Carries on with a game saved earlier instead of starting a new one. */
     resume?: State | null
   },

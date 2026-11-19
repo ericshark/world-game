@@ -101,8 +101,8 @@ export function CreditsScreen({ onClose }: { onClose: () => void }) {
               <em>Black Marble</em> (night). Public domain.
             </li>
             <li>
-              Country borders, capitals, major cities, populations and areas: Natural Earth. Public
-              domain.
+              Country and state/province borders, capitals, major cities, populations and areas:
+              Natural Earth. Public domain.
             </li>
             <li>
               Flags: <a href="https://github.com/lipis/flag-icons">flag-icons</a> by Panayiotis

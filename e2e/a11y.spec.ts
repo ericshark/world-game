@@ -70,6 +70,7 @@ test.describe('accessibility', () => {
     [['Flags'], 'flag to find'],
     [['Name it', 'Flags'], 'flag to pick'],
     [['Cities'], 'cities'],
+    [['States & provinces'], 'states and provinces'],
   ] as const) {
     test(`playing Pinpoint: ${name}`, async ({ page }) => {
       await openGame(page, '/')
@@ -85,10 +86,23 @@ test.describe('accessibility', () => {
     await audit(page, 'learn major cities')
   })
 
+  test('learn states & provinces tab', async ({ page }) => {
+    await openGame(page, '/#/learn')
+    await page.getByRole('radio', { name: 'States & provinces', exact: true }).click()
+    await page.getByText(/states learned/).waitFor()
+    await audit(page, 'learn states and provinces')
+  })
+
   test('city deck study', async ({ page }) => {
     await openGame(page, '/#/learn/cities-oceania-1')
     await page.getByText('Meet the cities').waitFor()
     await audit(page, 'city deck study')
+  })
+
+  test('subdivision lesson study', async ({ page }) => {
+    await openGame(page, '/#/learn/sub-deu-1')
+    await page.getByText('Meet the states & provinces').waitFor()
+    await audit(page, 'subdivision lesson study')
   })
 
   test('atlas with major cities', async ({ page }) => {

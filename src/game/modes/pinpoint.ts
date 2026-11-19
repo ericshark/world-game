@@ -1,6 +1,7 @@
 import { cityKey, type CityIndex } from '../../geo/cities'
 import type { GeoData } from '../../geo/facts'
 import { MAX_POINTS, type ScoringRegion } from '../../geo/scoring'
+import { subPlaceKey, type SubPackId, type SubdivisionPack } from '../../geo/subdivisions'
 import { mistakenFor } from '../core/confusions'
 import { evaluateChallenge, type ScoringOptions } from '../core/evaluate'
 import type { ModeRules } from '../core/mode'
@@ -27,7 +28,7 @@ import type { StatsByCountry } from '../profile/stats'
 
 export const ROUNDS_PER_GAME = 10
 
-export type PinpointTarget = 'countries' | 'capitals' | 'cities' | 'flags'
+export type PinpointTarget = 'countries' | 'capitals' | 'cities' | 'flags' | 'subdivisions'
 /**
  * Find a named place on the globe, or name the place highlighted on it. With the Flags target,
  * "find" shows a flag to place on the globe and "name" shows a country and asks for its flag.
@@ -36,6 +37,8 @@ export type PinpointVariant = 'find' | 'name'
 
 export interface PinpointConfig {
   region: ScoringRegion
+  /** The country pack used when `target` is `'subdivisions'`. */
+  subPack?: SubPackId
   difficulty: Difficulty
   target: PinpointTarget
   variant: PinpointVariant
@@ -47,6 +50,7 @@ export interface PinpointConfig {
 
 export const DEFAULT_PINPOINT_CONFIG: PinpointConfig = {
   region: 'World',
+  subPack: 'USA',
   difficulty: 'normal',
   target: 'countries',
   variant: 'find',
@@ -74,7 +78,21 @@ export interface PinpointState {
 
 /** Games with the same key are comparable for personal bests. */
 export function pinpointBestKey(config: PinpointConfig): string {
-  const { target, variant, region, difficulty, skipMicro, night, practiceWeak } = config
+  const {
+    target,
+    variant,
+    region,
+    subPack = 'USA',
+    difficulty,
+    skipMicro,
+    night,
+    practiceWeak,
+  } = config
+  if (target === 'subdivisions') {
+    const flags = [night && 'night', practiceWeak && 'practice']
+    const kind = variant === 'name' ? 'sub-name' : 'sub'
+    return ['pinpoint', kind, subPack, difficulty, ...flags.filter(Boolean)].join(':')
+  }
   const isCities = target === 'cities' && variant !== 'name'
   const flags = [skipMicro && !isCities && 'no-micro', night && 'night', practiceWeak && 'practice']
   const kind =
@@ -98,12 +116,14 @@ export function pinpointSkill(config: PinpointConfig): Skill {
 
 /** Classic mode: find each named country (or capital) on the globe, or name the one shown. */
 export const pinpoint: ModeRules<PinpointConfig, PinpointState> = {
-  start({ config, seed, now, geo, cities, players, stats }) {
+  start({ config, seed, now, geo, cities, subdivisions, players, stats }) {
     const random = createRandom(seed)
     const challenges: CountryChallenge[] =
-      config.target === 'cities' && config.variant !== 'name'
-        ? buildCityChallenges(config, geo, cities, stats, random)
-        : buildCountryChallenges(config, geo, stats, random)
+      config.target === 'subdivisions'
+        ? buildSubdivisionChallenges(config, subdivisions, stats, random)
+        : config.target === 'cities' && config.variant !== 'name'
+          ? buildCityChallenges(config, geo, cities, stats, random)
+          : buildCountryChallenges(config, geo, stats, random)
     return {
       config,
       seed,
@@ -117,15 +137,20 @@ export const pinpoint: ModeRules<PinpointConfig, PinpointState> = {
     }
   },
 
-  reduce(state, event, geo) {
+  reduce(state, event, geo, subdivisions) {
+    const pack =
+      state.config.target === 'subdivisions'
+        ? subdivisions?.[state.config.subPack ?? 'USA']
+        : undefined
     const options: ScoringOptions = {
       region: state.config.region,
       cutoffScale: DIFFICULTY_RULES[state.config.difficulty].cutoffScale,
+      zeroPointsKm: pack?.zeroPointsKm,
     }
     const evaluate = (
       challenge: CountryChallenge,
       submission: Parameters<typeof evaluateChallenge>[2],
-    ) => evaluateChallenge(geo, challenge, submission, options)
+    ) => evaluateChallenge(geo, challenge, submission, options, pack)
 
     const rounds = reduceRounds(state.rounds, event, evaluate)
     if (rounds === state.rounds) return state
@@ -161,6 +186,26 @@ export const pinpoint: ModeRules<PinpointConfig, PinpointState> = {
       metrics: { hits: state.rounds.results.filter((round) => round[playerId].hit).length },
     }
   },
+}
+
+function buildSubdivisionChallenges(
+  config: PinpointConfig,
+  subdivisions: Partial<Record<SubPackId, SubdivisionPack>> | undefined,
+  stats: StatsByCountry | undefined,
+  random: Random,
+): CountryChallenge[] {
+  const packId = config.subPack ?? 'USA'
+  const pack = subdivisions?.[packId]
+  if (!pack) throw new Error(`Subdivision pack ${packId} is not loaded`)
+  let entries = weightByDifficulty(pack.playableIds, config.difficulty, pack)
+  if (config.practiceWeak && stats) entries = weightByPractice(entries, stats)
+  return pickWeighted(entries, ROUNDS_PER_GAME, random).map((unitId): CountryChallenge => {
+    if (config.variant === 'name') {
+      const choices = config.difficulty === 'easy' ? nameChoices(pack, unitId, random) : null
+      return { kind: 'identify', countryId: unitId, choices, packId }
+    }
+    return { kind: 'locate', countryId: unitId, packId }
+  })
 }
 
 function buildCityChallenges(
@@ -215,6 +260,15 @@ function buildCountryChallenges(
 }
 
 function outcomeOf(challenge: CountryChallenge, result: RoundResult, skill: Skill): CountryOutcome {
+  if ((challenge.kind === 'locate' || challenge.kind === 'identify') && challenge.packId) {
+    return {
+      countryId: challenge.packId,
+      placeKey: subPlaceKey(challenge.packId as SubPackId, challenge.countryId),
+      skill,
+      success: result.hit,
+      distanceKm: result.kind === 'locate' ? result.distanceKm : undefined,
+    }
+  }
   if (challenge.kind === 'city') {
     return {
       countryId: challenge.countryId,

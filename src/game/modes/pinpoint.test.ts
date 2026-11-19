@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { loadTestCities, loadTestGeoData } from '../../test/loadTestCountries'
+import {
+  loadTestCities,
+  loadTestGeoData,
+  loadTestSubdivisionPack,
+} from '../../test/loadTestCountries'
 import { LOCAL_PLAYER, type Submission } from '../core/types'
 import { emptyProfile } from '../profile/profile'
 import { recordOutcomes } from '../profile/record'
@@ -14,22 +18,40 @@ import {
 
 const geo = loadTestGeoData()
 const cities = loadTestCities()
+const usa = loadTestSubdivisionPack('USA')
+const aus = loadTestSubdivisionPack('AUS')
+const subdivisions = { USA: usa, AUS: aus }
 const world = DEFAULT_PINPOINT_CONFIG
 
 function start(config: PinpointConfig = world, seed = 'seed-1'): PinpointState {
-  return pinpoint.start({ config, seed, now: 0, geo, cities, players: [LOCAL_PLAYER] })
+  return pinpoint.start({
+    config,
+    seed,
+    now: 0,
+    geo,
+    cities,
+    subdivisions,
+    players: [LOCAL_PLAYER],
+  })
 }
 
 function submit(state: PinpointState, submission: Submission): PinpointState {
-  return pinpoint.reduce(state, { type: 'submit', playerId: LOCAL_PLAYER, submission }, geo)
+  return pinpoint.reduce(
+    state,
+    { type: 'submit', playerId: LOCAL_PLAYER, submission },
+    geo,
+    subdivisions,
+  )
 }
 
 /** A perfect answer for whatever the current challenge is. */
 function answer(state: PinpointState, at: number): PinpointState {
   const challenge = state.rounds.challenges[state.rounds.round]
   switch (challenge.kind) {
-    case 'locate':
-      return submit(state, { pin: geo.factsOf(challenge.countryId).label, at })
+    case 'locate': {
+      const pack = challenge.packId ? subdivisions[challenge.packId as 'USA' | 'AUS'] : undefined
+      return submit(state, { pin: (pack ?? geo).factsOf(challenge.countryId).label, at })
+    }
     case 'capital':
       return submit(state, { pin: geo.factsOf(challenge.countryId).capitals[0].at, at })
     case 'city':
@@ -42,7 +64,7 @@ function answer(state: PinpointState, at: number): PinpointState {
 function playThrough(state: PinpointState): PinpointState {
   for (let round = 0; round < state.rounds.challenges.length; round++) {
     state = answer(state, round * 10)
-    state = pinpoint.reduce(state, { type: 'next', at: round * 10 + 5 }, geo)
+    state = pinpoint.reduce(state, { type: 'next', at: round * 10 + 5 }, geo, subdivisions)
   }
   return state
 }
@@ -223,5 +245,43 @@ describe('pinpoint cities', () => {
     const hard = start({ ...config, difficulty: 'hard', skipMicro: true, night: true })
     expect(pinpoint.deadline(hard)).toBe(20_000)
     expect(pinpoint.summarize(hard, LOCAL_PLAYER).bestKey).toBe('pinpoint:cities:Europe:hard:night')
+  })
+})
+
+describe('pinpoint states & provinces', () => {
+  const config: PinpointConfig = { ...world, target: 'subdivisions', subPack: 'USA' }
+
+  it('plays Find it and Name it on a subdivision pack and records into profile.places', () => {
+    const state = start(config)
+    expect(state.rounds.challenges).toHaveLength(ROUNDS_PER_GAME)
+    for (const c of state.rounds.challenges) {
+      expect(c).toMatchObject({ kind: 'locate', packId: 'USA' })
+    }
+
+    const finished = playThrough(state)
+    const summary = pinpoint.summarize(finished, LOCAL_PLAYER)
+    expect(summary.score).toBe(10_000)
+    expect(summary.bestKey).toBe('pinpoint:sub:USA:normal')
+    expect(
+      summary.outcomes.every((o) => o.countryId === 'USA' && o.placeKey?.startsWith('sub:usa:us-')),
+    ).toBe(true)
+
+    const profile = recordOutcomes(emptyProfile(), summary.outcomes, 100)
+    expect(Object.keys(profile.countries)).toHaveLength(0)
+    expect(Object.keys(profile.places)).toHaveLength(ROUNDS_PER_GAME)
+
+    // Name it on a pack with fewer than 10 units uses the whole pool (Australia has 8).
+    const ausName = playThrough(
+      start({ ...config, subPack: 'AUS', variant: 'name', difficulty: 'easy' }),
+    )
+    expect(ausName.rounds.challenges).toHaveLength(8)
+    for (const c of ausName.rounds.challenges) {
+      expect(c.kind === 'identify' && c.choices).toHaveLength(4)
+    }
+    expect(pinpoint.summarize(ausName, LOCAL_PLAYER)).toMatchObject({
+      score: 8000,
+      maxScore: 8000,
+      bestKey: 'pinpoint:sub-name:AUS:easy',
+    })
   })
 })

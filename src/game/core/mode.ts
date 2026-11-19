@@ -1,5 +1,6 @@
 import type { CityIndex } from '../../geo/cities'
 import type { GeoData } from '../../geo/facts'
+import type { SubPackId, SubdivisionPack } from '../../geo/subdivisions'
 import type { StatsByCountry } from '../profile/stats'
 import type { CountryOutcome, PlayerId, SessionSummary, Submission } from './types'
 
@@ -20,6 +21,8 @@ export interface StartParams<Config> {
   geo: GeoData
   /** Lazy-loaded major cities, supplied by modes and targets that need them. */
   cities?: CityIndex
+  /** Lazy-loaded state/province packs, supplied by modes and targets that need them. */
+  subdivisions?: Partial<Record<SubPackId, SubdivisionPack>>
   players: PlayerId[]
   /** The local player's stats, for modes that adapt to them (weak-country practice). */
   stats?: StatsByCountry
@@ -31,7 +34,12 @@ export interface StartParams<Config> {
  */
 export interface ModeRules<Config, State, Event = SessionEvent> {
   start(params: StartParams<Config>): State
-  reduce(state: State, event: Event, geo: GeoData): State
+  reduce(
+    state: State,
+    event: Event,
+    geo: GeoData,
+    subdivisions?: Partial<Record<SubPackId, SubdivisionPack>>,
+  ): State
   isFinished(state: State): boolean
   /** When the host must send a tick for a timer to expire, or null if nothing is pending. */
   deadline(state: State): number | null

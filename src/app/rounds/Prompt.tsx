@@ -32,7 +32,11 @@ export function Prompt({
       }
       return (
         <>
-          <h1 className="prompt__text">Name this country</h1>
+          <h1 className="prompt__text">
+            {challenge.packId
+              ? `Name this state or province in ${geo.nameOf(challenge.packId)}`
+              : 'Name this country'}
+          </h1>
           {hintLetter && <p className="prompt__sub">Starts with “{hintLetter}”</p>}
         </>
       )
@@ -80,9 +84,14 @@ export function Prompt({
         )
       }
       return (
-        <h1 className="prompt__text">
-          Find <strong data-testid="target-name">{nameOf(challenge.countryId)}</strong>
-        </h1>
+        <>
+          <h1 className="prompt__text">
+            Find <strong data-testid="target-name">{nameOf(challenge.countryId)}</strong>
+          </h1>
+          {challenge.packId && showCapitalCountry && (
+            <p className="prompt__sub">in {geo.nameOf(challenge.packId)}</p>
+          )}
+        </>
       )
   }
 }

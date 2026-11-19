@@ -8,12 +8,14 @@ export const LOCAL_PLAYER: PlayerId = 'local'
 /** How a country is presented in a Locate or Identify round. */
 export type ChallengeShow = 'name' | 'flag'
 
-/** Find the country on the globe. */
+/** Find the country (or state/province when `packId` is set) on the globe. */
 export interface LocateChallenge {
   kind: 'locate'
   countryId: string
   /** What the player is shown: the country's name (the default) or its flag. */
   show?: ChallengeShow
+  /** Set when `countryId` is a state or province inside a subdivision pack (e.g. `"USA"`). */
+  packId?: string
 }
 
 /** Find the country's capital city on the globe. */
@@ -31,7 +33,7 @@ export interface CityChallenge {
   at: LonLat
 }
 
-/** Name the country highlighted on the globe. */
+/** Name the country (or state/province when `packId` is set) highlighted on the globe. */
 export interface IdentifyChallenge {
   kind: 'identify'
   countryId: string
@@ -42,6 +44,8 @@ export interface IdentifyChallenge {
    * instead of naming it.
    */
   show?: ChallengeShow
+  /** Set when `countryId` is a state or province inside a subdivision pack (e.g. `"USA"`). */
+  packId?: string
 }
 
 /** Name a country that fits the category, then find it on the globe (Rare Earth). */

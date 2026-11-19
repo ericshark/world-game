@@ -1,5 +1,6 @@
 import { REGIONS } from '../../geo/countries'
 import type { ScoringRegion } from '../../geo/scoring'
+import { SUB_PACK_IDS } from '../../geo/subdivisions'
 import type { Difficulty } from '../core/targets'
 import { DEFAULT_PINPOINT_CONFIG, type PinpointConfig } from '../modes/pinpoint'
 import { readJson, writeJson, type JsonStorage } from './storage'
@@ -51,8 +52,13 @@ export function sanitizePinpointConfig(saved: Partial<PinpointConfig>): Pinpoint
   const d = DEFAULT_PINPOINT_CONFIG
   return {
     region: isRegion(saved.region) ? saved.region : d.region,
+    subPack: oneOf(saved.subPack, SUB_PACK_IDS, d.subPack ?? 'USA'),
     difficulty: oneOf<Difficulty>(saved.difficulty, ['easy', 'normal', 'hard'], d.difficulty),
-    target: oneOf(saved.target, ['countries', 'capitals', 'cities', 'flags'], d.target),
+    target: oneOf(
+      saved.target,
+      ['countries', 'capitals', 'cities', 'flags', 'subdivisions'],
+      d.target,
+    ),
     variant: oneOf(saved.variant, ['find', 'name'], d.variant),
     night: saved.night === true,
     skipMicro: saved.skipMicro === true,

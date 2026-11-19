@@ -6,6 +6,7 @@ import { CameraRig, type CameraFocus } from '../globe/CameraRig'
 import { CountryPaintLayer } from '../globe/CountryPaintLayer'
 import { Globe, type ViewShift } from '../globe/Globe'
 import { Markers } from '../globe/Markers'
+import { SubdivisionVectorLayer } from '../globe/SubdivisionVectorLayer'
 import {
   cosmeticById,
   GLOWS,
@@ -79,6 +80,15 @@ export default function GlobeView({
           countries={geo.countries}
           paints={pulsePaints(scene.pulses)}
           effect="pulse"
+        />
+      )}
+      {scene.subPack && (
+        <SubdivisionVectorLayer
+          packId={scene.subPack.id}
+          paints={scene.subPack.paints}
+          pulses={scene.subPack.pulses}
+          showBorders={showBorders}
+          night={surface === 'night'}
         />
       )}
       <Markers

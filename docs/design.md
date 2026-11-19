@@ -110,6 +110,12 @@ Pinpoint's setup combines a few choices:
   across 70 countries, lazy-loaded). Scored like capitals (25 km bullseye; 0 at 1,000 km, 750 km or
   500 km by region), with "in Country" shown in the prompt. "Practise my weak cities" targets weak
   cities in the pool, and "Skip micro-states" is hidden.
+- **States & provinces** (Find it and Name it). One lazy pack per country in
+  `public/data/sub/<ID>.json` (United States, Canada, Mexico, Brazil, Australia, India, China and
+  Germany). Shapes and internal borders are drawn as 3D vectors so small states stay sharp at high
+  zoom, and the zero-points distance scales with the country's size (from 350 km in Germany to
+  ~1,200 km in Canada and the United States). "Practise my weak states & provinces" weights by
+  per-place stats, and "Skip micro-states" is hidden.
 - **Difficulty.**
   - Easy keeps the better-known half of the region (at least 12 countries), scores with
     zero-point distances ×1.4, and offers 4 multiple-choice answers in Name It.
@@ -295,6 +301,27 @@ load on demand so players can learn cities beyond capitals without inflating fir
 - **Mastery & Passport.** City stats are kept in `profile.places` (`city:<id>`, capped at 600) under
   skill `'city'`, leaving Found, Mastered, Expert, world knowledge and mix-up confusions unchanged.
   Cities are not in battles, dailies or ranked play.
+
+### States and provinces
+
+Natural Earth 1:10m admin-1 states, provinces and territories are compiled by
+`scripts/build-subdivisions.mjs` into one lazy pack per country in `public/data/sub/<ID>.json`
+(United States 51, Canada 13, Mexico 32, Brazil 27, Australia 8, India 36, China 31, Germany 16).
+
+- **Evaluator & scoring.** Each pack loads into its own `CountryIndex` and `NameMatcher` behind the
+  `PlacePack` interface, so `evaluateLocate`, `evaluateIdentify`, `nameChoices` and
+  `weightByDifficulty` run unchanged. Zero-points distance scales with the country's total area
+  (350 km in Germany up to ~1,200 km in Canada and the United States).
+- **Vector rendering.** At high zoom the 4096 px (2048 px on phones) equirectangular paint texture
+  only gives a few pixels to small states (Saarland, Bremen, Rhode Island), so
+  `SubdivisionVectorLayer` draws pack fills, outlines and internal borders as 3D vector meshes and
+  lines directly on the sphere.
+- **Surfaces.** Pinpoint adds a **States & provinces** target (Find it and Name it) with a country
+  picker. Learn adds a **States & provinces** course switch with a country picker, per-pack progress
+  and subregional lessons (study step with vector borders and neighbours, then quiz).
+- **Mastery.** Stats live in `profile.places` (`sub:<pack>:<unit>`), feeding due reviews without
+  affecting country Found, Mastered, Expert or world knowledge. Not in battles, dailies or ranked
+  play.
 
 ## Progression
 

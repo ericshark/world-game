@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { loadTestCities, loadTestGeoData } from '../../test/loadTestCountries'
+import {
+  loadTestCities,
+  loadTestGeoData,
+  loadTestSubdivisionPack,
+} from '../../test/loadTestCountries'
 import {
   evaluateCapital,
   evaluateChallenge,
@@ -12,6 +16,8 @@ import {
 
 const geo = loadTestGeoData()
 const cities = loadTestCities()
+const usa = loadTestSubdivisionPack('USA')
+const deu = loadTestSubdivisionPack('DEU')
 const world = { region: 'World' as const, cutoffScale: 1 }
 
 describe('evaluateLocate', () => {
@@ -147,6 +153,50 @@ describe('evaluateCity', () => {
       kind: 'missed',
       targetId: 'city:aus-sydney',
       points: 0,
+      hit: false,
+    })
+  })
+})
+
+describe('subdivision pack evaluation', () => {
+  it('evaluates locate and identify unchanged on a SubdivisionPack and scales zero-points distance', () => {
+    const caLabel = usa.factsOf('US-CA').label
+    const hit = evaluateChallenge(
+      geo,
+      { kind: 'locate', countryId: 'US-CA', packId: 'USA' },
+      { pin: caLabel, at: 1 },
+      { region: 'North America', cutoffScale: 1, zeroPointsKm: usa.zeroPointsKm },
+      usa,
+    )
+    expect(hit).toMatchObject({
+      kind: 'locate',
+      targetId: 'US-CA',
+      clickedId: 'US-CA',
+      points: 1000,
+      hit: true,
+    })
+
+    // A miss 400 km away scores partial points in USA (cutoff ~1,169 km) but 0 in Germany (cutoff 350 km).
+    const missUsa = evaluateLocate(usa, 'US-CA', usa.factsOf('US-UT').label, {
+      region: 'North America',
+      cutoffScale: 1,
+      zeroPointsKm: usa.zeroPointsKm,
+    })
+    expect(missUsa.clickedId).toBe('US-UT')
+    expect(missUsa.points).toBeGreaterThan(0)
+
+    const missDeu = evaluateLocate(deu, 'DE-BY', deu.factsOf('DE-SH').label, {
+      region: 'Europe',
+      cutoffScale: 1,
+      zeroPointsKm: deu.zeroPointsKm,
+    })
+    expect(missDeu.clickedId).toBe('DE-SH')
+    expect(missDeu.points).toBe(0)
+
+    // Neighbor credit works inside a subdivision pack too.
+    expect(evaluateIdentify(deu, 'DE-BY', 'DE-BW', false)).toMatchObject({
+      verdict: 'neighbor',
+      points: NEIGHBOR_POINTS,
       hit: false,
     })
   })

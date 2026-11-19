@@ -1,13 +1,34 @@
 import type { GeoData } from '../../geo/facts'
+import type { SubPackId, SubdivisionPack } from '../../geo/subdivisions'
 import { explainAnswer, rarityTier } from '../../game/core/categories'
 import type { Challenge, RoundResult } from '../../game/core/types'
 import type { Units } from '../../game/profile/settings'
 import { formatDistance } from '../../screens/format'
 import { gradeOf } from '../../ui/grades'
 
+function resolveName(
+  id: string,
+  challenge: Challenge | undefined,
+  geo: GeoData,
+  subdivisions?: Partial<Record<SubPackId, SubdivisionPack>>,
+): string {
+  const packId =
+    challenge && (challenge.kind === 'locate' || challenge.kind === 'identify') && challenge.packId
+      ? (challenge.packId as SubPackId)
+      : undefined
+  const pack = packId ? subdivisions?.[packId] : undefined
+  if (pack && pack.countries.get(id)) return pack.nameOf(id)
+  return geo.nameOf(id)
+}
+
 /** The headline of a round's reveal. */
-export function verdictOf(result: RoundResult, challenge: Challenge, geo: GeoData) {
-  const nameOf = (id: string) => geo.nameOf(id)
+export function verdictOf(
+  result: RoundResult,
+  challenge: Challenge,
+  geo: GeoData,
+  subdivisions?: Partial<Record<SubPackId, SubdivisionPack>>,
+) {
+  const nameOf = (id: string) => resolveName(id, challenge, geo, subdivisions)
   if (challenge.kind === 'category') {
     if (result.kind !== 'category') return <>Time ran out before you answered</>
     const name = nameOf(result.answerId)
@@ -104,7 +125,14 @@ export function verdictOf(result: RoundResult, challenge: Challenge, geo: GeoDat
 }
 
 /** The line under the headline. */
-export function detailOf(result: RoundResult, geo: GeoData, units: Units): string | null {
+export function detailOf(
+  result: RoundResult,
+  geo: GeoData,
+  units: Units,
+  challenge?: Challenge,
+  subdivisions?: Partial<Record<SubPackId, SubdivisionPack>>,
+): string | null {
+  const nameOf = (id: string) => resolveName(id, challenge, geo, subdivisions)
   switch (result.kind) {
     case 'missed':
       return 'Time ran out before you answered'
@@ -120,11 +148,11 @@ export function detailOf(result: RoundResult, geo: GeoData, units: Units): strin
     }
     case 'capital':
     case 'city': {
-      const where = result.clickedId ? `in ${geo.nameOf(result.clickedId)}` : 'in the ocean'
+      const where = result.clickedId ? `in ${nameOf(result.clickedId)}` : 'in the ocean'
       return `${formatDistance(result.distanceKm, units)} away · your pin was ${where}`
     }
     case 'locate': {
-      const from = `${formatDistance(result.distanceKm, units)} from ${geo.nameOf(result.targetId)}`
+      const from = `${formatDistance(result.distanceKm, units)} from ${nameOf(result.targetId)}`
       if (!result.hit) return from
       return result.distanceKm > 0 ? `Close enough: ${from}` : null
     }
@@ -132,17 +160,24 @@ export function detailOf(result: RoundResult, geo: GeoData, units: Units): strin
 }
 
 /** A round in the results list. */
-export function roundRow(challenge: Challenge, result: RoundResult, geo: GeoData, units: Units) {
+export function roundRow(
+  challenge: Challenge,
+  result: RoundResult,
+  geo: GeoData,
+  units: Units,
+  subdivisions?: Partial<Record<SubPackId, SubdivisionPack>>,
+) {
+  const nameOf = (id: string) => resolveName(id, challenge, geo, subdivisions)
   if (challenge.kind === 'category') {
     return {
       label: challenge.category.prompt.replace(/^Name /, ''),
       detail:
         result.kind === 'category'
-          ? `${geo.nameOf(result.answerId)} · ${gradeOf(result).label}`
+          ? `${nameOf(result.answerId)} · ${gradeOf(result).label}`
           : "Time's up",
     }
   }
-  const name = geo.nameOf(challenge.countryId)
+  const name = nameOf(challenge.countryId)
   const label =
     challenge.kind === 'capital'
       ? `${geo.factsOf(challenge.countryId).capitals[0].name}, ${name}`

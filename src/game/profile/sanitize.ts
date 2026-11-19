@@ -18,7 +18,7 @@ const MODES: readonly ModeId[] = [
 ]
 const SKILLS: readonly Skill[] = ['locate', 'capital', 'name', 'flag', 'city', 'recall', 'visit']
 const COUNTRY_ID = /^[A-Z0-9]{2,8}$/
-const PLACE_KEY = /^[a-z]+:[a-z0-9][a-z0-9-]{0,60}$/
+const PLACE_KEY = /^[a-z]+:[a-z0-9][a-z0-9:-]{0,60}$/
 const DATE_KEY = /^\d{4}-\d{2}-\d{2}$/
 
 /** The most entries any one table may hold; far more than a real profile ever reaches. */
