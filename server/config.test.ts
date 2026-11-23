@@ -41,4 +41,12 @@ describe('config', () => {
     expect(() => loadConfig({ NODE_ENV: 'production' })).toThrow(/DAILY_SECRET/)
     expect(loadConfig({ NODE_ENV: 'production', DAILY_SECRET: 'x' }).production).toBe(true)
   })
+
+  it('rejects non-http PUBLIC_ORIGIN values', () => {
+    expect(() => loadConfig({ PUBLIC_ORIGIN: 'javascript:alert(1)' })).toThrow(/PUBLIC_ORIGIN/)
+    expect(() => loadConfig({ PUBLIC_ORIGIN: 'not a url' })).toThrow()
+    expect(loadConfig({ PUBLIC_ORIGIN: 'https://play.example.com/some/path' }).publicOrigin).toBe(
+      'https://play.example.com',
+    )
+  })
 })

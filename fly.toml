@@ -8,7 +8,7 @@ primary_region = 'iad'
 
 [build.args]
   # Shown on the privacy page so people can ask about their data. Built into the site.
-  VITE_PRIVACY_CONTACT = 'privacy@example.com'
+  VITE_PRIVACY_CONTACT = 'ericzwierzynski1@gmail.com'
 
 [env]
   NODE_ENV = 'production'

@@ -1,4 +1,5 @@
 import type { GeoData } from '../src/geo/facts'
+import { randomToken, tokensEqual } from './auth/tokens'
 import { describeError, log } from './log'
 import {
   battle,
@@ -95,7 +96,7 @@ export class Room {
   join(name: string, looks: Looks, token: string | undefined, send: Send) {
     this.lastActivity = this.now()
     this.prune()
-    const returning = token ? this.members.find((m) => m.token === token) : undefined
+    const returning = token ? this.members.find((m) => tokensEqual(m.token, token)) : undefined
     if (returning) {
       // A second tab with the same seat takes it over; the first is told it has moved.
       if (returning.send && returning.send !== send) {
@@ -112,7 +113,7 @@ export class Room {
       name,
       ...looks,
       color: this.uniqueColor(looks.color),
-      token: randomSeed() + randomSeed(),
+      token: randomToken(),
       send,
       leftAt: null,
       ready: false,
@@ -169,7 +170,7 @@ export class Room {
           this.members.splice(this.members.indexOf(target), 1)
         } else {
           // Mid-game the seat stays in the scores, but nobody can play from it again.
-          Object.assign(target, { send: null, leftAt: this.now(), token: randomSeed() })
+          Object.assign(target, { send: null, leftAt: this.now(), token: randomToken() })
         }
         break
       }

@@ -1,7 +1,7 @@
 // Builds the globe textures in public/textures/ from NASA imagery (public domain):
-// - earth.jpg: Blue Marble Next Generation, cloud-free true colour with shaded topography and
+// - earth.webp: Blue Marble Next Generation, cloud-free true colour with shaded topography and
 //   bathymetry, December 2004.
-// - night.jpg: Black Marble 2016, city lights at night, for the Night Earth modifier.
+// - night.webp: Black Marble 2016, city lights at night, for the Night Earth modifier.
 // Each comes in a full and a 4096-wide "-4k" version for phones and smaller GPUs.
 // Run with `npm run build:texture`. Raw downloads are cached in .cache/.
 import { execFileSync } from 'node:child_process'
@@ -33,11 +33,11 @@ for (const source of SOURCES) {
     execFileSync('curl', ['-sSLf', '-o', source.cache, source.url], { stdio: 'inherit' })
   }
   for (const [suffix, width] of Object.entries(WIDTHS)) {
-    const output = `public/textures/${source.name}${suffix}.jpg`
+    const output = `public/textures/${source.name}${suffix}.webp`
     // The sources are larger than sharp's default pixel limit.
     await sharp(source.cache, { limitInputPixels: false })
       .resize(width, width / 2)
-      .jpeg({ quality: 85, mozjpeg: true })
+      .webp({ quality: 80, effort: 5 })
       .toFile(output)
     const sizeMb = (statSync(output).size / 1024 / 1024).toFixed(1)
     console.log(`Wrote ${output} (${width}x${width / 2}, ${sizeMb} MB)`)

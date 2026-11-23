@@ -186,9 +186,26 @@ describe('http', () => {
         (await fetch(`${base}/admin/counters`, { headers: { authorization: 'Bearer nope!' } }))
           .status,
       ).toBe(404)
-      const counters = await (
-        await fetch(`${base}/admin/counters`, { headers: { authorization: 'Bearer sesame' } })
-      ).json()
+      // Must require an explicit Bearer prefix and handle multi-byte UTF-8 safely.
+      expect(
+        (await fetch(`${base}/admin/counters`, { headers: { authorization: 'sesame' } })).status,
+      ).toBe(404)
+      expect(
+        (
+          await fetch(`${base}/admin/counters`, {
+            headers: { authorization: `Bearer ${encodeURIComponent('ä'.repeat(6))}` },
+          })
+        ).status,
+      ).toBe(404)
+      const { tokensEqual } = await import('./auth/tokens')
+      expect(tokensEqual('sesame', 'ä'.repeat(6))).toBe(false)
+      expect(tokensEqual('sesame', 'sesame')).toBe(true)
+
+      const res = await fetch(`${base}/admin/counters`, {
+        headers: { authorization: 'Bearer sesame' },
+      })
+      expect(res.headers.get('cache-control')).toBe('no-store')
+      const counters = await res.json()
       expect(counters).toMatchObject({ rooms: 0, sockets: 0, queued: 0, players: 0, matches: 0 })
       expect(counters.memoryMB).toBeGreaterThan(0)
     } finally {
@@ -216,7 +233,7 @@ describe('http', () => {
     const json = JSON.stringify({ countries: 'x'.repeat(5000) })
     writeFileSync(join(dist, 'data', 'countries.json'), json)
     writeFileSync(join(dist, 'data', 'countries.json.br'), brotliCompressSync(Buffer.from(json)))
-    writeFileSync(join(dist, 'textures', 'earth.jpg'), 'pretend image')
+    writeFileSync(join(dist, 'textures', 'earth.webp'), 'pretend image')
     const site = await startServer({
       config: loadConfig(
         {},
@@ -243,13 +260,19 @@ describe('http', () => {
       expect(await plain.text()).toBe(json)
 
       expect(
-        (await fetch(`${base}/textures/earth.jpg?v=abc`)).headers.get('cache-control'),
+        (await fetch(`${base}/textures/earth.webp?v=abc`)).headers.get('cache-control'),
       ).toMatch(/immutable/)
       // A path that climbs out of the site folder gets the page, never another file.
       const climb = await fetch(`${base}/..%2f..%2fetc%2fpasswd`, {
         headers: { 'accept-encoding': 'br' },
       })
       expect(await climb.text()).not.toMatch(/root:/)
+
+      // Malformed URI sequences do not crash precompressed middleware with 500.
+      const malformed = await fetch(`${base}/%E0%A4%A.js`, {
+        headers: { 'accept-encoding': 'br' },
+      })
+      expect(malformed.status).toBe(404)
     } finally {
       await site.close()
       rmSync(dist, { recursive: true, force: true })
@@ -267,6 +290,7 @@ describe('http', () => {
       '<title>World Game</title><meta property="og:url" content="%PUBLIC_ORIGIN%/" />',
     )
     writeFileSync(join(dist, 'assets', 'app-abc123.js'), 'console.log(1)')
+    writeFileSync(join(dist, 'sw.js'), 'self.addEventListener("fetch", () => {})')
     const site = await startServer({
       config: loadConfig(
         {},
@@ -293,6 +317,10 @@ describe('http', () => {
       expect(script.headers.get('cache-control')).toMatch(/immutable/)
       expect(await (await fetch(`${base}/some/deep/link`)).text()).toContain('World Game')
       expect((await fetch(`${base}/api/nothing`)).status).toBe(404)
+      const sw = await fetch(`${base}/sw.js`)
+      expect(sw.status).toBe(200)
+      expect(sw.headers.get('cache-control')).toBe('no-cache')
+      expect(sw.headers.get('content-type')).toMatch(/javascript/)
       // A file that does not exist is not a screen of the app.
       expect((await fetch(`${base}/assets/missing.js`)).status).toBe(404)
     } finally {

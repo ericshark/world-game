@@ -15,6 +15,8 @@ services:
         value: '1'
       - key: CLIENT_IP_HEADER
         value: cf-connecting-ip
+      - key: VITE_PRIVACY_CONTACT
+        value: ericzwierzynski1@gmail.com
       # Backups (docs/deployment.md). Set all four in Render's dashboard; while the URL is empty
       # the server runs without them and its data does not survive a restart.
       - key: LITESTREAM_REPLICA_URL

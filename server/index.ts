@@ -14,6 +14,7 @@ import { openDatabase } from './db'
 import { describeError, log } from './log'
 import { AuthStore } from './auth/store'
 import { attachRealtime } from './realtime'
+import { UsageStore } from './usage'
 
 export { DEFAULT_PORT }
 
@@ -49,6 +50,7 @@ export async function startServer({
   oauth?: Map<OAuthProviderId, OAuthProvider>
 } = {}): Promise<RunningServer> {
   const db = openDatabase(config.databasePath)
+  const usage = new UsageStore(db, now)
   let realtime: ReturnType<typeof attachRealtime> | null = null
   // Email sign-in is offered only when mail can go out: through Resend, or in development to
   // the local mailbox.
@@ -70,6 +72,7 @@ export async function startServer({
     roomCount: () => realtime?.roomCount() ?? 0,
     stats: () => realtime?.stats() ?? { rooms: 0, sockets: 0, queued: 0 },
     now,
+    usage,
     mailer: chosenMailer,
     devMailbox: chosenMailer instanceof DevMailer ? chosenMailer.outbox : null,
     oauth,
@@ -82,7 +85,7 @@ export async function startServer({
     })
     server.once('error', reject)
   })
-  realtime = attachRealtime(http, geo, { db, config, now })
+  realtime = attachRealtime(http, geo, { db, config, now, usage })
   const pruner = setInterval(() => new AuthStore(db, now).pruneAnonymous(), PRUNE_EVERY_MS)
   pruner.unref()
   const address = http.address()

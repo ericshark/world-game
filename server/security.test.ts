@@ -261,4 +261,58 @@ describe('abuse limits', () => {
     for (let i = 0; i < 400; i++) player.send({ t: 'ping', sentAt: i })
     expect(await player.closed).toBe(1008)
   })
+
+  it('ignores malformed session cookies on WebSocket upgrades without crashing', async () => {
+    await boot()
+    const player = await connect({ cookie: 'wg_session=%E0%A4%A' })
+    expect(player.outcome).toBe('open')
+    player.send({ t: 'ping', sentAt: 1 })
+    await wait(50)
+    expect(player.messages.some((m) => m.t === 'pong')).toBe(true)
+    player.socket.close()
+    // Health endpoint confirms the server stayed alive.
+    expect((await fetch(`${base()}/health`)).status).toBe(200)
+  })
+
+  it('drops a player from the duel queue if they create or join a private room', async () => {
+    await boot()
+    const session = await fetch(`${base()}/api/session`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: '{}',
+    })
+    const cookie = session.headers.getSetCookie()[0].split(';')[0]
+    const player = await connect({ cookie })
+    expect(player.outcome).toBe('open')
+    player.send({ t: 'queue', name: 'Ana', color: '#ff6b6b' })
+    await wait(50)
+    expect(player.messages.some((m) => m.t === 'queue')).toBe(true)
+
+    player.send({ t: 'create', name: 'Ana', color: '#ff6b6b' })
+    await wait(100)
+    const countersRes = await fetch(`${base()}/health`)
+    expect(countersRes.status).toBe(200)
+    // Verify the player is no longer queued by asking for queue-bot after closing or checking a second queued player doesn't pair.
+    const benSession = await fetch(`${base()}/api/session`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: '{}',
+    })
+    const benCookie = benSession.headers.getSetCookie()[0].split(';')[0]
+    const ben = await connect({ cookie: benCookie })
+    ben.send({ t: 'queue', name: 'Ben', color: '#5ad1ff' })
+    await wait(100)
+    // Ben should still only see 'searching' (never paired with Ana who moved to a private room).
+    expect(ben.messages.filter((m) => m.t === 'welcome')).toHaveLength(0)
+    player.socket.close()
+    ben.socket.close()
+  })
+
+  it('caps RateLimiter memory under a flood of unique keys', async () => {
+    const { RateLimiter } = await import('./auth/rateLimit')
+    const limiter = new RateLimiter(5, 60_000, () => 1_000_000)
+    for (let i = 0; i < 20_500; i++) limiter.take(`ip-${i}`)
+    const hits = (limiter as unknown as { hits: Map<string, number[]> }).hits
+    expect(hits.size).toBeLessThanOrEqual(10_500)
+  })
 })

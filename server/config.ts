@@ -50,6 +50,14 @@ function oauth(env: Env, prefix: 'GOOGLE' | 'GITHUB'): OAuthCredentials | null {
   return clientId && clientSecret ? { clientId, clientSecret } : null
 }
 
+function normalizeOrigin(raw: string): string {
+  const url = new URL(raw)
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+    throw new Error(`PUBLIC_ORIGIN must use http or https: ${raw}`)
+  }
+  return url.origin
+}
+
 /** Reads the server's settings from environment variables, with local-development defaults. */
 export function loadConfig(env: Env = process.env, overrides: Partial<ServerConfig> = {}) {
   const production = env.NODE_ENV === 'production'
@@ -57,14 +65,13 @@ export function loadConfig(env: Env = process.env, overrides: Partial<ServerConf
   if (production && !env.DAILY_SECRET) {
     throw new Error('DAILY_SECRET must be set in production.')
   }
+  const rawOrigin =
+    overrides.publicOrigin ??
+    (env.PUBLIC_ORIGIN || env.RENDER_EXTERNAL_URL || `http://localhost:${port}`)
   const config: ServerConfig = {
     port,
     host: env.HOST ?? '0.0.0.0',
-    publicOrigin: (
-      env.PUBLIC_ORIGIN ??
-      env.RENDER_EXTERNAL_URL ??
-      `http://localhost:${port}`
-    ).replace(/\/$/, ''),
+    publicOrigin: normalizeOrigin(rawOrigin),
     databasePath: env.DATABASE_PATH ?? 'data-local/world-game.sqlite',
     // A random secret in development means dailies change on every restart, which is fine there.
     dailySecret: env.DAILY_SECRET ?? randomBytes(32).toString('hex'),
@@ -84,6 +91,7 @@ export function loadConfig(env: Env = process.env, overrides: Partial<ServerConf
     magicLinksPerIpPerHour: Number(env.MAGIC_LINKS_PER_IP_PER_HOUR ?? 10),
     production,
     ...overrides,
+    ...(overrides.publicOrigin ? { publicOrigin: normalizeOrigin(overrides.publicOrigin) } : {}),
   }
   return config
 }

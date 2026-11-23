@@ -37,7 +37,7 @@ const title = Buffer.from(`
     <text x="76" y="368" font-family="Arial, Helvetica, sans-serif" font-size="38" fill="#9aaccb">Find every country on a spinning Earth</text>
     <text x="76" y="560" font-family="Arial, Helvetica, sans-serif" font-size="30" fill="#ffd54a">Daily puzzles · Duels · Journeys</text>
   </svg>`)
-await sharp(new URL('../public/textures/earth-4k.jpg', import.meta.url).pathname)
+await sharp(new URL('../public/textures/earth-4k.webp', import.meta.url).pathname)
   .resize(1200, 630, { fit: 'cover', position: 'centre' })
   .composite([{ input: title }])
   .jpeg({ quality: 82 })

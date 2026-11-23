@@ -1,3 +1,4 @@
+import { randomInt } from 'node:crypto'
 import type { IncomingMessage, Server } from 'node:http'
 import { WebSocketServer, type WebSocket } from 'ws'
 import type { GeoData } from '../src/geo/facts'
@@ -9,6 +10,7 @@ import type { ServerConfig } from './config'
 import { RateLimiter } from './auth/rateLimit'
 import { Room } from './room'
 import { clientIp, originAllowed } from './security'
+import { UsageStore } from './usage'
 
 const SESSION_COOKIE = 'wg_session'
 const MATCH_TICK_MS = 1000
@@ -47,11 +49,27 @@ export interface Realtime {
 export function attachRealtime(
   http: Server,
   geo: GeoData,
-  { db, config, now = Date.now }: { db: Database; config: ServerConfig; now?: () => number },
+  {
+    db,
+    config,
+    now = Date.now,
+    usage = new UsageStore(db, now),
+  }: { db: Database; config: ServerConfig; now?: () => number; usage?: UsageStore },
 ): Realtime {
   const rooms = new Map<string, Room>()
   const store = new AuthStore(db, now)
-  const matchmaker = new Matchmaker({ db, geo, now, createRoom: () => createRoom(rooms, geo, now) })
+  const makeRoom = () => {
+    const room = createRoom(rooms, geo, now)
+    usage.record('room:created')
+    return room
+  }
+  const matchmaker = new Matchmaker({
+    db,
+    geo,
+    now,
+    createRoom: () => (rooms.size >= MAX_OPEN_ROOMS ? null : makeRoom()),
+    onPair: () => usage.record('duel:matched'),
+  })
   const matchTimer = setInterval(() => matchmaker.tick(), MATCH_TICK_MS)
   const sockets = new WebSocketServer({
     server: http,
@@ -155,8 +173,7 @@ export function attachRealtime(
         } else if (!failedJoins.allows(ip)) {
           return send({ t: 'error', message: 'Too many wrong codes. Wait a minute and try again.' })
         }
-        const target =
-          message.t === 'create' ? createRoom(rooms, geo, now) : rooms.get(message.code)
+        const target = message.t === 'create' ? makeRoom() : rooms.get(message.code)
         if (!target) {
           failedJoins.take(ip)
           return send({ t: 'error', message: 'No room with that code.', code: 'no-room' })
@@ -166,6 +183,7 @@ export function attachRealtime(
         const problem = target.join(message.name, looks, token, send)
         // A failed join keeps the seat this player already has.
         if (problem) return send({ t: 'error', message: problem })
+        matchmaker.drop(send)
         if (room && room !== target) room.disconnect(send)
         room = target
         return
@@ -175,7 +193,9 @@ export function attachRealtime(
     })
 
     socket.on('close', () => {
-      connectionsByIp.set(ip, Math.max(0, (connectionsByIp.get(ip) ?? 1) - 1))
+      const nextOpen = (connectionsByIp.get(ip) ?? 1) - 1
+      if (nextOpen <= 0) connectionsByIp.delete(ip)
+      else connectionsByIp.set(ip, nextOpen)
       matchmaker.drop(send)
       room?.disconnect(send)
     })
@@ -216,7 +236,12 @@ function playerOf(request: IncomingMessage, store: AuthStore): PlayerRow | null 
   const match = new RegExp(`(?:^|;\\s*)${SESSION_COOKIE}=([^;]+)`).exec(
     request.headers.cookie ?? '',
   )
-  return match ? store.playerForSession(decodeURIComponent(match[1])) : null
+  if (!match) return null
+  try {
+    return store.playerForSession(decodeURIComponent(match[1]))
+  } catch {
+    return null
+  }
 }
 
 function createRoom(rooms: Map<string, Room>, geo: GeoData, now: () => number): Room {
@@ -224,7 +249,7 @@ function createRoom(rooms: Map<string, Room>, geo: GeoData, now: () => number): 
   do {
     code = Array.from(
       { length: ROOM_CODE_LENGTH },
-      () => CODE_LETTERS[Math.floor(Math.random() * CODE_LETTERS.length)],
+      () => CODE_LETTERS[randomInt(CODE_LETTERS.length)],
     ).join('')
   } while (rooms.has(code) || RESERVED_CODES.has(code))
   const room = new Room(code, geo, now)

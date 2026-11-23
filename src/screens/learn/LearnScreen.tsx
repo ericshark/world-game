@@ -71,9 +71,9 @@ export function LearnScreen({ onClose }: { onClose: () => void }) {
         <header className="passport__header">
           <div>
             <p className="eyebrow">Your course</p>
-            <h2 className="passport__rank" id="learn-title">
+            <h1 className="passport__rank" id="learn-title">
               Learn the world
-            </h2>
+            </h1>
           </div>
           <button type="button" className="icon-button" onClick={onClose} aria-label="Close">
             <Icon name="close" />

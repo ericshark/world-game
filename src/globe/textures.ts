@@ -15,7 +15,7 @@ export function prefersSmallTextures(maxTextureSize: number): boolean {
 
 export function textureUrl(surface: Surface, small: boolean): string {
   const version = import.meta.env.VITE_ASSET_VERSION ?? 'dev'
-  return `${BASE}${surface === 'night' ? 'night' : 'earth'}${small ? '-4k' : ''}.jpg?v=${version}`
+  return `${BASE}${surface === 'night' ? 'night' : 'earth'}${small ? '-4k' : ''}.webp?v=${version}`
 }
 
 /**

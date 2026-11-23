@@ -292,10 +292,17 @@ describe('cloud profile', () => {
     expect(json.version).toBe(1)
   })
 
-  it('refuses a huge profile', async () => {
+  it('refuses a huge profile or invalid baseVersion', async () => {
     const ana = browser()
     await ana.request('/api/session', { body: {} })
     await signInByEmail(ana, 'ana@example.com')
+    for (const baseVersion of [-1, 1.5, NaN]) {
+      const badVersion = await ana.request('/api/profile', {
+        method: 'PUT',
+        body: { baseVersion, profile: emptyProfile() },
+      })
+      expect(badVersion.status).toBe(400)
+    }
     const huge = { ...emptyProfile(), history: Array(40_000).fill({ mode: 'pinpoint', score: 1 }) }
     const response = await ana.request('/api/profile', {
       method: 'PUT',

@@ -14,7 +14,8 @@ export function PrivacyScreen({ onClose }: { onClose: () => void }) {
       <Sheet eyebrow="World Game" title="Privacy" onClose={onClose} wide>
         <div className="legal">
           <p>
-            World Game has no ads, no analytics and no tracking. This page says what it does keep.
+            World Game has no ads, no third-party analytics and no personal tracking. This page says
+            what it does keep.
           </p>
 
           <h3>On your device</h3>
@@ -47,6 +48,11 @@ export function PrivacyScreen({ onClose }: { onClose: () => void }) {
               If the game crashes, your browser sends the error message, where in the code it
               happened, the screen you were on and a short error code, so the problem can be found
               and fixed. Nothing else about you is included.
+            </li>
+            <li>
+              The server keeps plain daily totals of visits, modes played and rooms started (for
+              example, how many Pinpoint games finished today). They are sent without cookies and
+              store no player id or address, so they cannot be tied back to you.
             </li>
             <li>
               The service that hosts the game, and any network in front of it, may log addresses as
@@ -105,9 +111,17 @@ export function CreditsScreen({ onClose }: { onClose: () => void }) {
               Natural Earth. Public domain.
             </li>
             <li>
-              Flags: <a href="https://github.com/lipis/flag-icons">flag-icons</a> by Panayiotis
-              Lipiridis, MIT licence. Copyright (c) 2013 Panayiotis Lipiridis. The full licence text
-              is in <a href={`${import.meta.env.BASE_URL}flags/LICENSE`}>flags/LICENSE</a>.
+              Flags:{' '}
+              <a
+                href="https://github.com/lipis/flag-icons"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                flag-icons
+              </a>{' '}
+              by Panayiotis Lipiridis, MIT licence. Copyright (c) 2013 Panayiotis Lipiridis. The
+              full licence text is in{' '}
+              <a href={`${import.meta.env.BASE_URL}flags/LICENSE`}>flags/LICENSE</a>.
             </li>
             <li>Distances between countries are worked out from those borders.</li>
           </ul>

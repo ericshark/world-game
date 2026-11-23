@@ -144,6 +144,7 @@ need rooms and the queue shared between processes, which is real work and not pl
 | `GOOGLE_*`, `GITHUB_*`        | optional; callbacks `https://your.domain/api/auth/google/callback` and `…/github/callback` |
 | `METRICS_TOKEN`               | opens `/admin/counters` for monitoring                                                     |
 | `LITESTREAM_*`                | the backup bucket (see below)                                                              |
+| `VITE_PRIVACY_CONTACT`        | build-time contact email shown on `/#/privacy` (configured in `render.yaml` & `fly.toml`)  |
 
 ## Deploy on a VM (Hetzner)
 
@@ -226,7 +227,8 @@ and use an R2 API token's key pair.
 - `GET /health` answers while the process is up, `GET /health/ready` also checks the database.
   Point a free uptime monitor (UptimeRobot, Better Stack) at `/health/ready`.
 - `GET /admin/counters` with `Authorization: Bearer $METRICS_TOKEN` returns uptime, rooms, sockets,
-  queue length, players, accounts, daily sessions, matches and memory.
+  queue length, players, accounts, daily sessions, matches, daily `usage` totals (from schema
+  migration #4 `usage_counts`), and memory.
 - Logs are one JSON object per line on standard output (`docker compose logs app`): starts, stops,
   one line per API request (path only, no query string, no email, no address) and errors.
   Browser crashes arrive as `client_error` lines carrying the code the crash page shows the player

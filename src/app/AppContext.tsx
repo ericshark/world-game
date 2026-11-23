@@ -13,6 +13,7 @@ import {
 import { unlockedAt, unlockedBy } from '../game/profile/cosmetics'
 import { recordOutcomes, recordSession, type RecordedSession } from '../game/profile/record'
 import { loadPreferences, savePreferences, type Preferences } from '../game/profile/settings'
+import { recordUsage } from '../net/usage'
 import type { Toast } from '../ui/Toasts'
 import type { Route } from './router'
 import type { AccountServices } from './useAccount'
@@ -86,6 +87,7 @@ export function useStoredState(geo: GeoData | null, notify: (toast: Omit<Toast, 
         if (!geo) throw new Error('Geography is not loaded yet')
         const recorded = recordSession(profileRef.current, summary, geo)
         commitProfile(recorded.profile)
+        recordUsage(`finish:${summary.mode}`)
         for (const toast of rewardToasts(recorded)) notify(toast)
         return recorded
       },

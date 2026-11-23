@@ -1,4 +1,3 @@
-import { timingSafeEqual } from 'node:crypto'
 import { existsSync, readFileSync } from 'node:fs'
 import { extname, relative, resolve } from 'node:path'
 import { Hono } from 'hono'
@@ -6,12 +5,14 @@ import { bodyLimit } from 'hono/body-limit'
 import { serveStatic } from '@hono/node-server/serve-static'
 import type { ServerConfig } from './config'
 import { authRoutes } from './auth/routes'
+import { tokensEqual } from './auth/tokens'
 import { clientErrorRoutes } from './clientErrors'
 import { dailyRoutes } from './daily'
 import { leaderboardRoutes } from './leaderboards'
 import { log } from './log'
 import { precompressed } from './precompressed'
 import { originGuard, securityHeaders } from './security'
+import { UsageStore, usageRoutes } from './usage'
 import type { GeoData } from '../src/geo/facts'
 import type { Mail, Mailer } from './auth/mail'
 import type { OAuthProvider, OAuthProviderId } from './auth/oauth'
@@ -29,6 +30,7 @@ export interface AppContext {
   /** Live figures for the counters endpoint. */
   stats: () => { rooms: number; sockets: number; queued: number }
   now: () => number
+  usage?: UsageStore
   /** Null when email sign-in is not available. */
   mailer: Mailer | null
   /** Sent emails, only when mail is going to the development mailbox. */
@@ -75,13 +77,11 @@ export function createApp(context: AppContext) {
   })
 
   const startedAt = Date.now()
+  const usage = context.usage ?? new UsageStore(context.db, context.now)
   app.get('/admin/counters', (c) => {
     const expected = context.config.metricsToken
-    const given = (c.req.header('authorization') ?? '').replace(/^Bearer\s+/i, '')
-    const same =
-      expected !== null &&
-      given.length === expected.length &&
-      timingSafeEqual(Buffer.from(given), Buffer.from(expected))
+    const match = /^Bearer\s+(.+)$/i.exec(c.req.header('authorization') ?? '')
+    const same = expected !== null && match !== null && tokensEqual(match[1], expected)
     // Closed unless a token is set; and the same answer for a wrong token as for no endpoint.
     if (!same) return c.json({ error: 'Not found.' }, 404)
     const count = (table: string) =>
@@ -93,6 +93,7 @@ export function createApp(context: AppContext) {
       accounts: count('accounts'),
       dailySessions: count('daily_sessions'),
       matches: count('matches'),
+      usage: usage.summary(),
       memoryMB: Math.round(process.memoryUsage().rss / 1e6),
     })
   })
@@ -102,6 +103,7 @@ export function createApp(context: AppContext) {
   dailyRoutes(api, context, auth)
   leaderboardRoutes(api, context, auth)
   clientErrorRoutes(api, context)
+  usageRoutes(api, context, usage)
   app.route('/api', api)
   app.all('/api/*', (c) => c.json({ error: 'Not found.' }, 404))
 

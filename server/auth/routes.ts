@@ -8,6 +8,7 @@ import { checkNickname } from './nickname'
 import { generateCodeVerifier, generateState, type OAuthProviderId } from './oauth'
 import { RateLimiter } from './rateLimit'
 import { AuthStore, SESSION_MS, type PlayerRow } from './store'
+import { tokensEqual } from './tokens'
 
 const SESSION_COOKIE = 'wg_session'
 const OAUTH_COOKIE = 'wg_oauth'
@@ -33,6 +34,7 @@ export function authRoutes(
   const secure = config.publicOrigin.startsWith('https:')
   const perEmail = new RateLimiter(3, 15 * 60_000, now)
   const perIp = new RateLimiter(config.magicLinksPerIpPerHour, 60 * 60_000, now)
+  const magicVerifies = new RateLimiter(30, 15 * 60_000, now)
   const newSessions = new RateLimiter(config.newSessionsPerIpPerHour, 60 * 60_000, now)
   const nicknameChanges = new RateLimiter(10, 60_000, now)
   const ipOf = (c: Context) => clientIp(c.req.header(), getConnInfo(c).remote.address, config)
@@ -137,6 +139,9 @@ export function authRoutes(
   })
 
   api.post('/auth/magic/verify', async (c) => {
+    if (!magicVerifies.take(ipOf(c))) {
+      return c.json({ error: 'Too many sign-in attempts. Try again later.' }, 429)
+    }
     const current = signedIn(c)
     if (!current) return c.json({ error: 'Start a session first.' }, 401)
     const token = (await body(c)).token
@@ -165,8 +170,10 @@ export function authRoutes(
   })
 
   api.get('/auth/:provider/callback', async (c) => {
+    const clearOAuth = () =>
+      deleteCookie(c, OAUTH_COOKIE, { path: '/api/auth', secure, sameSite: 'Lax' })
     const failure = (reason: string) => {
-      deleteCookie(c, OAUTH_COOKIE, { path: '/api/auth' })
+      clearOAuth()
       return c.redirect(`${config.publicOrigin}/#/settings?signin=${encodeURIComponent(reason)}`)
     }
     const provider = oauth.get(c.req.param('provider') as OAuthProviderId)
@@ -178,13 +185,15 @@ export function authRoutes(
       // No usable cookie: handled as a failed check below.
     }
     const code = c.req.query('code')
+    const state = c.req.query('state')
     if (
       !provider ||
       !current ||
       !code ||
+      !state ||
       saved.provider !== provider.id ||
       !saved.state ||
-      saved.state !== c.req.query('state') ||
+      !tokensEqual(saved.state, state) ||
       !saved.verifier
     ) {
       return failure('failed')
@@ -202,14 +211,14 @@ export function authRoutes(
     } catch {
       return failure('failed')
     }
-    deleteCookie(c, OAUTH_COOKIE, { path: '/api/auth' })
+    clearOAuth()
     return c.redirect(`${config.publicOrigin}/#/settings?signin=ok`)
   })
 
   api.post('/auth/signout', (c) => {
     const token = getCookie(c, SESSION_COOKIE)
     if (token) store.endSession(token)
-    deleteCookie(c, SESSION_COOKIE, { path: '/' })
+    deleteCookie(c, SESSION_COOKIE, { path: '/', secure, sameSite: 'Lax' })
     return c.json({ ok: true })
   })
 
@@ -218,7 +227,7 @@ export function authRoutes(
     const current = signedIn(c)
     if (!current) return c.json({ error: 'Start a session first.' }, 401)
     store.deleteEverything(current.player)
-    deleteCookie(c, SESSION_COOKIE, { path: '/' })
+    deleteCookie(c, SESSION_COOKIE, { path: '/', secure, sameSite: 'Lax' })
     return c.json({ ok: true })
   })
 
@@ -240,14 +249,22 @@ export function authRoutes(
     const accountId = current?.player.accountId
     if (!accountId) return c.json({ error: 'Sign in to sync your progress.' }, 401)
     const text = await c.req.text()
-    if (text.length > MAX_PROFILE_BYTES) return c.json({ error: 'That profile is too large.' }, 413)
+    if (Buffer.byteLength(text) > MAX_PROFILE_BYTES) {
+      return c.json({ error: 'That profile is too large.' }, 413)
+    }
     let data: { baseVersion?: unknown; profile?: unknown }
     try {
       data = JSON.parse(text)
     } catch {
       return c.json({ error: 'Send JSON.' }, 400)
     }
-    if (typeof data.baseVersion !== 'number' || typeof data.profile !== 'object' || !data.profile) {
+    if (
+      typeof data.baseVersion !== 'number' ||
+      !Number.isInteger(data.baseVersion) ||
+      data.baseVersion < 0 ||
+      typeof data.profile !== 'object' ||
+      !data.profile
+    ) {
       return c.json({ error: 'Send a baseVersion and a profile.' }, 400)
     }
     const profile = normalizeProfile(data.profile)

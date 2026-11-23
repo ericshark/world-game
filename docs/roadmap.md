@@ -1,6 +1,6 @@
 # Roadmap
 
-Where World Game 2.0 stands and what comes next. Last updated 2026-11-19. The original v1 build is
+Where World Game 2.0 stands and what comes next. Last updated 2026-11-23. The original v1 build is
 recorded in [history-v1](history-v1.md); design choices are in [decisions](decisions.md).
 
 2.0 turns the game into a geography trainer: optional borders, then learning and review, then
@@ -8,26 +8,24 @@ flags, cities, and states and provinces, then a polish pass. Physical geography 
 
 ## Status
 
-| Milestone | What                                         | Status | Tag      |
-| --------- | -------------------------------------------- | ------ | -------- |
-| v1        | Three-phase launch roadmap                   | Done   | `v1.0.0` |
-| M0        | Production fixes, backups, CI, Dependabot    | Done   | `v2-m0`  |
-| M1        | Optional country borders                     | Done   | `v2-m1`  |
-| M2        | Learn: reviews, lessons, Atlas, exams        | Done   | `v2-m2`  |
-| M3        | Flags                                        | Done   | `v2-m3`  |
-| M4        | Major cities                                 | Done   | `v2-m4`  |
-| M5        | States and provinces (prototype first)       | Done   | `v2-m5`  |
-| M6        | Polish, offline install, launch pass (2.0.0) | Next   |          |
+| Milestone | What                                         | Status | Tag             |
+| --------- | -------------------------------------------- | ------ | --------------- |
+| v1        | Three-phase launch roadmap                   | Done   | `v1.0.0`        |
+| M0        | Production fixes, backups, CI, Dependabot    | Done   | `v2-m0`         |
+| M1        | Optional country borders                     | Done   | `v2-m1`         |
+| M2        | Learn: reviews, lessons, Atlas, exams        | Done   | `v2-m2`         |
+| M3        | Flags                                        | Done   | `v2-m3`         |
+| M4        | Major cities                                 | Done   | `v2-m4`         |
+| M5        | States and provinces (prototype first)       | Done   | `v2-m5`         |
+| M6        | Polish, offline install, launch pass (2.0.0) | Done   | `v2-m6`, v2.0.0 |
 
-The site is live at <https://world-game-0qhx.onrender.com> on Render's free plan (v1.0.0 plus
-commits up to `59b8d3a`). Hosting is deferred; nothing in M3 onward needs it.
+The site is live at <https://world-game-0qhx.onrender.com> on Render's free plan. All v2.0
+milestones (M0–M6) are complete and tagged through `v2.0.0`; hosting upgrades remain deferred.
 
 ## Up next
 
-1. Dependabot PRs #3 (`mapshaper`), #5 (`d3-geo`) and #4 (`prettier`, rebased) are merged.
-2. Tags `v2-m0` to `v2-m3` are pushed. `v2-m4` and `v2-m5` (and M4–M5 on `main`) are local only;
-   push when ready to deploy.
-3. Build M6 (below).
+- World Game 2.0.0 is shipped. Remaining items are optional owner-configured services listed under
+  [Needs the owner](#needs-the-owner) and post-launch tuning once player data arrives.
 
 ## Milestones
 
@@ -117,17 +115,20 @@ deploys to production**, so pushes need approval.
 - Tests: `src/geo/subdivisions.test.ts`, additions to `evaluate.test.ts`, `pinpoint.test.ts` and
   `learn.test.ts`, `e2e/subdivisions.spec.ts`, and `a11y.spec.ts` entries.
 
-### M6. Polish and launch pass (last)
+### M6. Polish and launch pass (Done)
 
 - Home and navigation grouped into Learn, Daily, Play and Compete, using the existing tokens, with
   an `impeccable` critique pass.
-- Offline install: a service worker that precaches the shell, data and phone textures, with an
-  "update available" toast.
-- Lighter imagery (AVIF or WebP) only if `scripts/measure-load.mjs` shows a clear win.
-- First-party, cookie-less usage counts in SQLite, added to `/admin/counters`. Update the privacy
-  page.
-- Accessibility pass on every new screen. Re-measure the table in [performance](performance.md).
-- Update `README`, `design.md` and `decisions.md`. Version 2.0.0.
+- Offline install: build-generated `/sw.js` that precaches the shell, data and 4K WebP textures,
+  with a persistent `popover="manual"` "update available" toast.
+- WebP imagery (`scripts/build-texture.mjs`): `scripts/measure-load.mjs` confirmed first-visit
+  transfer fell from `1.72 MB` to `1.43 MB` and phone load-ready improved to `3,182 ms`.
+- First-party, cookie-less daily usage counts in SQLite (`usage_counts`), added to
+  `/admin/counters` and described on the privacy page.
+- Accessibility pass across Learn, Atlas, Daily, Passport, Settings and phone-landscape Home.
+  Re-measured the table in [performance](performance.md).
+- Updated `README`, `design.md`, `decisions.md`, `performance.md`, `security.md` and
+  `deployment.md`. Version `2.0.0`.
 
 ## Hosting (deferred)
 
@@ -140,8 +141,11 @@ dropped rooms differ. See [deployment](deployment.md).
 - Approve each push to `main` (it deploys) and each Dependabot merge.
 - A Cloudflare R2 bucket, then the four `LITESTREAM_*` values in Render.
 - At least one OAuth app (GitHub or Google) or a Resend sender.
-- Run the `security-review` skill (the repository now has a remote).
-- Set `VITE_PRIVACY_CONTACT` (in `fly.toml` and Render) and have the privacy page reviewed.
+- Whole-repo security review completed (2026-11-23); fixes landed and remaining trade-offs are
+  documented in [security](security.md).
+- `VITE_PRIVACY_CONTACT` is set in `fly.toml` and `render.yaml` (if Render's existing service does
+  not auto-sync Blueprint env vars, ensure `VITE_PRIVACY_CONTACT` is also set in Render's
+  dashboard); have the privacy page text reviewed.
 - Decide later whether certificates should record whether borders were on, for a "borderless seal".
   That needs an extra stored flag.
 - Revisit scoring, the GeoRush ramp, Journey par bands and Duel damage once there is real player

@@ -1,14 +1,14 @@
 {
   "name": "world-game",
   "private": true,
-  "version": "1.0.0",
+  "version": "2.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "server": "tsx server/index.ts",
     "start": "NODE_ENV=production node dist-server/index.js",
     "server:watch": "tsx watch server/index.ts",
-    "build": "tsc -b && vite build && npm run build:server && node scripts/precompress.mjs",
+    "build": "tsc -b && vite build && node scripts/build-sw.mjs && npm run build:server && node scripts/precompress.mjs",
     "build:server": "vite build --ssr server/index.ts --outDir dist-server",
     "lint": "oxlint",
     "preview": "vite preview",

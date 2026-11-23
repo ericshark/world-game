@@ -162,3 +162,36 @@ in the United States and ~1,197 km in Canada). Stats live in `profile.places` un
 `sub:<pack>:<unit>` so country Found, Mastered, Expert and world knowledge stay untouched while due
 state/province reviews join Learn and Home review counts. States and provinces stay out of Daily,
 Battle and Ranked play.
+
+## Polish and launch pass: grouped Home, `/sw.js`, WebP textures, and `usage_counts` (2026-11-23)
+
+- **Grouped Home keeping all sections mounted.** `HomeScreen` groups everything into `Learn` (course
+  progress + Explore the Atlas), `Daily`, `Play` (`Pinpoint` featured + 2×2 grid for `GeoRush`,
+  `Rare Earth`, `Mystery Country`, `World Journey`), and `Compete` (`World Battle` + `Play online`
+  & `Leaderboards`), with `Passport` and `Settings` in the header and a sticky four-button section
+  nav (`Learn` / `Daily` / `Play` / `Compete`). Keeping all four sections mounted avoids hiding
+  routes behind unmounted tab panels so keyboard discovery and existing screen flows keep working on
+  desktop, phone portrait, and phone landscape (`orientation: landscape` and `max-height: 500px`).
+  Flat translucent surface fills replaced nested `backdrop-filter` on `.home-nav` and diagonal card
+  gradients on `.mode-tile` / `.daily-card` after Chromium SwiftShader screenshots revealed a
+  compositor artifact across featured tiles.
+- **Deferred service worker + `popover="manual"` update toast.** `scripts/build-sw.mjs` emits
+  `dist/sw.js` after `vite build`, precaching the app shell, built JS/CSS assets, core JSON data,
+  and 4K WebP textures (`earth-4k.webp` and `night-4k.webp`), while runtime-caching flags,
+  subdivision packs, and 8K textures (capped at 250 entries, falling back to 4K offline).
+  `src/app/serviceWorker.ts` waits until initial country data and the 3D scene settle (`geo &&
+globe.ready`) before registering `/sw.js` so precaching never competes with first-render
+  downloads. When a waiting worker arrives, `Toasts` renders it inside a `popover="manual"` top-layer
+  region paired with an always-mounted `.sr-only` polite live region and explicit **Reload**
+  (`SKIP_WAITING`) and **Dismiss** buttons.
+- **WebP globe textures over JPEG or AVIF.** `scripts/build-texture.mjs` encodes the NASA Blue
+  Marble & Black Marble equirectangular maps to WebP (`quality: 80, effort: 5`: `672 KB` 4K day,
+  `2.4 MB` 8K day, `229 KB` 4K night, `815 KB` 8K night). `scripts/measure-load.mjs` confirmed a
+  drop from `1.72 MB` to `1.43 MB` first-visit transfer (76 ms desktop / 252 ms phone FCP) with fast
+  decode across Chromium and WebKit and none of AVIF's slow software encode cost.
+- **Cookie-less SQLite daily totals (`usage_counts`).** Schema migration #4 adds `usage_counts(day,
+event, count)` in `server/db.ts`. `src/net/usage.ts` posts aggregate lifecycle counts (`visit`,
+  `mode:*`, `finish:*`) with `credentials: 'omit'` while server code increments `room:created` and
+  `duel:matched` directly. `POST /api/usage` (`server/usage.ts`) rate-limits per IP (120/min) and
+  never reads cookies or stores player IDs or addresses; `GET /admin/counters` surfaces totals for
+  operational visibility without third-party analytics.

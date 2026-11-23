@@ -49,6 +49,7 @@ export class ResendMailer implements Mailer {
         subject: mail.subject,
         text: mail.text,
       }),
+      signal: AbortSignal.timeout(10_000),
     })
     if (!response.ok) throw new Error(`Resend refused the email (${response.status}).`)
   }

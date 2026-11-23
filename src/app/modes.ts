@@ -4,6 +4,7 @@ import type { ModeKey } from './router'
 
 export interface ModeInfo {
   key: ModeKey
+  group: 'play' | 'compete'
   title: string
   tagline: string
   icon: IconName
@@ -15,8 +16,9 @@ export interface ModeInfo {
 export const MODES: ModeInfo[] = [
   {
     key: 'pinpoint',
+    group: 'play',
     title: 'Pinpoint',
-    tagline: 'Find countries and capitals on the globe.',
+    tagline: 'Countries, capitals, flags, cities and states.',
     icon: 'pin',
     accent: '#ffd54a',
     howTo: [
@@ -28,24 +30,25 @@ export const MODES: ModeInfo[] = [
       {
         icon: 'pin',
         title: 'Drop your pin',
-        text: 'Tap where you think the country is. Borders are hidden unless you switch them on, so trust your map sense.',
+        text: 'Tap where you think the place is. Borders are hidden unless you switch them on, so trust your map sense.',
       },
       {
         icon: 'check',
         title: 'Confirm',
-        text: 'Press Confirm (or Enter). Inside the country scores 1,000; the closer you are, the more you keep.',
+        text: 'Press Confirm (or Enter). Inside the target scores 1,000; the closer you are, the more you keep.',
       },
       {
         icon: 'search',
-        title: 'Name It and Capitals',
-        text: 'Switch modes in the setup: name a highlighted country, or find capital cities.',
+        title: 'Targets & difficulties',
+        text: 'Pick countries, capitals, flags, major cities, or states & provinces, and tune difficulty or Night Earth.',
       },
     ],
   },
   {
     key: 'rush',
+    group: 'play',
     title: 'GeoRush',
-    tagline: 'As many countries as you can find against the clock.',
+    tagline: 'Race the 60-second clock.',
     icon: 'bolt',
     accent: '#ff9a4a',
     howTo: [
@@ -73,8 +76,9 @@ export const MODES: ModeInfo[] = [
   },
   {
     key: 'rare-earth',
+    group: 'play',
     title: 'Rare Earth',
-    tagline: 'Name the country nobody else would, then find it.',
+    tagline: 'Name a rare answer, then place it.',
     icon: 'gem',
     accent: '#b98aff',
     howTo: [
@@ -97,8 +101,9 @@ export const MODES: ModeInfo[] = [
   },
   {
     key: 'mystery',
+    group: 'play',
     title: 'Mystery Country',
-    tagline: 'Hot or cold? Close in on a hidden country.',
+    tagline: 'Hot or cold? Close in by distance.',
     icon: 'search',
     accent: '#ff6a2b',
     howTo: [
@@ -121,8 +126,9 @@ export const MODES: ModeInfo[] = [
   },
   {
     key: 'journey',
+    group: 'play',
     title: 'World Journey',
-    tagline: 'Cross the world one border at a time.',
+    tagline: 'Cross the world border by border.',
     icon: 'compass',
     accent: '#5aa9ff',
     howTo: [
@@ -150,6 +156,7 @@ export const MODES: ModeInfo[] = [
   },
   {
     key: 'battle',
+    group: 'compete',
     title: 'World Battle',
     tagline: 'Same questions, secret answers, one winner.',
     icon: 'swords',

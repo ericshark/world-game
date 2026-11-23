@@ -28,7 +28,13 @@ export function precompressed(distDir: string): MiddlewareHandler {
     const type = TYPES[extname(path)]
     if (c.req.method !== 'GET' || !type || !/\bbr\b/.test(accepts)) return next()
 
-    const file = normalize(join(root, decodeURIComponent(path)))
+    let decoded: string
+    try {
+      decoded = decodeURIComponent(path)
+    } catch {
+      return next()
+    }
+    const file = normalize(join(root, decoded))
     if (!file.startsWith(root + sep)) return next()
     const compressed = file + BROTLI_EXTENSION
     if (!existsSync(compressed)) return next()

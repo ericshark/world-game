@@ -10,6 +10,9 @@ import {
 } from '../core/rounds'
 import type { CountryOutcome, LocateChallenge, PlayerId } from '../core/types'
 
+/** Seen once the tour has been offered and started, so the home screen stops offering it. */
+export const TOUR_KEY = 'tour'
+
 /** Big, familiar countries on three continents: easy to find while learning the controls. */
 export const TUTORIAL_TARGETS = ['BRA', 'AUS', 'JPN']
 

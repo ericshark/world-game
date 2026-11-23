@@ -6,11 +6,13 @@ highlighted, how far off they were, and their score.
 
 ## Goals
 
-- **Purpose:** personal hobby project, built for fun. May later become a free public site.
-- **Players:** geography enthusiasts and people who want to get better at geography.
-- **Platform:** desktop and mobile web browsers. Runs locally; no hosting yet.
-- **Modes:** Pinpoint, GeoRush, Rare Earth, Mystery Country, World Journey, Daily World and
-  World Battle (against bots, or in private online rooms on a local server).
+- **Purpose:** geography trainer and globe game. Live at <https://world-game-0qhx.onrender.com> and
+  installable offline for solo play and Learn.
+- **Players:** learners building durable map recall and geography enthusiasts chasing mastery and
+  ranked challenges.
+- **Platform:** desktop and mobile web browsers, installable via service worker.
+- **Modes:** Learn & Atlas (spaced-repetition courses & reference), Pinpoint, GeoRush, Rare Earth,
+  Mystery Country, World Journey, Daily World, and World Battle (bots, private rooms, Quick Duel).
 
 ## Core game: "Find X"
 
@@ -85,16 +87,21 @@ At max zoom (continent view), micro-states and small islands are only a few pixe
 
 ## Progress tracking
 
-- Per-country results stored in **browser storage** (no accounts, no backend).
-- **"Practice my weak countries"** biases target selection toward countries with poor accuracy:
-  a country you always miss is ~20× more likely than one you always find; unseen countries sit between.
-- Stats can be reset from the Stats screen. The last start-screen choices are remembered too.
+- Per-country and per-subdivision results, SM-2 review cards, and Passport progression live in
+  **browser storage**, with optional account sign-in (email magic link, Google, or GitHub) syncing
+  your cloud profile, duel rating, and daily results to SQLite.
+- **"Practice my weak countries / cities"** biases target selection toward weak items: a country you
+  always miss is ~20× more likely than one you always find; unseen countries sit between.
+- Stats can be exported, imported, or reset from the Settings screen. Last start-screen choices are
+  remembered too.
 
 ## Tech stack
 
 - **TypeScript + Vite + React**
-- **Three.js via react-three-fiber** for the globe
-- Static site, no backend. Runs locally for now.
+- **Three.js via react-three-fiber** for the globe (with 4K/8K WebP textures and optional borders)
+- **Node + Express + WebSocket + SQLite** backend for accounts, online rooms, Quick Duel, daily
+  puzzles/leaderboards, and cookie-less daily usage totals
+- **Service worker (`/sw.js`)** generated at build time for offline install and updates
 
 ## Pinpoint options
 
@@ -344,24 +351,35 @@ Natural Earth 1:10m admin-1 states, provinces and territories are compiled by
 
 ## Platform
 
-- Home screen with mode tiles; setup sheets remember the last choices.
+- Home screen grouped into **Learn**, **Daily**, **Play** (`Pinpoint` featured plus a compact
+  grid for `GeoRush`, `Rare Earth`, `Mystery Country` and `World Journey`), and **Compete** (`World
+Battle`, `Play online`, and `Leaderboards`), with `Passport` and `Settings` in the header and a
+  sticky four-tab jump bar. Setup sheets remember the last choices.
 - Shared HUD, result card (grade, points, fact card with capital, population, neighbours) and
   results screen with personal bests.
 - Settings: sound (synthesised with Web Audio), motion (system, reduced or full), km or miles,
-  tap or crosshair pin placement, latitude and longitude grid, reset progress.
+  tap or crosshair pin placement, optional country borders, latitude and longitude grid, cloud
+  account sync/deletion, backup export/import, and reset progress.
 - Keyboard play: arrow keys turn the globe, +/− zoom, Space drops a pin at the screen centre,
   Enter confirms.
-- Phones get a bottom-sheet layout, a wider field of view in portrait, and 4096-wide textures.
-  The answer panel stays above the on-screen keyboard.
-- **Globe scenes** hold paints, pins, arcs, labelled markers (capitals, journey ends) and brief
-  country pulses. The player's own pins and arcs carry their chosen looks.
+- Phones get a bottom-sheet portrait layout, a side-panel landscape layout, a wider field of view
+  in portrait, and 4096-wide WebP textures. The answer panel stays above the on-screen keyboard.
+- **Globe scenes** hold paints, vector subdivision highlights, pins, arcs, labelled markers
+  (capitals, major cities, journey ends) and brief country pulses. The player's own pins and arcs
+  carry their chosen looks.
 - **Tour:** new players are offered a one-minute guided game, which teaches spinning, zooming,
   placing and confirming with tips that suit touch, mouse or crosshair. It can be replayed from
   Settings.
+- **Offline install & updates:** after data and the 3D scene finish loading, the app registers
+  `/sw.js` (precache of shell, JS/CSS bundles, core data JSONs, and 4K WebP textures) and surfaces
+  waiting service-worker updates in a persistent `popover="manual"` toast with Reload and Dismiss
+  controls.
+- **First-party anonymous counts:** cookie-less requests (`credentials: 'omit'`) record daily
+  aggregate totals for visits, mode launches/finishes, rooms created, and Quick Duel pairings in
+  SQLite (`usage_counts`), exposed only to operators via `GET /admin/counters`.
 
-## Out of scope for v1 (possible later)
+## Future ideas (out of scope for 2.0)
 
-- "Guess from terrain" mode
-- Hosting, leaderboards, accounts
+- Physical geography / "Guess from terrain" mode
 - Shaded-relief imagery toggle
 - Translations

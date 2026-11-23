@@ -76,13 +76,21 @@ export class Matchmaker {
   private readonly queue: QueueEntry[] = []
   private readonly db: Database
   private readonly now: () => number
-  private readonly createRoom: () => Room
+  private readonly createRoom: () => Room | null
+  private readonly onPair?: () => void
   private readonly ratingOf = new Map<string, StoredRating>()
 
-  constructor(deps: { db: Database; geo: GeoData; now: () => number; createRoom: () => Room }) {
+  constructor(deps: {
+    db: Database
+    geo: GeoData
+    now: () => number
+    createRoom: () => Room | null
+    onPair?: () => void
+  }) {
     this.db = deps.db
     this.now = deps.now
     this.createRoom = deps.createRoom
+    this.onPair = deps.onPair
   }
 
   get waiting(): number {
@@ -103,6 +111,7 @@ export class Matchmaker {
     const index = this.queue.findIndex((e) => e.playerId === playerId)
     if (index < 0) return
     const [gone] = this.queue.splice(index, 1)
+    this.ratingOf.delete(gone.playerId)
     if (notify) gone.send({ t: 'queue', state: { status: 'idle' } })
   }
 
@@ -142,10 +151,14 @@ export class Matchmaker {
   playBot(playerId: string) {
     const entry = this.queue.find((e) => e.playerId === playerId)
     if (!entry || !entry.offered) return
-    this.leave(playerId, false)
     const room = this.createRoom()
-    if (this.seat(room, entry)) return
+    if (!room) {
+      entry.send({ t: 'error', message: 'The server is full. Try again later.' })
+      return
+    }
     const rating = this.rating(entry)
+    this.leave(playerId, false)
+    if (this.seat(room, entry)) return
     room.startMatch({ ...QUICK_DUEL_SETTINGS, bots: 1, botSkill: botSkillFor(rating) })
     entry.send({ t: 'rating', note: { rated: false, rating: Math.round(rating), reason: 'bot' } })
     // The note is sent up front so it is there when the results appear.
@@ -176,10 +189,12 @@ export class Matchmaker {
   }
 
   private pair(a: QueueEntry, b: QueueEntry) {
+    const room = this.createRoom()
+    if (!room) return
     this.leave(a.playerId, false)
     this.leave(b.playerId, false)
-    const room = this.createRoom()
     if (this.seat(room, a) || this.seat(room, b)) return
+    this.onPair?.()
     const [idA, idB] = room.memberIds
     const seats: [Seat, Seat] = [
       { entry: a, memberId: idA },

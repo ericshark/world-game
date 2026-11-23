@@ -65,6 +65,7 @@ function githubProvider(config: ServerConfig): OAuthProvider | null {
         accept: 'application/vnd.github+json',
         'user-agent': 'world-game',
       },
+      signal: AbortSignal.timeout(10_000),
     })
     if (!response.ok) throw new Error(`GitHub answered ${response.status}.`)
     return response.json() as Promise<unknown>

@@ -1,6 +1,7 @@
-import { lazy, Suspense, useState, type ComponentType } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState, type ComponentType } from 'react'
 import { EXPEDITIONS } from '../game/modes/expeditions'
 import { loadPinpointConfig, sanitizePinpointConfig } from '../game/profile/settings'
+import { recordUsage, type UsageEvent } from '../net/usage'
 import { formatNumber } from '../screens/format'
 import { Sheet } from '../ui/Sheet'
 import { HomeScreen } from '../screens/HomeScreen'
@@ -161,7 +162,37 @@ const SCREENS: Record<ModeKey, ModeScreens<unknown>> = {
   }),
 }
 
+function routeUsage(route: Route): { key: string; event: UsageEvent } | null {
+  switch (route.name) {
+    case 'play':
+      return { key: `play:${route.mode}`, event: `mode:${route.mode}` }
+    case 'daily-play':
+      return { key: `daily:${route.puzzle}`, event: 'mode:daily' }
+    case 'learn-play':
+      return { key: `learn:${route.target}`, event: 'mode:learn' }
+    case 'atlas':
+      return { key: 'atlas', event: 'mode:atlas' }
+    case 'online':
+    case 'room':
+      return { key: 'online', event: 'mode:online' }
+    default:
+      return null
+  }
+}
+
 export function Routes({ route }: { route: Route }) {
+  const lastUsageKey = useRef<string | null>(null)
+  useEffect(() => {
+    const next = routeUsage(route)
+    if (!next) {
+      lastUsageKey.current = null
+      return
+    }
+    if (lastUsageKey.current === next.key) return
+    lastUsageKey.current = next.key
+    recordUsage(next.event)
+  }, [route])
+
   return (
     <Suspense fallback={null}>
       <CurrentRoute route={route} />

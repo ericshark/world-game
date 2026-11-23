@@ -35,8 +35,10 @@ export function securityHeaders(config: ServerConfig): MiddlewareHandler {
     if (config.production && https) {
       c.header('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
     }
-    // Answers from the API are personal and must never be kept by a shared cache.
-    if (c.req.path.startsWith('/api/')) c.header('Cache-Control', 'no-store')
+    // Answers from the API and admin counters are private and must never be kept by a shared cache.
+    if (c.req.path.startsWith('/api/') || c.req.path.startsWith('/admin/')) {
+      c.header('Cache-Control', 'no-store')
+    }
   }
 }
 

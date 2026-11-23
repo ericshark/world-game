@@ -62,13 +62,13 @@ export function DailyScreen({
         <header className="passport__header">
           <div>
             <p className="eyebrow">Daily World #{dailyNumber(dateKey)}</p>
-            <h2 className="passport__rank" id="daily-title">
+            <h1 className="passport__rank" id="daily-title">
               {new Date(`${dateKey}T12:00:00`).toLocaleDateString(undefined, {
                 weekday: 'long',
                 month: 'long',
                 day: 'numeric',
               })}
-            </h2>
+            </h1>
           </div>
           <button type="button" className="icon-button" onClick={onClose} aria-label="Close">
             <Icon name="close" />
@@ -144,9 +144,9 @@ export function DailyScreen({
         )}
 
         <section className="weekly" aria-labelledby="weekly-title">
-          <h3 className="field__label" id="weekly-title">
+          <h2 className="field__label" id="weekly-title">
             Goals this week
-          </h3>
+          </h2>
           <ul className="weekly__list">
             {goals.map(({ goal, progress, done }) => (
               <li key={goal.id} className={done ? 'is-done' : undefined}>
@@ -188,6 +188,9 @@ function Calendar({ dateKey }: { dateKey: string }) {
             <li
               key={key}
               className={`calendar__day level-${level}${key === dateKey ? ' is-today' : ''}`}
+              aria-label={
+                score === undefined ? `${key}: not played` : `${key}: ${formatNumber(score)} points`
+              }
               title={score === undefined ? `${key}: not played` : `${key}: ${formatNumber(score)}`}
             />
           )

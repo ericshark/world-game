@@ -31,6 +31,13 @@ test.describe('accessibility', () => {
     await audit(page, 'home')
   })
 
+  test('home phone landscape', async ({ page }, info) => {
+    test.skip(info.project.name !== 'desktop', 'Explicit landscape viewport check.')
+    await page.setViewportSize({ width: 915, height: 412 })
+    await openGame(page, '/')
+    await audit(page, 'home phone landscape')
+  })
+
   // One test per screen: an axe pass takes several seconds on a CI runner rendering WebGL in
   // software, so ten in one test ran past the timeout.
   for (const [path, name] of [

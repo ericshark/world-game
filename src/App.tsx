@@ -3,9 +3,11 @@ import { AppContext, useStoredState, type AppServices } from './app/AppContext'
 import { GlobeStageProvider } from './app/GlobeStage'
 import { useAccount } from './app/useAccount'
 import { useRoute } from './app/router'
+import { registerServiceWorker } from './app/serviceWorker'
 import { useKeyboardInset } from './app/useKeyboardInset'
 import { Routes } from './app/Routes'
 import { loadGeoData, type GeoData } from './geo/facts'
+import { recordUsage } from './net/usage'
 import { SyncConflictSheet } from './screens/account/SyncConflictSheet'
 import { LoadingOverlay } from './screens/LoadingOverlay'
 import { ReducedMotionContext, useResolvedReducedMotion } from './ui/motion'
@@ -26,7 +28,24 @@ export default function App() {
   )
   const [route, navigate] = useRoute()
   const toasts = useToasts()
+  const pushToast = toasts.push
   useKeyboardInset()
+  useEffect(() => {
+    recordUsage('visit')
+  }, [])
+  useEffect(() => {
+    if (!geo || !globe.ready) return
+    registerServiceWorker((applyUpdate) => {
+      pushToast({
+        key: 'sw-update',
+        icon: 'globe',
+        title: 'Update available',
+        text: 'Reload to get the latest version.',
+        persistent: true,
+        action: { label: 'Reload', onClick: applyUpdate },
+      })
+    })
+  }, [geo, globe.ready, pushToast])
   const stored = useStoredState(geo, toasts.push)
   const account = useAccount(stored.profile, stored.adoptProfile)
   const reducedMotion = useResolvedReducedMotion(stored.preferences.motion)

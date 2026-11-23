@@ -132,9 +132,9 @@ export function AtlasScreen({ onClose }: { onClose: () => void }) {
         <header className="passport__header">
           <div>
             <p className="eyebrow">Explore</p>
-            <h2 className="passport__rank" id="atlas-title">
+            <h1 className="passport__rank" id="atlas-title">
               Atlas
-            </h2>
+            </h1>
           </div>
           <button type="button" className="icon-button" onClick={onClose} aria-label="Close">
             <Icon name="close" />
@@ -150,7 +150,7 @@ export function AtlasScreen({ onClose }: { onClose: () => void }) {
         <Switch label="Major cities" checked={showCities} onChange={setShowCities} />
         {selected && (
           <div className="country-card">
-            <h3 className="country-card__name">{geo.nameOf(selected)}</h3>
+            <h2 className="country-card__name">{geo.nameOf(selected)}</h2>
             <FactCard geo={geo} id={selected} units={preferences.units} cities={cities} />
             {selectedCities.length > 0 && (
               <p className="passport__hint">

@@ -89,9 +89,9 @@ export function PassportScreen({ onClose }: { onClose: () => void }) {
         <header className="passport__header">
           <div>
             <p className="eyebrow">Your World</p>
-            <h2 className="passport__rank" id="passport-title">
+            <h1 className="passport__rank" id="passport-title">
               {rank.title}
-            </h2>
+            </h1>
           </div>
           <button type="button" className="icon-button" onClick={onClose} aria-label="Close">
             <Icon name="close" />
@@ -201,13 +201,13 @@ function CountryCard({ id, onBack }: { id: string; onBack: () => void }) {
       <button type="button" className="button button--link" onClick={onBack}>
         ← All regions
       </button>
-      <h3 className="country-card__name">
+      <h2 className="country-card__name">
         {geo.nameOf(id)}
         <span className="tag">
           {mastery === 'unseen' ? 'Not seen yet' : MASTERY_STYLE[mastery].label}
           {profile.masteredAt[id] && ` · ${new Date(profile.masteredAt[id]).toLocaleDateString()}`}
         </span>
-      </h3>
+      </h2>
       <ul className="country-card__skills">
         {Object.entries(skills).map(([skill, stats]) =>
           stats ? (

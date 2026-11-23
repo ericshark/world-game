@@ -109,7 +109,11 @@ export class AuthStore {
       const current = (own?.nickname as string | null) ?? ''
       if (current.toLowerCase().startsWith(`${name.toLowerCase()}#`)) nickname = current
       else {
-        while (taken(nickname)) nickname = `${name}#${randomDigits(4)}`
+        for (let tries = 0; taken(nickname); tries++) {
+          if (tries < 30) nickname = `${name}#${randomDigits(4)}`
+          else if (tries < 60) nickname = `${name}#${randomDigits(6)}`
+          else throw new Error('Could not assign a unique nickname.')
+        }
       }
       this.db.prepare('UPDATE players SET nickname = ? WHERE id = ?').run(nickname, playerId)
       return nickname

@@ -1,14 +1,13 @@
 import { useEffect } from 'react'
-import { tutorial } from '../../game/modes/tutorial'
+import { TOUR_KEY, tutorial } from '../../game/modes/tutorial'
 import type { CoachStep } from '../../ui/CoachMark'
 import { useApp } from '../AppContext'
 import { RoundGame, type CoachMoment } from '../rounds/RoundGame'
 import { bestStreak } from '../streaks'
 
-const NO_SETUP = {}
+export { TOUR_KEY }
 
-/** Seen once the tour has been offered and started, so the home screen stops offering it. */
-export const TOUR_KEY = 'tour'
+const NO_SETUP = {}
 
 /** The guided first game: three easy finds with tips on spinning, zooming and placing pins. */
 export function TutorialGame({ onHome }: { onHome: () => void }) {

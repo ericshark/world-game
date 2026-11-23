@@ -142,7 +142,12 @@ export function SettingsScreen({ onClose }: { onClose: () => void }) {
           </button>
           <label className="button button--ghost">
             Restore a backup
-            <input type="file" accept="application/json,.json" hidden onChange={importBackup} />
+            <input
+              type="file"
+              accept="application/json,.json"
+              className="sr-only"
+              onChange={importBackup}
+            />
           </label>
         </div>
         {restoreMessage && <p className="field__hint">{restoreMessage}</p>}

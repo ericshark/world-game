@@ -81,6 +81,12 @@ export const MIGRATIONS: readonly string[] = [
      reason TEXT
    );
    CREATE INDEX matches_pair ON matches (player_a, player_b, played);`,
+  `CREATE TABLE usage_counts (
+     day TEXT NOT NULL,
+     event TEXT NOT NULL,
+     count INTEGER NOT NULL DEFAULT 0,
+     PRIMARY KEY (day, event)
+   );`,
 ]
 
 export function runMigrations(db: Database, migrations: readonly string[] = MIGRATIONS) {
