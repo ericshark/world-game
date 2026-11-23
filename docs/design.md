@@ -99,7 +99,7 @@ At max zoom (continent view), micro-states and small islands are only a few pixe
 
 - **TypeScript + Vite + React**
 - **Three.js via react-three-fiber** for the globe (with 4K/8K WebP textures and optional borders)
-- **Node + Express + WebSocket + SQLite** backend for accounts, online rooms, Quick Duel, daily
+- **Node + Hono + WebSocket + SQLite** backend for accounts, online rooms, Quick Duel, daily
   puzzles/leaderboards, and cookie-less daily usage totals
 - **Service worker (`/sw.js`)** generated at build time for offline install and updates
 
