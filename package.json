@@ -49,7 +49,7 @@
     "@vitejs/plugin-react": "^6.1.2",
     "flag-icons": "^7.6.0",
     "mapshaper": "^0.7.101",
-    "oxlint": "^1.88.0",
+    "oxlint": "^1.94.0",
     "prettier": "^3.10.1",
     "sharp": "^0.35.5",
     "tsx": "^4.23.15",
